@@ -45,11 +45,15 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 - J: nivel de la landing pública = simple con explicación + buscador.
 - K: notificaciones por email = solo email transaccional crítico.
 
+## Decisiones cerradas en Tarea 5 (2026-04-30)
+
+- L: stack tecnológico = Stack A (Next.js + Supabase + Vercel + Resend).
+
 ---
 
 ## Bloqueado a la espera de
 
-Respuesta de Vaquero a la decisión L planteada en `TAREA_5_STACK_TECNOLOGICO.md` (Stack A vs Stack B). Sin esa respuesta no se puede arrancar la Tarea 6 con el plan de fases cerrado contra un stack concreto.
+Respuesta de Vaquero a la decisión M planteada en `TAREA_6_PLAN_DE_FASES.md` (sector con el que arrancamos Fase 1). Cuando se cierre, termina la fase de diseño y la siguiente sesión arranca Fase 0 (setup técnico).
 
 ---
 
@@ -58,8 +62,22 @@ Respuesta de Vaquero a la decisión L planteada en `TAREA_5_STACK_TECNOLOGICO.md
 1. **Tarea 2 — Resumen ejecutivo.** ENTREGADA en `TAREA_2_RESUMEN_EJECUTIVO.md` el 2026-04-30 y aprobada por Vaquero (decisiones A, B, C, D OK).
 2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30 y aprobada por Vaquero (decisiones E, F, G, H OK).
 3. **Tarea 4 — Mock del formulario.** ENTREGADA en `TAREA_4_MOCK_FORMULARIO.md` el 2026-04-30 y aprobada por Vaquero (decisiones I, J, K OK), ampliada con sección 1.1 sobre la landing pública.
-4. **Tarea 5 — Stack candidato.** ENTREGADA en `TAREA_5_STACK_TECNOLOGICO.md` el 2026-04-30. Pendiente la respuesta de Vaquero a la decisión L (Stack A vs Stack B).
-5. **Tarea 6 — Plan de fases.** MVP → beta privada → beta pública → producción, con criterios claros de transición entre cada una. Bloqueada hasta cerrar decisión de Tarea 5.
+4. **Tarea 5 — Stack candidato.** ENTREGADA en `TAREA_5_STACK_TECNOLOGICO.md` el 2026-04-30 y aprobada por Vaquero (decisión L = Stack A).
+5. **Tarea 6 — Plan de fases.** ENTREGADA en `TAREA_6_PLAN_DE_FASES.md` el 2026-04-30. Pendiente la respuesta de Vaquero a la decisión M (sector inicial Fase 1).
+
+---
+
+## Próxima sesión
+
+Arrancar **Fase 0 — Setup técnico** según `TAREA_6_PLAN_DE_FASES.md`:
+1. Inicializar proyecto Next.js + TypeScript + Tailwind.
+2. Crear cuenta y proyecto Supabase (región Europa).
+3. Conectar Vercel ↔ GitHub para despliegue automático.
+4. Verificar despliegue inicial.
+5. Configurar Resend.
+6. Documentar en `STACK_INSTALADO.md`.
+
+Vaquero deberá ejecutar acciones manuales (registrar cuentas en Supabase, Resend; registrar dominio si quiere). Claude le guiará paso a paso.
 
 ---
 
@@ -104,4 +122,5 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Vaquero aprueba las 4 recomendaciones.
 - Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Vaquero aprueba las 4 recomendaciones.
 - Se entrega la Tarea 4 (`TAREA_4_MOCK_FORMULARIO.md`): wizard de creación de anuncio en 8 pasos adaptables al sector elegido, pantalla de mapa con clic individual + autocompletado + atajos por provincia/CCAA/comarca/radio, vista pública limitada para anónimos, vista completa para registrados, mensajería interna entre participantes de cadenas detectadas, reglas de validación por campo y comportamientos ante casos límite. Se abren 3 decisiones (idioma interfaz, nivel landing, política de notificaciones). Vaquero pide aclarar el flujo de la landing y se añade la sección 1.1 con su descripción detallada (cabecera, hero con CTA "Publicar mi anuncio", buscador rápido funcional para anónimos, "Cómo funciona", sectores cubiertos, diferenciadores, CTA final, pie con atribuciones legales). Vaquero aprueba las 3 decisiones I, J, K.
-- Se entrega la Tarea 5 (`TAREA_5_STACK_TECNOLOGICO.md`): glosario para no programadores, comparativa entre Stack A (Next.js + Supabase + Vercel + Resend, recomendado) y Stack B (Next.js + SQLite/Turso + Auth.js + Vercel + Resend, alternativo más simple), coste estimado mensual (~1€ al arrancar, ~65€ a escala) y de tiempo (~30-33 sesiones de trabajo, 3-4 meses), recomendación clara del Stack A y FAQ con las preguntas previsibles del usuario no programador. Sesión queda bloqueada esperando respuesta a la decisión L para arrancar Tarea 6.
+- Se entrega la Tarea 5 (`TAREA_5_STACK_TECNOLOGICO.md`): glosario para no programadores, comparativa entre Stack A (Next.js + Supabase + Vercel + Resend, recomendado) y Stack B (Next.js + SQLite/Turso + Auth.js + Vercel + Resend, alternativo más simple), coste estimado mensual (~1€ al arrancar, ~65€ a escala) y de tiempo (~30-33 sesiones de trabajo, 3-4 meses), recomendación clara del Stack A y FAQ con las preguntas previsibles del usuario no programador. Vaquero aprueba la decisión L = Stack A.
+- Se entrega la Tarea 6 (`TAREA_6_PLAN_DE_FASES.md`): plan de desarrollo en 5 fases (0 setup, 1 alfa interna con un solo sector, 2 beta privada con 5-15 invitados y resto de sectores, 3 beta pública sin promoción, 4 producción/lanzamiento) con criterios objetivos de transición y entregables por fase. Tiempo total ~32 sesiones. Coste acumulado de servicios ~10€ hasta producción, más revisión legal puntual ~150-300€. Decisión M abierta: sector con el que arrancamos Fase 1 (recomendación: docencia LOE). Cierre de la fase de diseño cuando se cierre la decisión M.
