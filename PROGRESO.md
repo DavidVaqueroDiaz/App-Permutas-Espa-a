@@ -39,11 +39,17 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 - G: idiomas de la taxonomía = solo castellano en MVP.
 - H: retención de mensajes = 1 año desde último mensaje, luego borrado automático.
 
+## Decisiones cerradas en Tarea 4 (2026-04-30)
+
+- I: idioma de la interfaz = solo castellano en MVP.
+- J: nivel de la landing pública = simple con explicación + buscador.
+- K: notificaciones por email = solo email transaccional crítico.
+
 ---
 
 ## Bloqueado a la espera de
 
-Respuesta de Vaquero a las 3 decisiones planteadas en `TAREA_4_MOCK_FORMULARIO.md` (I: idioma de la interfaz, J: nivel de la landing pública, K: notificaciones por email). Sin esas respuestas no se puede arrancar la Tarea 5 con el stack cerrado.
+Respuesta de Vaquero a la decisión L planteada en `TAREA_5_STACK_TECNOLOGICO.md` (Stack A vs Stack B). Sin esa respuesta no se puede arrancar la Tarea 6 con el plan de fases cerrado contra un stack concreto.
 
 ---
 
@@ -51,9 +57,9 @@ Respuesta de Vaquero a las 3 decisiones planteadas en `TAREA_4_MOCK_FORMULARIO.m
 
 1. **Tarea 2 — Resumen ejecutivo.** ENTREGADA en `TAREA_2_RESUMEN_EJECUTIVO.md` el 2026-04-30 y aprobada por Vaquero (decisiones A, B, C, D OK).
 2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30 y aprobada por Vaquero (decisiones E, F, G, H OK).
-3. **Tarea 4 — Mock del formulario.** ENTREGADA en `TAREA_4_MOCK_FORMULARIO.md` el 2026-04-30. Pendiente la respuesta de Vaquero a las 3 decisiones I, J, K.
-4. **Tarea 5 — Stack candidato.** Frontend, backend, BD, auth, despliegue, fuente de datos geográficos. Propondremos opción óptima y opción simple. Decisión final la toma Vaquero. Bloqueada hasta cerrar decisiones de Tarea 4.
-5. **Tarea 6 — Plan de fases.** MVP → beta privada → beta pública → producción, con criterios claros de transición entre cada una.
+3. **Tarea 4 — Mock del formulario.** ENTREGADA en `TAREA_4_MOCK_FORMULARIO.md` el 2026-04-30 y aprobada por Vaquero (decisiones I, J, K OK), ampliada con sección 1.1 sobre la landing pública.
+4. **Tarea 5 — Stack candidato.** ENTREGADA en `TAREA_5_STACK_TECNOLOGICO.md` el 2026-04-30. Pendiente la respuesta de Vaquero a la decisión L (Stack A vs Stack B).
+5. **Tarea 6 — Plan de fases.** MVP → beta privada → beta pública → producción, con criterios claros de transición entre cada una. Bloqueada hasta cerrar decisión de Tarea 5.
 
 ---
 
@@ -97,4 +103,5 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - El PDF de Perplexity, el `prompt inicial.txt`, los 6 PDFs de investigación, las dudas y las descargas de Cowork quedan en `.gitignore` (material de referencia personal — no se suben al repo público).
 - Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Vaquero aprueba las 4 recomendaciones.
 - Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Vaquero aprueba las 4 recomendaciones.
-- Se entrega la Tarea 4 (`TAREA_4_MOCK_FORMULARIO.md`): wizard de creación de anuncio en 8 pasos adaptables al sector elegido, pantalla de mapa con clic individual + autocompletado + atajos por provincia/CCAA/comarca/radio, vista pública limitada para anónimos, vista completa para registrados, mensajería interna entre participantes de cadenas detectadas, reglas de validación por campo y comportamientos ante casos límite. Se abren 3 decisiones para Tarea 5 (idioma interfaz, nivel landing, política de notificaciones). Sesión queda bloqueada esperando respuesta a esas 3 decisiones para arrancar Tarea 5.
+- Se entrega la Tarea 4 (`TAREA_4_MOCK_FORMULARIO.md`): wizard de creación de anuncio en 8 pasos adaptables al sector elegido, pantalla de mapa con clic individual + autocompletado + atajos por provincia/CCAA/comarca/radio, vista pública limitada para anónimos, vista completa para registrados, mensajería interna entre participantes de cadenas detectadas, reglas de validación por campo y comportamientos ante casos límite. Se abren 3 decisiones (idioma interfaz, nivel landing, política de notificaciones). Vaquero pide aclarar el flujo de la landing y se añade la sección 1.1 con su descripción detallada (cabecera, hero con CTA "Publicar mi anuncio", buscador rápido funcional para anónimos, "Cómo funciona", sectores cubiertos, diferenciadores, CTA final, pie con atribuciones legales). Vaquero aprueba las 3 decisiones I, J, K.
+- Se entrega la Tarea 5 (`TAREA_5_STACK_TECNOLOGICO.md`): glosario para no programadores, comparativa entre Stack A (Next.js + Supabase + Vercel + Resend, recomendado) y Stack B (Next.js + SQLite/Turso + Auth.js + Vercel + Resend, alternativo más simple), coste estimado mensual (~1€ al arrancar, ~65€ a escala) y de tiempo (~30-33 sesiones de trabajo, 3-4 meses), recomendación clara del Stack A y FAQ con las preguntas previsibles del usuario no programador. Sesión queda bloqueada esperando respuesta a la decisión L para arrancar Tarea 6.
