@@ -1,15 +1,27 @@
 # Material de referencia personal — no subir al repo público
 *.pdf
 prompt*.txt
+dudas.txt
+descargas de cowork/
+Documentos que acompañan*/
 
-# Node / build artefacts (cuando arranquemos código)
-node_modules/
-dist/
-build/
-out/
-.next/
-.cache/
+# Dependencias
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Build / artefactos de Next.js
+/.next/
+/out/
+/build
+/dist
 *.tsbuildinfo
+next-env.d.ts
 
 # Variables de entorno y secretos
 .env
@@ -17,6 +29,22 @@ out/
 .env.*.local
 *.pem
 *.key
+
+# BLINDAJE ANTI-FUGAS DE SECRETOS
+# Cualquier archivo cuyo nombre contenga estas palabras queda fuera del repo
+# por seguridad. Si necesitas guardar una clave, usalo en .env.local o en un
+# gestor de contrasenas, NO en archivos sueltos.
+*api*key*
+*secret*
+*token*
+*credentials*
+*password*
+*.pem
+*.p12
+*.pfx
+
+# Vercel
+.vercel
 
 # Editor / IDE
 .vscode/
@@ -36,3 +64,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-debug.log*
+
+# Testing
+/coverage

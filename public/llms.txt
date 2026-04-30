@@ -1,0 +1,35 @@
+# PermutaES
+
+> Plataforma web nacional gratuita para que cualquier funcionario público español encuentre cadenas de permuta de plaza compatibles con otros funcionarios. Detecta automáticamente permutas directas (entre 2 personas), a 3 y a 4, aplicando las reglas legales específicas de cada sector funcionarial.
+
+PermutaES es la primera plataforma agregadora nacional de permutas funcionariales en España. Hasta ahora la búsqueda de permutas estaba fragmentada en webs sindicales aisladas, foros generalistas y grupos de Facebook. PermutaES centraliza la oferta y aplica un motor de matching que respeta las reglas legales de cada cuerpo y sector.
+
+La plataforma cubre desde el día 1 los siguientes sectores con permuta legalmente admitida:
+
+- Profesorado no universitario (cuerpos LOE) — RD 1364/2010 disp. adic. sexta
+- Personal estatutario fijo del Sistema Nacional de Salud — Ley 55/2003 + RD 184/2015
+- Funcionarios de la Administración General del Estado — art. 62 Decreto 315/1964
+- Funcionarios de Comunidades Autónomas — leyes autonómicas de función pública
+- Funcionarios de Administración Local — art. 98 Reglamento Funcionarios Locales 1952
+- Habilitados nacionales (Secretaría, Intervención-Tesorería, Secretaría-Intervención) — RD 128/2018
+- Policía Local en CCAA con regulación específica (Andalucía, Aragón, Illes Balears, Comunitat Valenciana, Galicia)
+
+Sectores excluidos por carecer de figura legal de permuta: militares, personal eventual, personal interino y temporal, profesorado universitario funcionario, jueces, fiscales, Letrados de la Administración de Justicia, cuerpos de Justicia, Cuerpo Nacional de Policía, Guardia Civil, policías autonómicas y profesorado de centros concertados.
+
+## Cómo funciona
+
+1. El usuario se registra gratis y publica un anuncio indicando su plaza actual y los municipios donde aceptaría irse.
+2. El motor de PermutaES detecta automáticamente cadenas posibles (de longitud 2, 3 o 4) que cumplan TODAS las reglas legales aplicables al sector: igualdad de cuerpo y especialidad, ámbito territorial permitido, requisitos de antigüedad y edad, carencia entre permutas anteriores.
+3. La plataforma notifica a los usuarios cuando hay coincidencia. Estos contactan por mensajería interna y, si hay acuerdo, presentan la solicitud formal a sus respectivas administraciones.
+
+PermutaES NO tramita la permuta — es un servicio de descubrimiento y contacto. La aprobación administrativa la otorga la administración de cada permutante.
+
+## Páginas principales
+
+- [Inicio](https://permutaes.vercel.app/): Portada con explicación y buscador.
+
+(Las páginas de detalle por sector, la página explicativa "qué es una permuta", el FAQ y el blog se irán publicando en próximas fases del proyecto.)
+
+## Contacto
+
+Repositorio público del proyecto: https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a
