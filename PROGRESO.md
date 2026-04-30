@@ -25,17 +25,26 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 ---
 
+## Decisiones cerradas en Tarea 2 (2026-04-30)
+
+- A: modelo de contacto entre usuarios = mensajería interna en la app.
+- B: motivos de permuta = no se incluyen.
+- C: visibilidad pública de anuncios = lectura limitada anónima, detalle solo para registrados.
+- D: forma jurídica del responsable de tratamiento = autónomo (a revisar cuando haya tracción).
+
+---
+
 ## Bloqueado a la espera de
 
-Respuesta de Vaquero a las 4 decisiones críticas planteadas en `TAREA_2_RESUMEN_EJECUTIVO.md` (modelo de contacto, motivos de permuta, visibilidad de anuncios, forma jurídica del responsable de tratamiento). Sin esas respuestas no se puede arrancar la Tarea 3 con esquema de datos cerrado.
+Respuesta de Vaquero a las 4 decisiones técnicas planteadas en `TAREA_3_ESQUEMA_DATOS.md` (E: fecha de nacimiento vs año, F: caducidad de anuncios, G: multilingüismo de taxonomía, H: retención de mensajes). Sin esas respuestas no se puede arrancar la Tarea 4 con el formulario cerrado.
 
 ---
 
 ## Tareas pendientes
 
-1. **Tarea 2 — Resumen ejecutivo.** ENTREGADA en `TAREA_2_RESUMEN_EJECUTIVO.md` el 2026-04-30. Pendiente la respuesta de Vaquero a las 4 decisiones críticas.
-2. **Tarea 3 — Esquema de datos.** Tablas conceptuales: usuarios, anuncios, taxonomía de cuerpos/escalas/especialidades, municipios INE, compatibilidades intersectoriales, histórico de cadenas detectadas, mensajería entre matchs. Bloqueada hasta cerrar decisiones de Tarea 2.
-3. **Tarea 4 — Mock del formulario.** Wizard paso a paso (sector → cuerpo → especialidad → plaza actual → plazas deseadas → confirmación), mapa con multi-clic y atajos por provincia/CCAA/comarca/radio, validaciones por paso.
+1. **Tarea 2 — Resumen ejecutivo.** ENTREGADA en `TAREA_2_RESUMEN_EJECUTIVO.md` el 2026-04-30 y aprobada por Vaquero (decisiones A, B, C, D OK).
+2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30. Pendiente la respuesta de Vaquero a las 4 decisiones técnicas E, F, G, H.
+3. **Tarea 4 — Mock del formulario.** Wizard paso a paso (sector → cuerpo → especialidad → plaza actual → plazas deseadas → confirmación), mapa con multi-clic y atajos por provincia/CCAA/comarca/radio, validaciones por paso. Bloqueada hasta cerrar decisiones de Tarea 3.
 4. **Tarea 5 — Stack candidato.** Frontend, backend, BD, auth, despliegue, fuente de datos geográficos. Propondremos opción óptima y opción simple. Decisión final la toma Vaquero.
 5. **Tarea 6 — Plan de fases.** MVP → beta privada → beta pública → producción, con criterios claros de transición entre cada una.
 
@@ -79,4 +88,5 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Se redacta un segundo prompt para Perplexity con las dudas que NotebookLM no pudo resolver y Vaquero entrega el resultado en `dudas perplexity.pdf`. Cubre cuerpos autonómicos (5 CCAA con regulación localizada), Policía Local (5 CCAA con regulación, todas intra-CCAA), Servicios de Salud (Aragón añade un trámite específico), catálogos descargables (solo Murcia).
 - Se inicializa el repo Git en `C:\Users\Usuario\Desktop\APP permutas`, se conecta al remoto `https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a`, se crean `PROGRESO.md` y `.gitignore`, y se hace el commit inicial.
 - El PDF de Perplexity, el `prompt inicial.txt`, los 6 PDFs de investigación, las dudas y las descargas de Cowork quedan en `.gitignore` (material de referencia personal — no se suben al repo público).
-- Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas pendientes (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Sesión queda bloqueada esperando respuesta a esas 4 decisiones para arrancar Tarea 3.
+- Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Vaquero aprueba las 4 recomendaciones.
+- Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas pendientes (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Sesión queda bloqueada esperando respuesta a esas 4 decisiones para arrancar Tarea 4.
