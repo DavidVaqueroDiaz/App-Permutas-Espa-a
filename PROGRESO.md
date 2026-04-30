@@ -8,9 +8,9 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 ## Fase actual
 
-**Fase de diseño CERRADA.** Las 7 tareas de planificación están entregadas, comiteadas y aprobadas por Vaquero. Las 16 decisiones (A-P) están cerradas.
+**Fase 0 — Setup técnico CERRADA.** La app está desplegada en internet en https://permutaes.vercel.app con el scaffold inicial: página provisional "PermutaES próximamente", SEO/GEO base configurado, conexiones a Supabase y Resend listas. Cualquier `git push` a `main` actualiza la web automáticamente en menos de 2 minutos.
 
-**La próxima sesión arranca Fase 0 — Setup técnico.** Será la primera vez que se escriba código real del proyecto.
+**La próxima sesión arranca Fase 1 — Alfa interna.** Es la fase larga (~15 sesiones) en la que construiremos la app completa para docencia LOE con datos sintéticos.
 
 ---
 
@@ -102,34 +102,39 @@ Todas entregadas el 2026-04-30 y aprobadas por Vaquero. Todas comiteadas en el r
 
 ---
 
-## Próxima sesión — Arrancar Fase 0 (setup técnico)
+## Estado actual de la infraestructura
 
-Plan según `TAREA_6_PLAN_DE_FASES.md` y `TAREA_7_SEO_GEO.md`:
+| Recurso | Valor / estado |
+|---|---|
+| URL pública | https://permutaes.vercel.app |
+| Repo | https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a |
+| Supabase | Proyecto `permutaes-dev` en Central EU (Frankfurt). URL en `.env.local` y en Vercel. |
+| Resend | Cuenta activa, API key en `.env.local` y en Vercel. |
+| Vercel | Proyecto `permutaes` (Hobby plan, gratis). Despliegue automático conectado a `main`. |
+| Variables de entorno | 4 variables configuradas tanto en local (`.env.local`, ignorado por Git) como en Vercel (Production + Preview). |
+| SEO/GEO base | `robots.txt` permisivo a bots de IA, `sitemap.xml` dinámico, `llms.txt`, metadatos completos en castellano. |
 
-### Acciones manuales que Vaquero debe hacer (yo le guiaré paso a paso)
+---
 
-1. Crear cuenta gratuita en Supabase (región Europa, `eu-west-1` o `eu-central-1`). Crear un proyecto llamado `permutaes-dev`.
-2. Crear cuenta gratuita en Resend.
-3. Decidir nombre de la app (probablemente `PermutaES`, pero abrir a alternativas).
+## Próxima sesión — Arrancar Fase 1 (alfa interna, docencia LOE)
 
-### Acciones técnicas que hace Claude
+Lo que toca construir, según `TAREA_6_PLAN_DE_FASES.md` y `TAREA_3_ESQUEMA_DATOS.md`:
 
-1. Inicializar proyecto Next.js 15 + TypeScript + Tailwind dentro del repo.
-2. Estructura de carpetas (rutas, componentes, librerías de utilidad, estilos).
-3. Configurar autenticación Supabase básica.
-4. Configurar Resend para emails transaccionales.
-5. Configurar `robots.txt` permisivo a bots de IA (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot, Applebot-Extended).
-6. Configurar `sitemap.xml` automático.
-7. Crear `llms.txt` en raíz.
-8. Página de inicio provisional (`PermutaES, próximamente`) para verificar despliegue.
-9. Variables de entorno en local y en Vercel.
-10. Documentar todo en `STACK_INSTALADO.md`.
+1. Carga inicial de datos en Supabase: 8.131 municipios INE con coordenadas, GeoJSON nacional simplificado, CCAA y provincias, cuerpos LOE y especialidades docentes (a partir del PDF de Andalucía).
+2. Modelo de tablas en Supabase según el esquema de Tarea 3 (al menos las del Bloque 1 Identidad, Bloque 2 Geografía y Bloque 3 Taxonomía Profesional para docencia).
+3. Pantallas de identidad: registro, confirmación de email vía Resend, login, recuperación de contraseña, "Mi cuenta".
+4. Wizard de creación de anuncio (8 pasos) solo para docencia LOE.
+5. Pantalla del mapa con multi-clic + atajos por provincia/CCAA/comarca/radio.
+6. Motor de matching para docencia (ciclos de 2, 3 y 4).
+7. Pantallas "Mis anuncios" y "Cadenas detectadas".
+8. Mensajería interna entre usuarios de una misma cadena.
+9. Páginas pilar SEO: `/que-es-una-permuta`, `/permutas/docentes`, `/preguntas-frecuentes`.
+10. Cookies y avisos legales mínimos.
+11. Datos sintéticos de prueba: ~50 anuncios docentes provocando ciertos ciclos.
 
-### Criterios de salida de Fase 0
+Estimación: ~15 sesiones de trabajo.
 
-- URL de Vercel funcional (`permutaes.vercel.app` o subdominio asignado).
-- Cualquier `git push` a `main` actualiza la URL en menos de 2 minutos.
-- Vaquero puede registrarse vía Supabase Auth (aunque sea contra una pantalla provisional).
+Criterios de salida de Fase 1: usuario nuevo puede registrarse, confirmar email, publicar un anuncio docente y verlo en "Mis anuncios" sin errores; el motor detecta correctamente las cadenas esperadas en datos sintéticos; emails transaccionales llegan a la bandeja en menos de 1 minuto.
 
 ---
 
@@ -178,3 +183,20 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Se entrega la Tarea 6 (`TAREA_6_PLAN_DE_FASES.md`): plan de desarrollo en 5 fases (0 setup, 1 alfa interna con un solo sector, 2 beta privada con 5-15 invitados y resto de sectores, 3 beta pública sin promoción, 4 producción/lanzamiento) con criterios objetivos de transición y entregables por fase. Tiempo total ~32 sesiones. Coste acumulado de servicios ~10€ hasta producción, más revisión legal puntual ~150-300€. Vaquero aprueba la decisión M = docencia LOE y plantea preocupación sobre SEO para asistentes de IA.
 - Se entrega la Tarea 7 (`TAREA_7_SEO_GEO.md`) a petición de Vaquero: estrategia de descubrimiento doble (SEO clásico + GEO/AEO para asistentes de IA tipo ChatGPT/Claude/Perplexity). Glosario, estructura técnica desde Fase 0 (HTML semántico, robots.txt permisivo a bots de IA, sitemap, llms.txt, JSON-LD Schema.org, Open Graph), páginas pilar en Fase 1 (`/que-es-una-permuta`, `/permutas/{sector}`, FAQ), presencia externa en Fase 2 (cuentas Twitter/X y LinkedIn, Google Search Console), blog editorial en Fase 3, dominio propio en Fase 3 o 4 (sin él no hay GEO serio). Vaquero pidió arrancar todo gratis posponiendo el dominio: el documento argumenta que el dominio (~10€/año) es necesario al menos para Fase 3 cuando hay exposición externa. Vaquero aprueba decisiones N (dominio en Fase 3), O (Twitter/X + LinkedIn desde Fase 2), P (blog editorial desde Fase 3).
 - **CIERRE DE LA FASE DE DISEÑO.** Las 16 decisiones (A-P) están cerradas. 7 documentos de tarea + PROGRESO.md + .gitignore comiteados en 8 commits. La próxima sesión arranca Fase 0 (setup técnico) según el plan de Tarea 6.
+
+### 2026-04-30 — Sesión 2 — Fase 0 (setup técnico) completada
+
+- Vaquero crea cuenta y proyecto en Supabase: `permutaes-dev` en región Central EU (Frankfurt), plan free.
+- Vaquero crea cuenta en Resend y genera API key.
+- Claude monta el proyecto Next.js 16 + React 19 + TypeScript + Tailwind v4 dentro del repo. Resuelve el conflicto de carpeta no vacía creando el scaffold en subcarpeta temporal (`setup-tmp`) y moviendo el contenido a la raíz preservando `.git`, `PROGRESO.md` y los `TAREA_*.md`.
+- Claude refuerza `.gitignore` con bloqueo amplio de archivos con "key", "secret", "token", "password", "credentials" en el nombre, después de detectar que Vaquero había guardado un `resend API key.txt` en la raíz.
+- Claude configura SEO/GEO base: `src/app/robots.ts` dinámico permitiendo explícitamente bots de IA (GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, Claude-User, Claude-SearchBot, PerplexityBot, Perplexity-User, Google-Extended, GoogleOther, CCBot, Applebot-Extended, Bytespider, Amazonbot, Meta-ExternalAgent), `src/app/sitemap.ts` dinámico, `public/llms.txt`, metadatos completos en `layout.tsx` (title, description, keywords, Open Graph, Twitter Cards, canonical, robots).
+- Claude crea `src/app/page.tsx` con página provisional "PermutaES próximamente" explicando los 7 sectores cubiertos y los 3 pasos de funcionamiento.
+- Claude crea `.env.local.example` con plantilla de las 4 variables de entorno (Supabase URL, Supabase publishable key, Resend API key, Resend from email). Vaquero rellena `.env.local` con las claves reales.
+- Claude documenta el setup en `STACK_INSTALADO.md` y reescribe `README.md` con información del proyecto.
+- Vaquero resuelve un bloqueo de PowerShell (ExecutionPolicy Restricted) ejecutando `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force`.
+- Vaquero verifica `npm run dev` localmente y confirma que la página se ve en `http://localhost:3000`.
+- Vaquero hace `git push` con los cambios (commit `372a444`).
+- Vaquero importa el repo en Vercel como proyecto `permutaes`, configura las 4 variables de entorno (Production + Preview) y dispara el primer deploy.
+- Despliegue exitoso en https://permutaes.vercel.app. Vaquero confirma que la URL pública carga correctamente.
+- **CIERRE DE FASE 0.** La app está en internet con scaffold mínimo y SEO/GEO base. La próxima sesión arranca Fase 1 (alfa interna, docencia LOE).
