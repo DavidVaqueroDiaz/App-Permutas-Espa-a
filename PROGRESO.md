@@ -49,11 +49,15 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 - L: stack tecnológico = Stack A (Next.js + Supabase + Vercel + Resend).
 
+## Decisiones cerradas en Tarea 6 (2026-04-30)
+
+- M: sector inicial Fase 1 = docencia LOE.
+
 ---
 
 ## Bloqueado a la espera de
 
-Respuesta de Vaquero a la decisión M planteada en `TAREA_6_PLAN_DE_FASES.md` (sector con el que arrancamos Fase 1). Cuando se cierre, termina la fase de diseño y la siguiente sesión arranca Fase 0 (setup técnico).
+Respuesta de Vaquero a las 3 decisiones planteadas en `TAREA_7_SEO_GEO.md` (N: cuándo registrar dominio propio, O: apertura de redes sociales, P: blog dentro de la app). Cuando se cierren, termina la fase de diseño y la siguiente sesión arranca Fase 0 (setup técnico).
 
 ---
 
@@ -63,7 +67,8 @@ Respuesta de Vaquero a la decisión M planteada en `TAREA_6_PLAN_DE_FASES.md` (s
 2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30 y aprobada por Vaquero (decisiones E, F, G, H OK).
 3. **Tarea 4 — Mock del formulario.** ENTREGADA en `TAREA_4_MOCK_FORMULARIO.md` el 2026-04-30 y aprobada por Vaquero (decisiones I, J, K OK), ampliada con sección 1.1 sobre la landing pública.
 4. **Tarea 5 — Stack candidato.** ENTREGADA en `TAREA_5_STACK_TECNOLOGICO.md` el 2026-04-30 y aprobada por Vaquero (decisión L = Stack A).
-5. **Tarea 6 — Plan de fases.** ENTREGADA en `TAREA_6_PLAN_DE_FASES.md` el 2026-04-30. Pendiente la respuesta de Vaquero a la decisión M (sector inicial Fase 1).
+5. **Tarea 6 — Plan de fases.** ENTREGADA en `TAREA_6_PLAN_DE_FASES.md` el 2026-04-30 y aprobada por Vaquero (decisión M = docencia LOE).
+6. **Tarea 7 — Estrategia SEO + GEO (descubrimiento por IA).** ENTREGADA en `TAREA_7_SEO_GEO.md` el 2026-04-30 a petición de Vaquero. Pendiente respuesta a decisiones N, O y P.
 
 ---
 
@@ -123,4 +128,5 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Vaquero aprueba las 4 recomendaciones.
 - Se entrega la Tarea 4 (`TAREA_4_MOCK_FORMULARIO.md`): wizard de creación de anuncio en 8 pasos adaptables al sector elegido, pantalla de mapa con clic individual + autocompletado + atajos por provincia/CCAA/comarca/radio, vista pública limitada para anónimos, vista completa para registrados, mensajería interna entre participantes de cadenas detectadas, reglas de validación por campo y comportamientos ante casos límite. Se abren 3 decisiones (idioma interfaz, nivel landing, política de notificaciones). Vaquero pide aclarar el flujo de la landing y se añade la sección 1.1 con su descripción detallada (cabecera, hero con CTA "Publicar mi anuncio", buscador rápido funcional para anónimos, "Cómo funciona", sectores cubiertos, diferenciadores, CTA final, pie con atribuciones legales). Vaquero aprueba las 3 decisiones I, J, K.
 - Se entrega la Tarea 5 (`TAREA_5_STACK_TECNOLOGICO.md`): glosario para no programadores, comparativa entre Stack A (Next.js + Supabase + Vercel + Resend, recomendado) y Stack B (Next.js + SQLite/Turso + Auth.js + Vercel + Resend, alternativo más simple), coste estimado mensual (~1€ al arrancar, ~65€ a escala) y de tiempo (~30-33 sesiones de trabajo, 3-4 meses), recomendación clara del Stack A y FAQ con las preguntas previsibles del usuario no programador. Vaquero aprueba la decisión L = Stack A.
-- Se entrega la Tarea 6 (`TAREA_6_PLAN_DE_FASES.md`): plan de desarrollo en 5 fases (0 setup, 1 alfa interna con un solo sector, 2 beta privada con 5-15 invitados y resto de sectores, 3 beta pública sin promoción, 4 producción/lanzamiento) con criterios objetivos de transición y entregables por fase. Tiempo total ~32 sesiones. Coste acumulado de servicios ~10€ hasta producción, más revisión legal puntual ~150-300€. Decisión M abierta: sector con el que arrancamos Fase 1 (recomendación: docencia LOE). Cierre de la fase de diseño cuando se cierre la decisión M.
+- Se entrega la Tarea 6 (`TAREA_6_PLAN_DE_FASES.md`): plan de desarrollo en 5 fases (0 setup, 1 alfa interna con un solo sector, 2 beta privada con 5-15 invitados y resto de sectores, 3 beta pública sin promoción, 4 producción/lanzamiento) con criterios objetivos de transición y entregables por fase. Tiempo total ~32 sesiones. Coste acumulado de servicios ~10€ hasta producción, más revisión legal puntual ~150-300€. Vaquero aprueba la decisión M = docencia LOE y plantea preocupación sobre SEO para asistentes de IA.
+- Se entrega la Tarea 7 (`TAREA_7_SEO_GEO.md`) a petición de Vaquero: estrategia de descubrimiento doble (SEO clásico + GEO/AEO para asistentes de IA tipo ChatGPT/Claude/Perplexity). Glosario, estructura técnica desde Fase 0 (HTML semántico, robots.txt permisivo a bots de IA, sitemap, llms.txt, JSON-LD Schema.org, Open Graph), páginas pilar en Fase 1 (`/que-es-una-permuta`, `/permutas/{sector}`, FAQ), presencia externa en Fase 2 (cuentas Twitter/X y LinkedIn, Google Search Console), blog editorial en Fase 3, dominio propio en Fase 3 o 4 (sin él no hay GEO serio). Vaquero pidió arrancar todo gratis posponiendo el dominio: el documento argumenta que el dominio (~10€/año) es necesario al menos para Fase 3 cuando hay exposición externa. Decisiones abiertas: N (cuándo dominio), O (redes sociales), P (blog).
