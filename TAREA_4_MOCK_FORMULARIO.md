@@ -41,6 +41,63 @@ Tres tipos de usuario:
 - **Registrado**: tiene acceso completo a publicar, ver detalles, recibir notificaciones de cadenas detectadas y mensajearse con otros usuarios.
 - **Administrador** (interno, fuera del MVP web): mantiene catálogos, modera contenido, atiende denuncias.
 
+### 1.1 Estructura de la landing pública
+
+La landing es la página de entrada en la URL raíz. Cualquiera puede visitarla sin registrarse. Debe transmitir en pocos segundos qué hace la app y permitir dos cosas: probar el buscador y dar el salto a publicar el propio anuncio.
+
+Secciones de arriba a abajo:
+
+1. **Cabecera fija**
+   - Logo de PermutaES (volver a la landing al pulsar).
+   - Botón secundario "Iniciar sesión" (lleva al login).
+   - Botón principal "Crear cuenta" (lleva al registro).
+
+2. **Hero principal**
+   - Frase grande: *"Encuentra tu permuta de plaza en toda España."*
+   - Subtítulo de una línea: *"Plataforma nacional para que funcionarios públicos intercambien su destino con otros funcionarios compatibles."*
+   - Botón principal grande **"Publicar mi anuncio"** → si no estás logueado, lleva al registro y, tras confirmar email, sigue al wizard de creación de anuncio. Si ya estás logueado, va directo al wizard.
+
+3. **Buscador rápido (sin login, sin anuncio creado)**
+   - Tres campos visibles: Sector / Provincia donde estoy / Provincia donde quiero ir.
+   - Botón "Buscar".
+   - Es plenamente funcional para anónimos: pueden probar el motor antes de registrarse.
+   - Los resultados aparecen debajo en formato lista resumida (sector + cuerpo + provincia actual + provincias deseadas, sin alias, sin municipios exactos, sin observaciones).
+   - Al pulsar un resultado: pantalla intermedia *"Regístrate gratis para ver el detalle completo y contactar."* con el botón "Crear cuenta".
+
+4. **Bloque "¿Cómo funciona?"** (4 pasos visuales)
+   - 1. Crea tu cuenta gratis.
+   - 2. Publica tu anuncio en 5 minutos: indica tu plaza actual y a dónde aceptarías irte.
+   - 3. Te avisamos cuando detectemos una cadena de permuta posible (directa, a 3 o a 4).
+   - 4. Hablas con los otros participantes y, si hay acuerdo, tramitáis la permuta con vuestra administración.
+
+5. **Bloque "Sectores cubiertos"**
+   - Lista visual de los 7 sectores: Profesorado, Sanidad, AGE, Comunidades Autónomas, Administración Local, Habilitados nacionales, Policía Local (en CCAA con regulación).
+
+6. **Bloque "Por qué somos distintos"** (breve, 3 puntos)
+   - El primer agregador nacional: ya no tienes que rastrear foros sindicales y grupos de Facebook por separado.
+   - Detección automática de cadenas a 2, 3 y 4: no solo permutas directas.
+   - Solo casamos lo que es legalmente posible: si la ley no admite la permuta, la app no te la propone.
+
+7. **Llamada a la acción final**
+   - Botón grande **"Publicar mi anuncio"** repetido al final de la página.
+
+8. **Pie de página**
+   - Enlaces: Aviso legal, Política de privacidad, Política de cookies, Condiciones de uso, Contacto.
+   - Copyright + año.
+   - Mención obligatoria por uso de datos abiertos: *"Datos cartográficos: © Instituto Geográfico Nacional. Datos administrativos: © INE."*
+
+### 1.2 Resumen del comportamiento anónimo vs registrado
+
+| Acción | Anónimo | Registrado |
+|---|---|---|
+| Visitar la landing | Sí | Sí |
+| Usar el buscador rápido | Sí | Sí |
+| Ver lista resumida de resultados | Sí | Sí |
+| Ver detalle completo de un anuncio (municipios exactos, observaciones, alias) | No → se le pide registrarse | Sí |
+| Crear su propio anuncio | No → se le pide registrarse | Sí |
+| Ver cadenas detectadas con sus anuncios | No aplica | Sí |
+| Iniciar contacto con otro usuario | No | Sí (solo si comparte cadena con él) |
+
 ---
 
 ## 2. Pantalla de registro
