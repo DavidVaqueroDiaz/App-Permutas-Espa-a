@@ -32,20 +32,27 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 - C: visibilidad pública de anuncios = lectura limitada anónima, detalle solo para registrados.
 - D: forma jurídica del responsable de tratamiento = autónomo (a revisar cuando haya tracción).
 
+## Decisiones cerradas en Tarea 3 (2026-04-30)
+
+- E: dato de edad = año de nacimiento (no fecha completa).
+- F: caducidad de anuncios = 6 meses, renovable con un clic.
+- G: idiomas de la taxonomía = solo castellano en MVP.
+- H: retención de mensajes = 1 año desde último mensaje, luego borrado automático.
+
 ---
 
 ## Bloqueado a la espera de
 
-Respuesta de Vaquero a las 4 decisiones técnicas planteadas en `TAREA_3_ESQUEMA_DATOS.md` (E: fecha de nacimiento vs año, F: caducidad de anuncios, G: multilingüismo de taxonomía, H: retención de mensajes). Sin esas respuestas no se puede arrancar la Tarea 4 con el formulario cerrado.
+Respuesta de Vaquero a las 3 decisiones planteadas en `TAREA_4_MOCK_FORMULARIO.md` (I: idioma de la interfaz, J: nivel de la landing pública, K: notificaciones por email). Sin esas respuestas no se puede arrancar la Tarea 5 con el stack cerrado.
 
 ---
 
 ## Tareas pendientes
 
 1. **Tarea 2 — Resumen ejecutivo.** ENTREGADA en `TAREA_2_RESUMEN_EJECUTIVO.md` el 2026-04-30 y aprobada por Vaquero (decisiones A, B, C, D OK).
-2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30. Pendiente la respuesta de Vaquero a las 4 decisiones técnicas E, F, G, H.
-3. **Tarea 4 — Mock del formulario.** Wizard paso a paso (sector → cuerpo → especialidad → plaza actual → plazas deseadas → confirmación), mapa con multi-clic y atajos por provincia/CCAA/comarca/radio, validaciones por paso. Bloqueada hasta cerrar decisiones de Tarea 3.
-4. **Tarea 5 — Stack candidato.** Frontend, backend, BD, auth, despliegue, fuente de datos geográficos. Propondremos opción óptima y opción simple. Decisión final la toma Vaquero.
+2. **Tarea 3 — Esquema de datos.** ENTREGADA en `TAREA_3_ESQUEMA_DATOS.md` el 2026-04-30 y aprobada por Vaquero (decisiones E, F, G, H OK).
+3. **Tarea 4 — Mock del formulario.** ENTREGADA en `TAREA_4_MOCK_FORMULARIO.md` el 2026-04-30. Pendiente la respuesta de Vaquero a las 3 decisiones I, J, K.
+4. **Tarea 5 — Stack candidato.** Frontend, backend, BD, auth, despliegue, fuente de datos geográficos. Propondremos opción óptima y opción simple. Decisión final la toma Vaquero. Bloqueada hasta cerrar decisiones de Tarea 4.
 5. **Tarea 6 — Plan de fases.** MVP → beta privada → beta pública → producción, con criterios claros de transición entre cada una.
 
 ---
@@ -89,4 +96,5 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Se inicializa el repo Git en `C:\Users\Usuario\Desktop\APP permutas`, se conecta al remoto `https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a`, se crean `PROGRESO.md` y `.gitignore`, y se hace el commit inicial.
 - El PDF de Perplexity, el `prompt inicial.txt`, los 6 PDFs de investigación, las dudas y las descargas de Cowork quedan en `.gitignore` (material de referencia personal — no se suben al repo público).
 - Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Vaquero aprueba las 4 recomendaciones.
-- Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas pendientes (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Sesión queda bloqueada esperando respuesta a esas 4 decisiones para arrancar Tarea 4.
+- Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Vaquero aprueba las 4 recomendaciones.
+- Se entrega la Tarea 4 (`TAREA_4_MOCK_FORMULARIO.md`): wizard de creación de anuncio en 8 pasos adaptables al sector elegido, pantalla de mapa con clic individual + autocompletado + atajos por provincia/CCAA/comarca/radio, vista pública limitada para anónimos, vista completa para registrados, mensajería interna entre participantes de cadenas detectadas, reglas de validación por campo y comportamientos ante casos límite. Se abren 3 decisiones para Tarea 5 (idioma interfaz, nivel landing, política de notificaciones). Sesión queda bloqueada esperando respuesta a esas 3 decisiones para arrancar Tarea 5.
