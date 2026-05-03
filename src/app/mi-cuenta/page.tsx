@@ -47,6 +47,21 @@ export default async function MiCuentaPage() {
         </div>
       )}
 
+      {user.email_confirmed_at && (
+        <section className="mt-8 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Mis anuncios</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Aún no has publicado ningún anuncio.
+          </p>
+          <a
+            href="/anuncios/nuevo"
+            className="mt-4 inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+          >
+            Publicar mi primer anuncio
+          </a>
+        </section>
+      )}
+
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Datos de la cuenta</h2>
         <dl className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white text-sm dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
