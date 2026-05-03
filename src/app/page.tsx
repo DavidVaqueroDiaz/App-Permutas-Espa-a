@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  obtenerConteosPorCcaa,
+  obtenerSectoresConAnuncios,
+} from "./actions/conteos";
+import { MapaHomeChoropleth } from "@/components/MapaHomeChoropleth";
 
 type Sector = {
   codigo: string;
@@ -21,11 +26,17 @@ async function getSectores(): Promise<Sector[]> {
 }
 
 export default async function Home() {
-  const sectores = await getSectores();
+  const [sectores, conteos, sectoresOpciones] = await Promise.all([
+    getSectores(),
+    obtenerConteosPorCcaa(),
+    obtenerSectoresConAnuncios(),
+  ]);
+
+  const totalAnuncios = Object.values(conteos).reduce((a, b) => a + b, 0);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 px-6 py-16 dark:from-slate-950 dark:to-slate-900">
-      <div className="mx-auto w-full max-w-2xl">
+    <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-slate-50 to-slate-100 px-6 py-12 dark:from-slate-950 dark:to-slate-900">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="mb-4 inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
           En construcción · Lanzamiento próximamente
         </div>
@@ -39,6 +50,15 @@ export default async function Home() {
           español encuentre cadenas de permuta de plaza compatibles, en toda
           España y en todos los sectores con permuta legalmente admitida.
         </p>
+
+        {/* Mapa de actividad por CCAA */}
+        <div className="mt-10">
+          <MapaHomeChoropleth
+            sectoresOpciones={sectoresOpciones}
+            conteosIniciales={conteos}
+            totalInicial={totalAnuncios}
+          />
+        </div>
 
         <h2 className="mt-12 text-xl font-semibold text-slate-900 dark:text-slate-50">
           ¿Qué cubrirá PermutaES?
