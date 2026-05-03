@@ -35,6 +35,7 @@ type Props = {
 export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: Props) {
   const [state, setState] = useState<WizardState>(INITIAL_STATE);
   const [hidratado, setHidratado] = useState(false);
+  const [borradorDetectado, setBorradorDetectado] = useState(false);
   const [errorPublicar, setErrorPublicar] = useState<string | null>(null);
   const [publicando, startPublicar] = useTransition();
 
@@ -42,7 +43,19 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState({ ...INITIAL_STATE, ...JSON.parse(raw) });
+      if (raw) {
+        const parseado = { ...INITIAL_STATE, ...JSON.parse(raw) } as WizardState;
+        setState(parseado);
+        // Hay un borrador "no trivial" si tiene algo elegido más allá de
+        // estar en paso 1 con todo vacío.
+        const tieneContenido =
+          parseado.paso > 1 ||
+          parseado.sector_codigo !== null ||
+          parseado.cuerpo_id !== null ||
+          parseado.municipio_actual_codigo !== null ||
+          parseado.plazas_deseadas.length > 0;
+        if (tieneContenido) setBorradorDetectado(true);
+      }
     } catch {/* ignore */}
     setHidratado(true);
   }, []);
@@ -64,6 +77,7 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
   function reset() {
     try { localStorage.removeItem(STORAGE_KEY); } catch {/* ignore */}
     setState(INITIAL_STATE);
+    setBorradorDetectado(false);
   }
 
   const cuerposDelSector = useMemo(
@@ -94,7 +108,50 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
 
   return (
     <div className="space-y-6">
-      <ProgressBar paso={state.paso} />
+      {borradorDetectado && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
+          <p className="font-medium">Tienes un borrador a medio rellenar.</p>
+          <p className="mt-1">
+            Detectamos un anuncio en progreso de antes (paso {state.paso} de {TOTAL_PASOS}).
+            ¿Quieres seguir con él o empezar uno nuevo desde cero?
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setBorradorDetectado(false)}
+              className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 dark:bg-amber-600"
+            >
+              Continuar el borrador
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-md border border-amber-700 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-300 dark:text-amber-200 dark:hover:bg-amber-900/40"
+            >
+              Empezar desde cero
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex-1">
+          <ProgressBar paso={state.paso} />
+        </div>
+        {(state.paso > 1 || state.sector_codigo) && (
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("¿Seguro que quieres descartar lo que llevas y empezar de cero?")) {
+                reset();
+              }
+            }}
+            className="text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            Empezar desde cero
+          </button>
+        )}
+      </div>
 
       {state.paso === 1 && (
         <Paso1Sector
