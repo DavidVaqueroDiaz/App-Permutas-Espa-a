@@ -70,6 +70,14 @@ export function MapaHomeChoropleth({
             data: { type: "FeatureCollection", features: [] },
             promoteId: "cod_ccaa",
           },
+          // Source aparte solo con un Point por CCAA en su centroide
+          // aproximado, para colocar el número del conteo. Así evitamos
+          // que MapLibre pinte el texto en cada parte del MultiPolygon
+          // (Galicia, Canarias, Baleares...).
+          "ccaa-centroides": {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          },
         },
         layers: [
           {
@@ -114,7 +122,7 @@ export function MapaHomeChoropleth({
           {
             id: "ccaa-count",
             type: "symbol",
-            source: "ccaa",
+            source: "ccaa-centroides",
             filter: [">", ["coalesce", ["get", "count"], 0], 0],
             layout: {
               "text-field": ["to-string", ["get", "count"]],
@@ -129,7 +137,6 @@ export function MapaHomeChoropleth({
             },
           },
         ],
-        // No usamos glyphs servidor — usamos fuente local fallback.
         glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
       },
       center: [-3.7, 40.4], // Madrid aprox.
@@ -298,10 +305,64 @@ function aplicarConteos(
     })),
   };
 
+  // Generar un Point por CCAA en el centroide aproximado del polígono más
+  // grande (para poner el número del conteo en una sola posición visible).
+  const centroides: FeatureCollectionGeo = {
+    type: "FeatureCollection",
+    features: featuresConCount.features.map((f) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: centroideAprox(f.geometry as GeometriaArea),
+      },
+      properties: f.properties,
+    })),
+  };
+
   const source = map.getSource("ccaa") as GeoJSONSource | undefined;
   if (source) {
     source.setData(
       featuresConCount as unknown as Parameters<GeoJSONSource["setData"]>[0],
     );
   }
+  const sourceCent = map.getSource("ccaa-centroides") as
+    | GeoJSONSource
+    | undefined;
+  if (sourceCent) {
+    sourceCent.setData(
+      centroides as unknown as Parameters<GeoJSONSource["setData"]>[0],
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// Cálculo aproximado del centroide de un Polygon o MultiPolygon.
+// Para MultiPolygon tomamos el subpolígono con más vértices (suele ser
+// la masa principal) e ignoramos islas/exclaves pequeños.
+// ----------------------------------------------------------------------
+
+type AnilloLineal = Array<[number, number]>;
+type GeometriaArea =
+  | { type: "Polygon"; coordinates: AnilloLineal[] }
+  | { type: "MultiPolygon"; coordinates: AnilloLineal[][] };
+
+function centroideAprox(geom: GeometriaArea): [number, number] {
+  let anillo: AnilloLineal;
+  if (geom.type === "MultiPolygon") {
+    let mejor: AnilloLineal = geom.coordinates[0]?.[0] ?? [];
+    for (const poly of geom.coordinates) {
+      const ext = poly[0] ?? [];
+      if (ext.length > mejor.length) mejor = ext;
+    }
+    anillo = mejor;
+  } else {
+    anillo = geom.coordinates[0] ?? [];
+  }
+  if (anillo.length === 0) return [0, 0];
+  let sx = 0, sy = 0;
+  for (const [x, y] of anillo) {
+    sx += x;
+    sy += y;
+  }
+  return [sx / anillo.length, sy / anillo.length];
 }
