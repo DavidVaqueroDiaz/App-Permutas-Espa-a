@@ -27,7 +27,11 @@ type AnuncioListado = {
   total_plazas: number;
 };
 
-type SearchParams = Promise<{ creado?: string }>;
+type SearchParams = Promise<{
+  creado?: string;
+  actualizado?: string;
+  eliminado?: string;
+}>;
 
 export default async function MiCuentaPage({
   searchParams,
@@ -40,7 +44,7 @@ export default async function MiCuentaPage({
     redirect("/login");
   }
 
-  const { creado } = await searchParams;
+  const { creado, actualizado, eliminado } = await searchParams;
 
   const [perfilRes, anunciosRes] = await Promise.all([
     supabase
@@ -92,6 +96,16 @@ export default async function MiCuentaPage({
       {creado === "1" && (
         <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-100">
           ¡Anuncio publicado! Lo tienes abajo en "Mis anuncios".
+        </div>
+      )}
+      {actualizado === "1" && (
+        <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-100">
+          Anuncio actualizado correctamente.
+        </div>
+      )}
+      {eliminado === "1" && (
+        <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          Anuncio eliminado.
         </div>
       )}
 
@@ -153,11 +167,19 @@ export default async function MiCuentaPage({
                       {a.estado}
                     </span>
                   </div>
-                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
-                    {" · "}
-                    Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
-                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
+                      {" · "}
+                      Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
+                    </p>
+                    <a
+                      href={`/anuncios/${a.id}/editar`}
+                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      Editar
+                    </a>
+                  </div>
                 </li>
               ))}
             </ul>

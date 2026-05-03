@@ -17,47 +17,57 @@ export async function Header() {
           PermutaES
         </a>
 
-        {user ? (
-          <div className="flex items-center gap-2 sm:gap-3">
-            {user.email_confirmed_at && (
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Enlace siempre visible al listado de anuncios. */}
+          <a
+            href="/anuncios"
+            className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+          >
+            Anuncios
+          </a>
+
+          {user ? (
+            <>
+              {user.email_confirmed_at && (
+                <a
+                  href="/anuncios/nuevo"
+                  className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                >
+                  + Publicar anuncio
+                </a>
+              )}
               <a
-                href="/anuncios/nuevo"
-                className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                href="/mi-cuenta"
+                className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
               >
-                + Publicar anuncio
+                Mi cuenta
               </a>
-            )}
-            <a
-              href="/mi-cuenta"
-              className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
-            >
-              Mi cuenta
-            </a>
-            <form action="/logout" method="POST">
-              <button
-                type="submit"
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+              <form action="/logout" method="POST">
+                <button
+                  type="submit"
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <a
+                href="/login"
+                className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
               >
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <a
-              href="/login"
-              className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
-            >
-              Iniciar sesión
-            </a>
-            <a
-              href="/registro"
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
-            >
-              Crear cuenta
-            </a>
-          </div>
-        )}
+                Iniciar sesión
+              </a>
+              <a
+                href="/registro"
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+              >
+                Crear cuenta
+              </a>
+            </>
+          )}
+        </div>
       </nav>
     </header>
   );

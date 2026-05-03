@@ -186,25 +186,45 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
           onAtras={() => ir(7)}
           onPublicar={() => {
             setErrorPublicar(null);
+            // Limpiamos localStorage AHORA, asumiendo éxito. Si la
+            // publicación fallase, lo restauramos abajo. Esto evita que
+            // el wizard quede con datos del anuncio recién publicado y
+            // confunda al usuario al crear el siguiente.
+            const respaldo =
+              typeof localStorage !== "undefined"
+                ? localStorage.getItem(STORAGE_KEY)
+                : null;
+            try {
+              localStorage.removeItem(STORAGE_KEY);
+            } catch {/* ignore */}
+
             startPublicar(async () => {
-              const r = await crearAnuncioYRedirigir({
-                cuerpo_id: state.cuerpo_id!,
-                especialidad_id: state.especialidad_id,
-                municipio_actual_codigo: state.municipio_actual_codigo!,
-                fecha_toma_posesion_definitiva: state.fecha_toma_posesion_definitiva!,
-                anyos_servicio_totales: state.anyos_servicio_totales!,
-                permuta_anterior_fecha: state.ha_permutado_antes
-                  ? state.permuta_anterior_fecha
-                  : null,
-                observaciones: state.observaciones,
-                plazas_deseadas: state.plazas_deseadas,
-                atajos: state.atajos,
-              });
-              // Si redirige, no llegamos aquí. Si vuelve con error, mostramos.
-              if (r && !r.ok) {
-                setErrorPublicar(r.mensaje);
-              } else {
-                reset();
+              try {
+                const r = await crearAnuncioYRedirigir({
+                  cuerpo_id: state.cuerpo_id!,
+                  especialidad_id: state.especialidad_id,
+                  municipio_actual_codigo: state.municipio_actual_codigo!,
+                  fecha_toma_posesion_definitiva: state.fecha_toma_posesion_definitiva!,
+                  anyos_servicio_totales: state.anyos_servicio_totales!,
+                  permuta_anterior_fecha: state.ha_permutado_antes
+                    ? state.permuta_anterior_fecha
+                    : null,
+                  observaciones: state.observaciones,
+                  plazas_deseadas: state.plazas_deseadas,
+                  atajos: state.atajos,
+                });
+                if (r && !r.ok) {
+                  // Falló: restaurar el progreso para no perder los datos.
+                  if (respaldo) {
+                    try {
+                      localStorage.setItem(STORAGE_KEY, respaldo);
+                    } catch {/* ignore */}
+                  }
+                  setErrorPublicar(r.mensaje);
+                }
+              } catch {
+                // El redirect lanza throw NEXT_REDIRECT; lo dejamos pasar.
+                // localStorage ya está limpio.
               }
             });
           }}
