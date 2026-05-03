@@ -154,6 +154,7 @@ export function MapaHomeChoropleth({
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; nombre: string; count: number;
   } | null>(null);
+  const [avisoSector, setAvisoSector] = useState<boolean>(false);
   const [, startTransition] = useTransition();
 
   // Inicializa ambos mapas (principal + inset Canarias) UNA VEZ.
@@ -258,9 +259,14 @@ export function MapaHomeChoropleth({
           | string
           | undefined;
         if (!codigo) return;
+        // Si no hay sector elegido, avisamos en lugar de navegar.
+        if (!sectorRef.current) {
+          setAvisoSector(true);
+          return;
+        }
         const qs = new URLSearchParams();
         qs.set("ccaa", codigo);
-        if (sectorRef.current) qs.set("sector", sectorRef.current);
+        qs.set("sector", sectorRef.current);
         router.push(`/anuncios?${qs.toString()}`);
       });
     }
@@ -306,8 +312,16 @@ export function MapaHomeChoropleth({
           <select
             id="filtro-sector"
             value={sector}
-            onChange={(e) => setSector(e.target.value)}
-            className="mt-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            onChange={(e) => {
+              setSector(e.target.value);
+              if (e.target.value) setAvisoSector(false);
+            }}
+            className={
+              "mt-1 rounded-md border bg-white px-3 py-1.5 text-sm dark:bg-slate-900 dark:text-slate-100 " +
+              (avisoSector
+                ? "border-amber-500 ring-2 ring-amber-300 dark:border-amber-400 dark:ring-amber-500/50"
+                : "border-slate-300 dark:border-slate-700")
+            }
           >
             <option value="">Todos los sectores</option>
             {sectoresOpciones.map((s) => (
@@ -318,6 +332,12 @@ export function MapaHomeChoropleth({
           </select>
         </div>
       </div>
+
+      {avisoSector && (
+        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-100">
+          Selecciona primero el sector que estás buscando en el desplegable de arriba.
+        </div>
+      )}
 
       <div className="relative mt-4">
         <div

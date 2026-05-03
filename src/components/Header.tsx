@@ -18,6 +18,15 @@ export async function Header() {
         </a>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Auto permutas: solo para usuarios logueados. */}
+          {user && (
+            <a
+              href="/auto-permutas"
+              className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+            >
+              Auto permutas
+            </a>
+          )}
           {/* Enlace siempre visible al listado de anuncios. */}
           <a
             href="/anuncios"
