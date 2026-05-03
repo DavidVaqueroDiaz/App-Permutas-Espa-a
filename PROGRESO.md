@@ -167,6 +167,19 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 
 ## Histórico
 
+### 2026-05-03 — Sesión actual — Fixes en Auto permutas
+
+- Bug 1: el buscador no encontraba "A Coruña" cuando se escribía "a coru". Causa: `normalizar` quitaba comas y bajaba a minúsculas, pero no había paso para neutralizar el artículo ("Coruña, A" vs "A Coruña" vs "a coru"). Solución: nueva función `clave(s) = quitarArticulo(normalizar(s))` aplicada en ambos lados de la comparación. Ahora "a coru", "coru", "a coruña" y "coruña a" resuelven al mismo municipio.
+- Bug 2: 11 municipios gallegos quedaron sin coordenadas tras la primera importación. El INE los guarda como "Coruña, A", "Baña, A", etc. y la regex de `quitarArticulo` en el script estaba en minúsculas y se aplicaba antes de `normalizar`, así que no acertaba el artículo pospuesto. Aplicado el mismo fix en `scripts/import-coords-galicia.ts` y reejecutado: 302 → 311 municipios gallegos con coords. Quedan 2 fuera del alcance porque no están en la fuente PermutaDoc: "A Peroxa" (32059) y "Pobra do Brollón" (27047, typo "de"/"do" en upstream). Cesuras está obsoleto desde 2013.
+- Commit: `a132711 fix(auto-permutas): autocomplete y coords reconocen articulo pospuesto`. Push pendiente.
+
+**Pendiente para la próxima sesión:**
+
+1. **Mapa interactivo en el Paso 5 del wizard** ("¿A qué municipios aceptarías irte?"). Pedido por Vaquero al cierre de la sesión: desplegable de CCAA + mapa donde haga clic sobre un municipio para añadirlo / quitarlo a las plazas deseadas. Convive con los dos atajos actuales (CCAA entera, provincia entera) y con el autocompletado por nombre. Implementación esperada: react-leaflet + GeoJSON, cargado por CCAA bajo demanda (no se cargan los 8.131 municipios de golpe). Coordinar con el plan PMTiles que ya estaba apuntado.
+2. Replicar el detalle visual de PermutaDoc en `/auto-permutas`: componente `Movementos` ("Tú dejas X y vas a Y") y `ParticipanteDetalle` (centro, tipo, busca, observaciones, fecha del anuncio, km en línea recta).
+3. Mensajería interna entre participantes de una cadena.
+4. Cargar coordenadas para el resto de España (ahora solo Galicia tiene 311 munis con coords).
+
 ### 2026-04-30 — Sesión 1
 
 - Vaquero entrega el prompt inicial extenso del proyecto y un informe de Perplexity de 26 páginas con el marco legal de las permutas en España.
