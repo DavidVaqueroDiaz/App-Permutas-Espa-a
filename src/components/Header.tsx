@@ -18,7 +18,15 @@ export async function Header() {
         </a>
 
         {user ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {user.email_confirmed_at && (
+              <a
+                href="/anuncios/nuevo"
+                className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+              >
+                + Publicar anuncio
+              </a>
+            )}
             <a
               href="/mi-cuenta"
               className="text-sm text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
