@@ -10,7 +10,8 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 **Fase 1 — Alfa interna en curso.**
 - Bloque 1 (modelo de datos en Supabase): COMPLETADO el 2026-04-30 (sesión 3).
-- Próximo: Bloque 2 (carga inicial de datos: 8.131 municipios INE, CCAA, provincias, GeoJSON, cuerpos LOE, especialidades).
+- Bloque 2 (carga inicial de datos): COMPLETADO el 2026-04-30 (sesión 3) — geografía y taxonomía docente. Pendiente: GeoJSON, coordenadas y áreas sanitarias para fases posteriores.
+- Próximo: Bloque 3 (pantallas de identidad: registro, login, recuperación, "Mi cuenta").
 
 ---
 
@@ -216,3 +217,13 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Claude modifica `src/app/page.tsx` para que sea Server Component asíncrono y lea los sectores desde Supabase en lugar de hardcodearlos.
 - Despliegue automático en Vercel verifica end-to-end la conexión Next.js → Supabase. Vaquero confirma visualmente en https://permutaes.vercel.app que los 7 sectores aparecen ahora ordenados alfabéticamente (señal de que vienen de la BD).
 - 2 commits creados (`ecbc86c`, `858af6b`) y pusheados.
+
+### 2026-04-30 — Sesión 3 (continuación) — Fase 1, Bloque 2 (carga de datos) completado
+
+- Vaquero pidió que Claude pudiera aplicar migraciones directamente sin copy/paste manual. Se reorganizó la conexión: variables `SUPABASE_DB_HOST`, `SUPABASE_DB_PORT`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`, `SUPABASE_DB_NAME` separadas en `.env.local` (en lugar de URL única, para evitar problemas con caracteres especiales en password).
+- Tras varios intentos fallidos con la contraseña original, Vaquero regeneró la contraseña de la base de datos en Supabase. La nueva contraseña se acordó por chat de forma temporal con el compromiso de rotarla al final de la sesión.
+- Claude crea `scripts/test-db-connection.ts`, `scripts/debug-db-url.ts` y `scripts/apply-migration.ts` para automatizar las migraciones. Dependencias nuevas: `pg`, `@types/pg`, `dotenv` (devDependencies).
+- Migración 0002 (geografía): script `generate-seed-geografia.ts` que lee el Excel del INE `diccionario26.xlsx` y genera el SQL. Aplicada en 0.6s. 19 CCAA, 52 provincias y 8.132 municipios cargados (cifras oficiales INE 2026 enero).
+- Migración 0003 (taxonomía docente): script `generate-seed-cuerpos-loe.ts` con datos hardcodeados extraídos del PDF "Códigos de todas las especialidades" (Junta de Andalucía, basado en RD 1834/2008). Aplicada en 0.1s. 12 cuerpos LOE (511, 512, 513, 590-598) y 318 especialidades cargadas.
+- A partir de ahora cualquier migración se aplica con `npx tsx scripts/apply-migration.ts <ruta>` sin intervención manual de Vaquero.
+- Pendiente para fases siguientes: coordenadas y población de los 8.132 municipios (Nomenclátor CNIG), GeoJSON nacional simplificado (datos.gob.es), áreas de salud por servicio sanitario, cuerpos AGE / autonómicos / locales / habilitados / policía local.
