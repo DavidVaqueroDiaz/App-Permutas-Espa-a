@@ -2,10 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  buscarMunicipios,
-  type MunicipioBusqueda,
-} from "@/app/anuncios/nuevo/actions";
-import {
   buscarCadenasDesdePerfil,
   type DetalleCadena,
   type ParticipanteCadena,
@@ -16,11 +12,28 @@ import type {
   SectorRow,
 } from "@/app/anuncios/nuevo/types";
 
+type MunicipioLocal = {
+  codigo_ine: string;
+  nombre: string;
+  provincia_nombre: string;
+};
+
 type Props = {
   sectores: SectorRow[];
   cuerpos: CuerpoRow[];
   especialidades: EspecialidadRow[];
+  municipios: MunicipioLocal[];
 };
+
+// Normaliza para búsqueda por nombre: lowercase, sin tildes, sin signos.
+function normalizar(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
 type TipoTab = "todas" | "directas" | "tres" | "cuatro";
 
@@ -28,6 +41,7 @@ export function Buscador({
   sectores,
   cuerpos,
   especialidades,
+  municipios,
 }: Props) {
   const sectoresActivos = useMemo(
     () => sectores.filter((s) => s.codigo === "docente_loe"),
@@ -49,8 +63,8 @@ export function Buscador({
   const [especialidadId, setEspecialidadId] = useState<string>("");
 
   // Plaza actual y destino: 1 municipio cada uno.
-  const [muniActual, setMuniActual] = useState<MunicipioBusqueda | null>(null);
-  const [muniObjetivo, setMuniObjetivo] = useState<MunicipioBusqueda | null>(null);
+  const [muniActual, setMuniActual] = useState<MunicipioLocal | null>(null);
+  const [muniObjetivo, setMuniObjetivo] = useState<MunicipioLocal | null>(null);
 
   // Radio en km
   const [radio, setRadio] = useState<number>(40);
@@ -191,6 +205,7 @@ export function Buscador({
               onSeleccionar={(m) => setMuniActual(m)}
               onLimpiar={() => setMuniActual(null)}
               placeholder="Empieza a escribir..."
+              municipios={municipios}
             />
             {muniActual && (
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -211,6 +226,7 @@ export function Buscador({
               onSeleccionar={(m) => setMuniObjetivo(m)}
               onLimpiar={() => setMuniObjetivo(null)}
               placeholder="A donde te gustaría ir..."
+              municipios={municipios}
             />
             {muniObjetivo && (
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -458,90 +474,109 @@ function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
   );
 }
 
+/**
+ * Autocompletado local (sin llamadas al servidor). Recibe la lista
+ * completa de municipios precargada y filtra en memoria al instante.
+ * Soporta navegación por teclado (↑ ↓ Enter Esc).
+ */
 function Autocomplete({
   seleccionado,
   onSeleccionar,
   onLimpiar,
   placeholder,
+  municipios,
 }: {
-  seleccionado: MunicipioBusqueda | null;
-  onSeleccionar: (m: MunicipioBusqueda) => void;
+  seleccionado: MunicipioLocal | null;
+  onSeleccionar: (m: MunicipioLocal) => void;
   onLimpiar: () => void;
   placeholder?: string;
+  municipios: MunicipioLocal[];
 }) {
   const [query, setQuery] = useState(seleccionado?.nombre ?? "");
-  const [resultados, setResultados] = useState<MunicipioBusqueda[]>([]);
-  const [buscando, setBuscando] = useState(false);
   const [abierto, setAbierto] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlight, setHighlight] = useState(0);
 
+  // Sincroniza el query mostrado con el seleccionado externo.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.length < 2 || (seleccionado && query === seleccionado.nombre)) {
-      setResultados([]);
+    setQuery(seleccionado?.nombre ?? "");
+  }, [seleccionado]);
+
+  const sugerencias = useMemo(() => {
+    const q = normalizar(query);
+    if (!q) return municipios.slice(0, 8);
+    return municipios
+      .filter((m) => normalizar(m.nombre).includes(q))
+      .slice(0, 12);
+  }, [query, municipios]);
+
+  function seleccionar(m: MunicipioLocal) {
+    onSeleccionar(m);
+    setQuery(m.nombre);
+    setAbierto(false);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!abierto) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setAbierto(true);
+        return;
+      }
       return;
     }
-    setBuscando(true);
-    debounceRef.current = setTimeout(async () => {
-      const r = await buscarMunicipios(query, 10);
-      setResultados(r);
-      setBuscando(false);
-      setAbierto(true);
-    }, 250);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query, seleccionado]);
-
-  if (seleccionado) {
-    return (
-      <div className="flex items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900">
-        <span className="text-sm text-slate-900 dark:text-slate-100">{seleccionado.nombre}</span>
-        <button
-          type="button"
-          onClick={() => {
-            setQuery("");
-            onLimpiar();
-          }}
-          className="text-xs text-slate-500 underline dark:text-slate-400"
-        >
-          Cambiar
-        </button>
-      </div>
-    );
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => Math.min(h + 1, sugerencias.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const m = sugerencias[highlight];
+      if (m) seleccionar(m);
+    } else if (e.key === "Escape") {
+      setAbierto(false);
+    }
   }
 
   return (
     <div className="relative">
       <input
         type="text"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         value={query}
         placeholder={placeholder}
         onChange={(e) => {
           setQuery(e.target.value);
           setAbierto(true);
+          setHighlight(0);
+          if (seleccionado) onLimpiar();
         }}
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
+        onKeyDown={onKeyDown}
         className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
       />
-      {abierto && (resultados.length > 0 || buscando) && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          {buscando && <li className="px-3 py-1.5 text-xs text-slate-500">Buscando...</li>}
-          {resultados.map((m) => (
+      {abierto && sugerencias.length > 0 && (
+        <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          {sugerencias.map((m, i) => (
             <li key={m.codigo_ine}>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onSeleccionar(m);
-                  setQuery(m.nombre);
-                  setAbierto(false);
-                }}
-                className="flex w-full justify-between px-3 py-1.5 text-left text-xs hover:bg-slate-100 dark:hover:bg-slate-800"
+                onClick={() => seleccionar(m)}
+                onMouseEnter={() => setHighlight(i)}
+                className={
+                  "flex w-full justify-between px-3 py-1.5 text-left text-xs " +
+                  (i === highlight
+                    ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-100"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800")
+                }
               >
-                <span>{m.nombre}</span>
-                <span className="text-slate-500">{m.provincia_nombre}</span>
+                <span className="font-medium text-slate-900 dark:text-slate-100">{m.nombre}</span>
+                <span className="text-slate-500 dark:text-slate-400">{m.provincia_nombre}</span>
               </button>
             </li>
           ))}

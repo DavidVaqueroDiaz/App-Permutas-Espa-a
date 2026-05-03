@@ -180,11 +180,18 @@ async function main() {
     // CCAA: 12 (Galicia) para todas estas provincias.
     const ccaaCodigo = "12";
 
-    // Datos personales aleatorios pero consistentes entre ejecuciones.
+    // Datos personales aleatorios pero consistentes (seed = id antiguo).
+    // Generamos rangos pensados para PASAR las reglas legales con un
+    // perfil virtual de prueba estándar (ano_nacimiento 1985,
+    // anyos_servicio 10, fecha_toma_posesion 2018-09-01):
+    //   - ano_nacimiento 1981-1990: faltan ≥10 años para jubilación
+    //     (65 años en 2046-2055).
+    //   - anyos_servicio_totales 7-13: dentro de ±5 del virtual=10.
+    //   - fecha_toma_posesion 2018-2020: ≥2 años en destino actual.
     const seed = Number.parseInt(a.id, 10);
-    const anoNacimiento = 1965 + (seed % 21); // 1965-1985
-    const anyosServicio = 5 + (seed % 16); // 5-20
-    const fechaToma = new Date(2018 + (seed % 5), seed % 12, (seed % 27) + 1)
+    const anoNacimiento = 1981 + (seed % 10); // 1981-1990
+    const anyosServicio = 7 + (seed % 7); // 7-13
+    const fechaToma = new Date(2018 + (seed % 3), seed % 12, (seed % 27) + 1)
       .toISOString()
       .slice(0, 10);
 

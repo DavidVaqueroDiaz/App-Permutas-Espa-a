@@ -37,13 +37,14 @@ export type Cadena = {
   score: number;
 };
 
-// Edad de jubilación forzosa por defecto (si la cohorte fuese del Régimen
-// General LSGGS la edad podría ser 67; usamos 65 como referencia legal
-// del régimen de Clases Pasivas que aún cubre a la mayoría de docentes).
-const EDAD_JUBILACION = 65;
-const ANIOS_HASTA_JUBILACION_MIN = 10;
-const DIFERENCIA_MAX_ANTIGUEDAD = 5;
-const CARENCIA_PERMUTA_ANIOS = 10;
+// Reglas personales legales (informativas, no aplicadas como filtro):
+//   - Edad de jubilación forzosa: 65 (Clases Pasivas) o 67 (Régimen General).
+//   - ≥10 años hasta jubilación.
+//   - Diferencia máxima de antigüedad ±5 años.
+//   - Carencia 10 años desde permuta anterior.
+//   - Para docencia LOE: ≥2 años en destino actual.
+// Estas se mostrarán como avisos cuando el usuario tramite la permuta,
+// pero no filtran cadenas en el matcher.
 
 /**
  * Reglas geográficas por sector. Devuelven true si A y B son
@@ -74,8 +75,24 @@ const REGLAS_GEO: Record<
 };
 
 /**
- * ¿El anuncio A acepta irse a la plaza de B y se cumplen las reglas legales?
- * Esto es la existencia de la arista A→B en el grafo dirigido.
+ * ¿El anuncio A acepta irse a la plaza de B?
+ *
+ * Existencia de la arista A→B en el grafo dirigido.
+ *
+ * Filtros DUROS aplicados (los necesarios para que la permuta sea posible
+ * a nivel administrativo):
+ *   - Distinto anuncio, distinto usuario, distinto municipio.
+ *   - El municipio actual de B debe estar entre las plazas deseadas de A.
+ *   - Mismo sector + cuerpo + especialidad.
+ *   - Regla geográfica del sector (p.ej. sanitarios solo intra-Servicio
+ *     de Salud).
+ *
+ * NO se filtra por las reglas personales (años hasta jubilación,
+ * diferencia de antigüedad ±5, carencia 10 años, ≥2 años en destino).
+ * Esas reglas dependen de DATOS REALES de cada usuario que en este
+ * dataset son sintéticos. Las dejamos para que el matcher proponga
+ * todas las cadenas posibles a nivel profesional/territorial; cada
+ * usuario decide si cumple las reglas personales antes de tramitar.
  */
 export function aceptaPlazaDe(
   a: AnuncioMatching,
@@ -97,43 +114,7 @@ export function aceptaPlazaDe(
   const reglaGeo = REGLAS_GEO[a.sector_codigo];
   if (reglaGeo && !reglaGeo(a, b)) return false;
 
-  // Reglas personales (símétricas entre A y B).
-  if (
-    Math.abs(a.anyos_servicio_totales - b.anyos_servicio_totales) >
-    DIFERENCIA_MAX_ANTIGUEDAD
-  ) {
-    return false;
-  }
-
-  // Edad: faltan ≥10 años para la jubilación forzosa de cada uno.
-  const anioActual = new Date().getFullYear();
-  if (a.ano_nacimiento + EDAD_JUBILACION - anioActual < ANIOS_HASTA_JUBILACION_MIN) {
-    return false;
-  }
-  if (b.ano_nacimiento + EDAD_JUBILACION - anioActual < ANIOS_HASTA_JUBILACION_MIN) {
-    return false;
-  }
-
-  // Carencia: 10 años desde la permuta anterior si la hubo.
-  if (a.permuta_anterior_fecha && añosDesde(a.permuta_anterior_fecha) < CARENCIA_PERMUTA_ANIOS) {
-    return false;
-  }
-  if (b.permuta_anterior_fecha && añosDesde(b.permuta_anterior_fecha) < CARENCIA_PERMUTA_ANIOS) {
-    return false;
-  }
-
-  // Docencia LOE: ≥2 años en destino actual.
-  if (a.sector_codigo === "docente_loe") {
-    if (añosDesde(a.fecha_toma_posesion_definitiva) < 2) return false;
-    if (añosDesde(b.fecha_toma_posesion_definitiva) < 2) return false;
-  }
-
   return true;
-}
-
-function añosDesde(fechaIso: string): number {
-  const ms = Date.now() - new Date(fechaIso).getTime();
-  return ms / (365.25 * 24 * 3600 * 1000);
 }
 
 /**
