@@ -31,8 +31,19 @@ function normalizar(s: string): string {
     .trim();
 }
 
+/**
+ * Quita artículos antepuestos ("A Coruña") o pospuestos ("Coruña, A").
+ * IMPORTANTE: la cadena ya debe estar normalizada (lowercase, sin tildes,
+ * comas convertidas a espacio). Se llama después de `normalizar`.
+ */
 function quitarArticulo(s: string): string {
-  return s.replace(/^(a|o|as|os)\s+/, "").replace(/,\s*(a|o|as|os)$/, "");
+  return s
+    .replace(/^(a|o|as|os|el|la|los|las)\s+/, "")
+    .replace(/\s+(a|o|as|os|el|la|los|las)$/, "");
+}
+
+function clave(s: string): string {
+  return quitarArticulo(normalizar(s));
 }
 
 async function main() {
@@ -79,15 +90,14 @@ async function main() {
   // Construimos un índice por nombre normalizado sin artículo.
   const indice = new Map<string, { codigo_ine: string; provincia_codigo: string }>();
   for (const m of dbMunis) {
-    const norm = normalizar(quitarArticulo(m.nombre));
-    indice.set(norm, { codigo_ine: m.codigo_ine, provincia_codigo: m.provincia_codigo });
+    indice.set(clave(m.nombre), { codigo_ine: m.codigo_ine, provincia_codigo: m.provincia_codigo });
   }
 
   let actualizados = 0;
   let noEncontrados: string[] = [];
 
   for (const muni of municipiosFuente) {
-    const norm = normalizar(quitarArticulo(muni.nome));
+    const norm = clave(muni.nome);
     const enc = indice.get(norm);
     if (!enc) {
       noEncontrados.push(muni.nome);

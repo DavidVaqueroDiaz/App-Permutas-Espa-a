@@ -35,6 +35,25 @@ function normalizar(s: string): string {
     .trim();
 }
 
+/**
+ * Quita artículos antepuestos ("A Coruña") o pospuestos ("Coruña, A").
+ * IMPORTANTE: la cadena ya debe estar normalizada — la coma se ha
+ * convertido en espacio.
+ */
+function quitarArticulo(s: string): string {
+  return s
+    .replace(/^(a|o|as|os|el|la|los|las)\s+/, "")
+    .replace(/\s+(a|o|as|os|el|la|los|las)$/, "");
+}
+
+/**
+ * Clave canónica para comparar nombres de municipio sin importar el
+ * orden del artículo: "A Coruña", "Coruña, A" y "coruña" → "coruna".
+ */
+function clave(s: string): string {
+  return quitarArticulo(normalizar(s));
+}
+
 type TipoTab = "todas" | "directas" | "tres" | "cuatro";
 
 export function Buscador({
@@ -502,10 +521,12 @@ function Autocomplete({
   }, [seleccionado]);
 
   const sugerencias = useMemo(() => {
-    const q = normalizar(query);
+    const q = clave(query);
     if (!q) return municipios.slice(0, 8);
+    // Comparamos sin artículo, así "a coru" encuentra "Coruña, A"
+    // y "coru" también encuentra "A Coruña" o "Coruña, A".
     return municipios
-      .filter((m) => normalizar(m.nombre).includes(q))
+      .filter((m) => clave(m.nombre).includes(q))
       .slice(0, 12);
   }, [query, municipios]);
 
