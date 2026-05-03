@@ -55,6 +55,15 @@ type AnuncioDoc = {
   provincia_actual: keyof typeof PROVINCIAS;
   localidade_actual: string;
   tipo_permuta: string; // "definitiva" | "provisional"
+  centro_actual: string;
+  observacions: string;
+  zona_desexada: string;
+  tipo_praza: string;
+  praza_bilingue: string;
+  afin: string;
+  itinerancia: string;
+  contacto: string;
+  data_solicitude: string;
 };
 
 async function main() {
@@ -77,8 +86,11 @@ async function main() {
   // 2. Leer y filtrar JSON.
   const json = JSON.parse(fs.readFileSync(PERMUTADOC_JSON, "utf8"));
   const todos: AnuncioDoc[] = json.data;
-  const definitivos = todos.filter((a) => a.tipo_permuta === "definitiva");
-  console.log(`\n${definitivos.length} anuncios definitivos a importar.`);
+  // Importamos TODOS (definitivas + provisionales) para tener un dataset
+  // de pruebas mas realista. La distincion definitiva/provisional la
+  // mantenemos visible en las observaciones del anuncio.
+  const definitivos = todos;
+  console.log(`\n${definitivos.length} anuncios totales a importar.`);
 
   // 3. Pre-cargar mapas de cuerpo y especialidad.
   const cuerposRes = await client.query<{ id: string; codigo_oficial: string }>(
@@ -207,6 +219,24 @@ async function main() {
     );
     const userId = userInsert.rows[0].id;
 
+    // Construir observaciones a partir de los datos reales del anuncio.
+    const partes: string[] = [];
+    partes.push(`[Anuncio de prueba importado de PermutaDoc · ${a.tipo_permuta}]`);
+    if (a.observacions && a.observacions.trim()) {
+      partes.push(a.observacions.trim());
+    }
+    if (a.zona_desexada && a.zona_desexada.trim()) {
+      partes.push(`Zona deseada: ${a.zona_desexada.trim()}`);
+    }
+    const detallesExtra: string[] = [];
+    if (a.tipo_praza) detallesExtra.push(`tipo plaza: ${a.tipo_praza}`);
+    if (a.praza_bilingue && a.praza_bilingue !== "nonbil") detallesExtra.push(`bilingüe: ${a.praza_bilingue}`);
+    if (a.afin && a.afin !== "afinnon") detallesExtra.push(`afín: ${a.afin}`);
+    if (a.itinerancia && a.itinerancia !== "itinerancianon") detallesExtra.push(`itinerante: ${a.itinerancia}`);
+    if (a.centro_actual) detallesExtra.push(`centro origen: ${a.centro_actual}`);
+    if (detallesExtra.length > 0) partes.push(detallesExtra.join(" · "));
+    const observaciones = partes.join("\n").slice(0, 500);
+
     // 2) crear el anuncio
     const anuncioInsert = await client.query<{ id: string }>(
       `insert into public.anuncios (
@@ -224,7 +254,7 @@ async function main() {
         ccaaCodigo,
         fechaToma,
         anyosServicio,
-        "[Anuncio importado de PermutaDoc — datos sintéticos para pruebas]",
+        observaciones,
       ],
     );
     const anuncioId = anuncioInsert.rows[0].id;

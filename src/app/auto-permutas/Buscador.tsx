@@ -63,8 +63,6 @@ export function Buscador({
   const [muniActual, setMuniActual] = useState<MunicipioBusqueda | null>(null);
 
   // Plazas deseadas
-  const [provDeseadaSel, setProvDeseadaSel] = useState<string>("");
-  const [ccaaDeseadaSel, setCcaaDeseadaSel] = useState<string>("");
   const [plazasDeseadas, setPlazasDeseadas] = useState<string[]>([]);
   const [atajosUsados, setAtajosUsados] = useState<
     Array<{ tipo: "ccaa" | "provincia" | "municipio_individual"; valor: string; label: string }>
@@ -78,68 +76,51 @@ export function Buscador({
   const [buscando, startBuscar] = useTransition();
   const [tab, setTab] = useState<TipoTab>("todas");
 
-  function añadirCcaaDeseada() {
-    if (!ccaaDeseadaSel) return;
-    if (atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === ccaaDeseadaSel)) return;
-    setAplicandoAtajo(true);
-    const cc = ccaa.find((c) => c.codigo_ine === ccaaDeseadaSel);
-    expandirAtajos([{ tipo: "ccaa", valor: ccaaDeseadaSel }]).then((codigos) => {
-      const indiv = atajosUsados
-        .filter((a) => a.tipo === "municipio_individual")
-        .map((a) => a.valor);
-      const otros = atajosUsados
-        .filter((a) => a.tipo !== "municipio_individual" && a.tipo !== "ccaa");
-      const todasCcaa = [
-        ...atajosUsados.filter((a) => a.tipo === "ccaa"),
-        { tipo: "ccaa" as const, valor: ccaaDeseadaSel, label: cc?.nombre ?? ccaaDeseadaSel },
-      ];
-      // Re-expandir todo
-      Promise.all([
-        ...todasCcaa.map((a) => expandirAtajos([{ tipo: "ccaa", valor: a.valor }])),
-        ...otros.map((a) => expandirAtajos([{ tipo: "provincia", valor: a.valor }])),
-      ])
-        .then((listas) => {
-          const set = new Set<string>([...listas.flat(), ...indiv]);
-          if (muniActual) set.delete(muniActual.codigo_ine);
-          setPlazasDeseadas(Array.from(set));
-          setAtajosUsados([...todasCcaa, ...otros, ...atajosUsados.filter((a) => a.tipo === "municipio_individual")]);
-          setCcaaDeseadaSel("");
-        })
-        .finally(() => setAplicandoAtajo(false));
-      // Suprimir variable no usada
-      void codigos;
-    });
-  }
-
-  function añadirProvDeseada() {
-    if (!provDeseadaSel) return;
-    if (atajosUsados.some((a) => a.tipo === "provincia" && a.valor === provDeseadaSel)) return;
-    setAplicandoAtajo(true);
-    const pr = provincias.find((p) => p.codigo_ine === provDeseadaSel);
-    const nuevoAtajos = [
-      ...atajosUsados,
-      { tipo: "provincia" as const, valor: provDeseadaSel, label: pr?.nombre ?? provDeseadaSel },
-    ];
-    Promise.all(
+  // Recalcula la lista plana de plazas deseadas a partir de la lista actual
+  // de atajos. Se llama tras cualquier cambio en `nuevoAtajos`.
+  async function recalcular(nuevoAtajos: typeof atajosUsados) {
+    const expansiones = await Promise.all(
       nuevoAtajos
         .filter((a) => a.tipo !== "municipio_individual")
         .map((a) =>
-          expandirAtajos([
-            { tipo: a.tipo as "ccaa" | "provincia", valor: a.valor },
-          ]),
+          expandirAtajos([{ tipo: a.tipo as "ccaa" | "provincia", valor: a.valor }]),
         ),
-    )
-      .then((listas) => {
-        const indiv = nuevoAtajos
-          .filter((a) => a.tipo === "municipio_individual")
-          .map((a) => a.valor);
-        const set = new Set<string>([...listas.flat(), ...indiv]);
-        if (muniActual) set.delete(muniActual.codigo_ine);
-        setPlazasDeseadas(Array.from(set));
-        setAtajosUsados(nuevoAtajos);
-        setProvDeseadaSel("");
-      })
-      .finally(() => setAplicandoAtajo(false));
+    );
+    const indiv = nuevoAtajos
+      .filter((a) => a.tipo === "municipio_individual")
+      .map((a) => a.valor);
+    const set = new Set<string>([...expansiones.flat(), ...indiv]);
+    if (muniActual) set.delete(muniActual.codigo_ine);
+    setAtajosUsados(nuevoAtajos);
+    setPlazasDeseadas(Array.from(set));
+  }
+
+  async function añadirCcaaDeseada(codigo: string) {
+    if (!codigo || atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === codigo)) return;
+    setAplicandoAtajo(true);
+    try {
+      const cc = ccaa.find((c) => c.codigo_ine === codigo);
+      await recalcular([
+        ...atajosUsados,
+        { tipo: "ccaa", valor: codigo, label: cc?.nombre ?? codigo },
+      ]);
+    } finally {
+      setAplicandoAtajo(false);
+    }
+  }
+
+  async function añadirProvDeseada(codigo: string) {
+    if (!codigo || atajosUsados.some((a) => a.tipo === "provincia" && a.valor === codigo)) return;
+    setAplicandoAtajo(true);
+    try {
+      const pr = provincias.find((p) => p.codigo_ine === codigo);
+      await recalcular([
+        ...atajosUsados,
+        { tipo: "provincia", valor: codigo, label: pr?.nombre ?? codigo },
+      ]);
+    } finally {
+      setAplicandoAtajo(false);
+    }
   }
 
   function añadirMuniIndiv(m: MunicipioBusqueda) {
@@ -163,19 +144,7 @@ export function Buscador({
   async function quitarAtajo(idx: number) {
     setAplicandoAtajo(true);
     try {
-      const nuevoAtajos = atajosUsados.filter((_, i) => i !== idx);
-      const expansiones = await Promise.all(
-        nuevoAtajos
-          .filter((a) => a.tipo !== "municipio_individual")
-          .map((a) => expandirAtajos([{ tipo: a.tipo as "ccaa" | "provincia", valor: a.valor }])),
-      );
-      const indiv = nuevoAtajos
-        .filter((a) => a.tipo === "municipio_individual")
-        .map((a) => a.valor);
-      const set = new Set<string>([...expansiones.flat(), ...indiv]);
-      if (muniActual) set.delete(muniActual.codigo_ine);
-      setAtajosUsados(nuevoAtajos);
-      setPlazasDeseadas(Array.from(set));
+      await recalcular(atajosUsados.filter((_, i) => i !== idx));
     } finally {
       setAplicandoAtajo(false);
     }
@@ -325,65 +294,35 @@ export function Buscador({
         <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Destino deseado
         </h2>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Añade una provincia para incluir todos sus municipios. Si quieres
+          acotar a municipios concretos, búscalos uno a uno abajo.
+        </p>
 
         <div className="mt-3 space-y-3">
-          <Field label="Toda una CCAA">
-            <div className="flex gap-2">
-              <select
-                value={ccaaDeseadaSel}
-                onChange={(e) => setCcaaDeseadaSel(e.target.value)}
-                disabled={aplicandoAtajo}
-                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
-              >
-                <option value="">—</option>
-                {ccaa
-                  .filter((c) => !atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === c.codigo_ine))
-                  .map((c) => (
-                    <option key={c.codigo_ine} value={c.codigo_ine}>
-                      {c.nombre}
-                    </option>
-                  ))}
-              </select>
-              <button
-                type="button"
-                disabled={!ccaaDeseadaSel || aplicandoAtajo}
-                onClick={añadirCcaaDeseada}
-                className="rounded-md bg-slate-900 px-2 py-1 text-xs text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
-              >
-                +
-              </button>
-            </div>
+          <Field label="Añadir una provincia">
+            <select
+              value=""
+              onChange={(e) => {
+                const v = e.target.value;
+                e.target.value = "";
+                if (v) añadirProvDeseada(v);
+              }}
+              disabled={aplicandoAtajo}
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+            >
+              <option value="">— Selecciona una provincia —</option>
+              {provincias
+                .filter((p) => !atajosUsados.some((a) => a.tipo === "provincia" && a.valor === p.codigo_ine))
+                .map((p) => (
+                  <option key={p.codigo_ine} value={p.codigo_ine}>
+                    {p.nombre}
+                  </option>
+                ))}
+            </select>
           </Field>
 
-          <Field label="Toda una provincia">
-            <div className="flex gap-2">
-              <select
-                value={provDeseadaSel}
-                onChange={(e) => setProvDeseadaSel(e.target.value)}
-                disabled={aplicandoAtajo}
-                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
-              >
-                <option value="">—</option>
-                {provincias
-                  .filter((p) => !atajosUsados.some((a) => a.tipo === "provincia" && a.valor === p.codigo_ine))
-                  .map((p) => (
-                    <option key={p.codigo_ine} value={p.codigo_ine}>
-                      {p.nombre}
-                    </option>
-                  ))}
-              </select>
-              <button
-                type="button"
-                disabled={!provDeseadaSel || aplicandoAtajo}
-                onClick={añadirProvDeseada}
-                className="rounded-md bg-slate-900 px-2 py-1 text-xs text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
-              >
-                +
-              </button>
-            </div>
-          </Field>
-
-          <Field label="Municipio suelto">
+          <Field label="Añadir un municipio concreto">
             <Autocomplete
               seleccionado={null}
               onSeleccionar={(m) => añadirMuniIndiv(m)}
@@ -392,6 +331,33 @@ export function Buscador({
               autoLimpiar
             />
           </Field>
+
+          <details className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-900/50">
+            <summary className="cursor-pointer font-medium text-slate-700 dark:text-slate-300">
+              Atajo: añadir toda una CCAA
+            </summary>
+            <div className="mt-2">
+              <select
+                value=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  e.target.value = "";
+                  if (v) añadirCcaaDeseada(v);
+                }}
+                disabled={aplicandoAtajo}
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
+              >
+                <option value="">— Selecciona una CCAA —</option>
+                {ccaa
+                  .filter((c) => !atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === c.codigo_ine))
+                  .map((c) => (
+                    <option key={c.codigo_ine} value={c.codigo_ine}>
+                      {c.nombre}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </details>
 
           <div className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-900/50">
             <p className="font-medium text-slate-700 dark:text-slate-300">
