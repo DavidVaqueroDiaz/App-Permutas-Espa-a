@@ -1,0 +1,25 @@
+import type { Metadata } from "next";
+import { RecuperarForm } from "./RecuperarForm";
+
+export const metadata: Metadata = {
+  title: "Recuperar contraseña",
+  description: "Recupera el acceso a tu cuenta de PermutaES.",
+  robots: { index: false, follow: false },
+};
+
+export default function RecuperarPage() {
+  return (
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-12">
+      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+        Recuperar contraseña
+      </h1>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        Introduce el email con el que te registraste y te enviaremos un enlace.
+      </p>
+
+      <div className="mt-8">
+        <RecuperarForm />
+      </div>
+    </main>
+  );
+}

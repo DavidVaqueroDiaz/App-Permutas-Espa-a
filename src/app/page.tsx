@@ -81,11 +81,6 @@ export default async function Home() {
           Estamos terminando de construir la plataforma. Próximamente abriremos
           registro para los primeros usuarios.
         </p>
-
-        <footer className="mt-16 border-t border-slate-200 pt-6 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          PermutaES · Plataforma sin ánimo de lucro · Datos cartográficos: ©
-          Instituto Geográfico Nacional · Datos administrativos: © INE
-        </footer>
       </div>
     </main>
   );

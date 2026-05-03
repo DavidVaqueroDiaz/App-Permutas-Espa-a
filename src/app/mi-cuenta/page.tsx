@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { EditarPerfilForm } from "./EditarPerfilForm";
+import { CambiarContrasenaForm } from "./CambiarContrasenaForm";
 
 export const metadata: Metadata = {
   title: "Mi cuenta",
@@ -32,39 +34,8 @@ export default async function MiCuentaPage() {
         Mi cuenta
       </h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-        Estos son los datos básicos de tu cuenta. Más adelante podrás editarlos y gestionar tus anuncios desde aquí.
+        Datos básicos de tu cuenta.
       </p>
-
-      <dl className="mt-8 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white text-sm dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex justify-between px-4 py-3">
-          <dt className="font-medium text-slate-700 dark:text-slate-300">Email</dt>
-          <dd className="text-slate-900 dark:text-slate-100">{user.email}</dd>
-        </div>
-        <div className="flex justify-between px-4 py-3">
-          <dt className="font-medium text-slate-700 dark:text-slate-300">Email verificado</dt>
-          <dd className="text-slate-900 dark:text-slate-100">
-            {user.email_confirmed_at ? "Sí" : "Pendiente"}
-          </dd>
-        </div>
-        {perfil && (
-          <>
-            <div className="flex justify-between px-4 py-3">
-              <dt className="font-medium text-slate-700 dark:text-slate-300">Alias público</dt>
-              <dd className="text-slate-900 dark:text-slate-100">{perfil.alias_publico}</dd>
-            </div>
-            <div className="flex justify-between px-4 py-3">
-              <dt className="font-medium text-slate-700 dark:text-slate-300">Año de nacimiento</dt>
-              <dd className="text-slate-900 dark:text-slate-100">{perfil.ano_nacimiento}</dd>
-            </div>
-            <div className="flex justify-between px-4 py-3">
-              <dt className="font-medium text-slate-700 dark:text-slate-300">Cuenta creada</dt>
-              <dd className="text-slate-900 dark:text-slate-100">
-                {new Date(perfil.creado_el).toLocaleDateString("es-ES")}
-              </dd>
-            </div>
-          </>
-        )}
-      </dl>
 
       {!user.email_confirmed_at && (
         <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
@@ -76,8 +47,54 @@ export default async function MiCuentaPage() {
         </div>
       )}
 
-      <p className="mt-8 text-xs text-slate-500 dark:text-slate-400">
-        El resto de funciones (editar alias, cambiar contraseña, gestionar anuncios, ver mensajes) llegarán en próximas fases del desarrollo.
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Datos de la cuenta</h2>
+        <dl className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white text-sm dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex justify-between px-4 py-3">
+            <dt className="font-medium text-slate-700 dark:text-slate-300">Email</dt>
+            <dd className="text-slate-900 dark:text-slate-100">{user.email}</dd>
+          </div>
+          <div className="flex justify-between px-4 py-3">
+            <dt className="font-medium text-slate-700 dark:text-slate-300">Email verificado</dt>
+            <dd className="text-slate-900 dark:text-slate-100">
+              {user.email_confirmed_at ? "Sí" : "Pendiente"}
+            </dd>
+          </div>
+          {perfil && (
+            <div className="flex justify-between px-4 py-3">
+              <dt className="font-medium text-slate-700 dark:text-slate-300">Cuenta creada</dt>
+              <dd className="text-slate-900 dark:text-slate-100">
+                {new Date(perfil.creado_el).toLocaleDateString("es-ES")}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
+      {perfil && (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Editar perfil</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Cambia tu alias público o tu año de nacimiento.
+          </p>
+          <div className="mt-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <EditarPerfilForm aliasInicial={perfil.alias_publico} anoInicial={perfil.ano_nacimiento} />
+          </div>
+        </section>
+      )}
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Cambiar contraseña</h2>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Pon una nueva contraseña sin necesidad de pasar por el email de recuperación.
+        </p>
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <CambiarContrasenaForm />
+        </div>
+      </section>
+
+      <p className="mt-10 text-xs text-slate-500 dark:text-slate-400">
+        Las funciones de gestión de anuncios y mensajes llegarán en próximos bloques del desarrollo.
       </p>
     </main>
   );
