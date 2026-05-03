@@ -6,18 +6,18 @@ import {
   type AnuncioMatching,
   type Cadena,
 } from "@/lib/matching";
+import { haversine } from "@/lib/haversine";
 
 export type PerfilBusqueda = {
   cuerpo_id: string;
   especialidad_id: string | null;
   municipio_actual_codigo: string;
-  plazas_deseadas: string[]; // códigos INE de municipios
-  // Datos legales razonables por defecto: la persona que busca puede
-  // tener más restricciones que las del default. Para una búsqueda
-  // pública sin perfil, asumimos valores que pasan todas las reglas.
+  municipio_objetivo_codigo: string;
+  radio_km: number;
+  // Datos legales razonables por defecto.
   ano_nacimiento: number;
   anyos_servicio_totales: number;
-  fecha_toma_posesion_definitiva: string; // YYYY-MM-DD
+  fecha_toma_posesion_definitiva: string;
   permuta_anterior_fecha: string | null;
 };
 
@@ -46,36 +46,45 @@ export type ParticipanteCadena = {
   municipio_actual_codigo: string;
   provincia_nombre: string;
   observaciones: string | null;
-  contacto_disponible: boolean; // true si hay sesión activa para iniciar contacto
+  contacto_disponible: boolean;
+  km_al_destino: number | null; // distancia al objetivo del que recibe la plaza
 };
 
 export type DetalleCadena = {
   longitud: 2 | 3 | 4;
   huella: string;
   score: number;
-  compatibilidad: number; // 0-100
+  compatibilidad: number;
   participantes: ParticipanteCadena[];
 };
 
-export type ResultadoBusqueda = {
-  ok: true;
-  cadenas: DetalleCadena[];
-  totalAnunciosAnalizados: number;
-} | { ok: false; mensaje: string };
+export type ResultadoBusqueda =
+  | {
+      ok: true;
+      cadenas: DetalleCadena[];
+      totalAnunciosAnalizados: number;
+      municipios_en_radio: number;
+    }
+  | { ok: false; mensaje: string };
 
 const VIRTUAL_PREFIX = "virtual-";
+const RADIO_DEFAULT_OTROS_KM = 40;
 
 /**
- * Busca cadenas de permuta que pasen por un perfil de búsqueda dado.
- * El perfil se trata como un "anuncio virtual" en memoria — no se
- * persiste en la BD. Es accesible para usuarios anónimos.
+ * Buscador inteligente de cadenas tipo PermutaDoc:
+ *   - El usuario indica localidad actual + localidad objetivo + radio.
+ *   - Las "plazas deseadas" del perfil son los municipios cuyo centro
+ *     está dentro del radio km de la localidad objetivo (usando haversine).
+ *   - Los OTROS anuncios usan sus plazas deseadas reales (las que el
+ *     usuario puso al publicar).
+ *   - Si el otro anuncio no tiene coordenadas, no se puede medir distancia.
  */
 export async function buscarCadenasDesdePerfil(
   input: PerfilBusqueda,
 ): Promise<ResultadoBusqueda> {
   const supabase = await createClient();
 
-  // Resolver sector y ccaa del cuerpo y municipio del input.
+  // 1) Resolver sector y ccaa del cuerpo + municipio actual.
   const { data: cuerpoRow } = await supabase
     .from("cuerpos")
     .select("sector_codigo")
@@ -85,7 +94,7 @@ export async function buscarCadenasDesdePerfil(
 
   const { data: muniInputRow } = await supabase
     .from("municipios")
-    .select("provincia_codigo, provincias!inner(ccaa_codigo)")
+    .select("provincia_codigo, latitud, longitud, provincias!inner(ccaa_codigo)")
     .eq("codigo_ine", input.municipio_actual_codigo)
     .maybeSingle();
   type ProvJoin = { ccaa_codigo: string } | { ccaa_codigo: string }[];
@@ -93,11 +102,74 @@ export async function buscarCadenasDesdePerfil(
   const ccaaInput = Array.isArray(provJoin) ? provJoin[0]?.ccaa_codigo : provJoin?.ccaa_codigo;
   if (!ccaaInput) return { ok: false, mensaje: "Municipio actual no válido." };
 
+  const muniActualCoords = muniInputRow as unknown as {
+    latitud: number | null;
+    longitud: number | null;
+  } | null;
+
   const sector = (cuerpoRow as { sector_codigo: string }).sector_codigo;
 
-  // Cargar anuncios reales compatibles a nivel de sector/cuerpo/especialidad.
-  // Si el sector es intra-CCAA, restringimos por ccaa.
+  // 2) Coordenadas del municipio objetivo y municipios en su radio.
+  const { data: muniObjRow } = await supabase
+    .from("municipios")
+    .select("codigo_ine, latitud, longitud")
+    .eq("codigo_ine", input.municipio_objetivo_codigo)
+    .maybeSingle();
+  if (!muniObjRow) return { ok: false, mensaje: "Municipio objetivo no válido." };
+
+  const objLat = (muniObjRow as { latitud: number | null }).latitud;
+  const objLon = (muniObjRow as { longitud: number | null }).longitud;
+  if (objLat === null || objLon === null) {
+    return {
+      ok: false,
+      mensaje:
+        "El municipio objetivo no tiene coordenadas cargadas. Por ahora la búsqueda por radio solo funciona en Galicia.",
+    };
+  }
+
+  // Cargar municipios con coordenadas en el ámbito del sector. Para
+  // sectores intra-CCAA, restringimos a la misma CCAA.
   const intraCcaa = new Set(["funcionario_ccaa", "policia_local"]);
+
+  let muniQ = supabase
+    .from("municipios")
+    .select("codigo_ine, latitud, longitud, provincia_codigo")
+    .not("latitud", "is", null);
+  if (intraCcaa.has(sector)) {
+    // Las provincias de esa CCAA.
+    const { data: provs } = await supabase
+      .from("provincias")
+      .select("codigo_ine")
+      .eq("ccaa_codigo", ccaaInput);
+    const codigos = (provs ?? []).map((p) => p.codigo_ine as string);
+    if (codigos.length > 0) muniQ = muniQ.in("provincia_codigo", codigos);
+  }
+  const { data: muniRows } = await muniQ;
+
+  const codigosEnRadio: string[] = [];
+  for (const r of muniRows ?? []) {
+    const lat = (r as { latitud: number | null }).latitud;
+    const lon = (r as { longitud: number | null }).longitud;
+    if (lat === null || lon === null) continue;
+    const km = haversine(objLat, objLon, lat, lon);
+    if (km <= input.radio_km) {
+      codigosEnRadio.push((r as { codigo_ine: string }).codigo_ine);
+    }
+  }
+  // El propio municipio actual nunca puede estar en plazas deseadas.
+  const setRadio = new Set(codigosEnRadio);
+  setRadio.delete(input.municipio_actual_codigo);
+
+  if (setRadio.size === 0) {
+    return {
+      ok: true,
+      cadenas: [],
+      totalAnunciosAnalizados: 0,
+      municipios_en_radio: 0,
+    };
+  }
+
+  // 3) Cargar anuncios reales compatibles (sector/cuerpo/especialidad).
   let q = supabase
     .from("anuncios")
     .select(
@@ -114,87 +186,106 @@ export async function buscarCadenasDesdePerfil(
   const anuncios = (anunciosCompat ?? []) as AnuncioRaw[];
 
   if (anuncios.length === 0) {
-    return { ok: true, cadenas: [], totalAnunciosAnalizados: 0 };
+    return {
+      ok: true,
+      cadenas: [],
+      totalAnunciosAnalizados: 0,
+      municipios_en_radio: setRadio.size,
+    };
   }
 
-  // Cargar plazas deseadas de cada anuncio.
+  // 4) Cargar plazas deseadas, perfiles, datos de visualización.
   const ids = anuncios.map((a) => a.id);
-  const { data: plazasData } = await supabase
-    .from("anuncio_plazas_deseadas")
-    .select("anuncio_id, municipio_codigo")
-    .in("anuncio_id", ids);
+  const usuariosUnicos = Array.from(new Set(anuncios.map((a) => a.usuario_id)));
+
+  const [plazasRes, perfilesRes, muniInfoRes, cuerpoInfoRes, espInfoRes] =
+    await Promise.all([
+      supabase
+        .from("anuncio_plazas_deseadas")
+        .select("anuncio_id, municipio_codigo")
+        .in("anuncio_id", ids),
+      supabase
+        .from("perfiles_publicos")
+        .select("id, alias_publico, ano_nacimiento")
+        .in("id", usuariosUnicos),
+      supabase
+        .from("municipios")
+        .select("codigo_ine, nombre, latitud, longitud, provincias!inner(nombre)")
+        .in(
+          "codigo_ine",
+          Array.from(
+            new Set([
+              ...anuncios.map((a) => a.municipio_actual_codigo),
+              input.municipio_actual_codigo,
+              input.municipio_objetivo_codigo,
+            ]),
+          ),
+        ),
+      supabase
+        .from("cuerpos")
+        .select("id, codigo_oficial, denominacion")
+        .eq("id", input.cuerpo_id),
+      input.especialidad_id
+        ? supabase
+            .from("especialidades")
+            .select("id, codigo_oficial, denominacion")
+            .eq("id", input.especialidad_id)
+        : Promise.resolve({
+            data: [] as { id: string; codigo_oficial: string | null; denominacion: string }[],
+          }),
+    ]);
+
   const plazasPorAnuncio = new Map<string, Set<string>>();
-  for (const p of plazasData ?? []) {
-    const key = (p as { anuncio_id: string }).anuncio_id;
-    const code = (p as { municipio_codigo: string }).municipio_codigo;
-    let s = plazasPorAnuncio.get(key);
+  for (const p of plazasRes.data ?? []) {
+    const k = (p as { anuncio_id: string }).anuncio_id;
+    const c = (p as { municipio_codigo: string }).municipio_codigo;
+    let s = plazasPorAnuncio.get(k);
     if (!s) {
       s = new Set();
-      plazasPorAnuncio.set(key, s);
+      plazasPorAnuncio.set(k, s);
     }
-    s.add(code);
+    s.add(c);
   }
 
-  // Cargar perfiles públicos (alias + ano_nacimiento) de los autores.
-  const usuariosUnicos = Array.from(new Set(anuncios.map((a) => a.usuario_id)));
-  const { data: perfilesData } = await supabase
-    .from("perfiles_publicos")
-    .select("id, alias_publico, ano_nacimiento")
-    .in("id", usuariosUnicos);
   const perfilesPorId = new Map<string, { alias_publico: string; ano_nacimiento: number }>();
-  for (const p of perfilesData ?? []) {
+  for (const p of perfilesRes.data ?? []) {
     perfilesPorId.set((p as { id: string }).id, {
       alias_publico: (p as { alias_publico: string }).alias_publico,
       ano_nacimiento: (p as { ano_nacimiento: number }).ano_nacimiento,
     });
   }
 
-  // Cargar nombres de municipios y provincias para visualización + cuerpo + especialidad.
-  const codigosMuni = Array.from(
-    new Set([
-      ...anuncios.map((a) => a.municipio_actual_codigo),
-      input.municipio_actual_codigo,
-    ]),
-  );
-
-  const [muniRowsRes, cuerposRowsRes, espRowsRes] = await Promise.all([
-    supabase
-      .from("municipios")
-      .select("codigo_ine, nombre, provincias!inner(nombre)")
-      .in("codigo_ine", codigosMuni),
-    supabase
-      .from("cuerpos")
-      .select("id, codigo_oficial, denominacion")
-      .eq("id", input.cuerpo_id),
-    input.especialidad_id
-      ? supabase
-          .from("especialidades")
-          .select("id, codigo_oficial, denominacion")
-          .eq("id", input.especialidad_id)
-      : Promise.resolve({ data: [] as { id: string; codigo_oficial: string | null; denominacion: string }[] }),
-  ]);
-
-  const muniInfo = new Map<string, { nombre: string; provincia_nombre: string }>();
-  for (const m of muniRowsRes.data ?? []) {
-    type ProvSub = { nombre: string } | { nombre: string }[];
-    const ps = (m as unknown as { provincias: ProvSub }).provincias;
-    const provNombre = Array.isArray(ps) ? ps[0]?.nombre ?? "" : ps?.nombre ?? "";
-    muniInfo.set((m as { codigo_ine: string }).codigo_ine, {
-      nombre: (m as { nombre: string }).nombre,
-      provincia_nombre: provNombre,
+  type MuniRow = {
+    codigo_ine: string;
+    nombre: string;
+    latitud: number | null;
+    longitud: number | null;
+    provincias: { nombre: string } | { nombre: string }[] | null;
+  };
+  const muniInfo = new Map<
+    string,
+    { nombre: string; provincia_nombre: string; lat: number | null; lon: number | null }
+  >();
+  for (const m of (muniInfoRes.data ?? []) as MuniRow[]) {
+    const ps = Array.isArray(m.provincias) ? m.provincias[0]?.nombre ?? "" : m.provincias?.nombre ?? "";
+    muniInfo.set(m.codigo_ine, {
+      nombre: m.nombre,
+      provincia_nombre: ps,
+      lat: m.latitud,
+      lon: m.longitud,
     });
   }
-  const cuerpo = (cuerposRowsRes.data ?? [])[0];
+
+  const cuerpo = (cuerpoInfoRes.data ?? [])[0];
   const cuerpoTexto = cuerpo
     ? `${cuerpo.codigo_oficial ? cuerpo.codigo_oficial + " · " : ""}${cuerpo.denominacion}`
     : "—";
-  const especialidad = (espRowsRes.data ?? [])[0];
+  const especialidad = (espInfoRes.data ?? [])[0];
   const especialidadTexto = especialidad
     ? `${especialidad.codigo_oficial ? especialidad.codigo_oficial + " · " : ""}${especialidad.denominacion}`
     : null;
 
-  // Construir AnuncioMatching para cada anuncio real, descartando los que
-  // no tengan perfil asociado (RLS o perfil eliminado).
+  // 5) Construir AnuncioMatching para cada anuncio real.
   const reales: AnuncioMatching[] = anuncios
     .map((a) => {
       const perfil = perfilesPorId.get(a.usuario_id);
@@ -218,7 +309,7 @@ export async function buscarCadenasDesdePerfil(
     })
     .filter((x): x is AnuncioMatching => x !== null);
 
-  // Construir el "anuncio virtual" del perfil de búsqueda.
+  // 6) Anuncio virtual del usuario buscador.
   const virtualId = `${VIRTUAL_PREFIX}${Math.random().toString(36).slice(2)}`;
   const virtualUserId = `${VIRTUAL_PREFIX}user`;
   const virtual: AnuncioMatching = {
@@ -235,23 +326,42 @@ export async function buscarCadenasDesdePerfil(
     permuta_anterior_fecha: input.permuta_anterior_fecha,
     ano_nacimiento: input.ano_nacimiento,
     alias_publico: "Tu perfil",
-    plazas_deseadas: new Set(input.plazas_deseadas),
+    plazas_deseadas: setRadio,
   };
 
-  // Detectar cadenas que pasan por el perfil virtual.
+  // 7) Detectar cadenas que pasan por el virtual.
   const todos = [...reales, virtual];
   const cadenas: Cadena[] = detectarCadenas(todos, [virtual]);
 
-  // ¿Hay sesión activa? (para habilitar el botón "Iniciar contacto").
+  // 8) ¿Hay sesión activa?
   const { data: { user } } = await supabase.auth.getUser();
   const haySesion = !!user;
 
-  // Enriquecer cada cadena con detalles visuales.
+  // 9) Enriquecer cada cadena con datos visuales y distancias.
   const detalle: DetalleCadena[] = cadenas.map((c) => {
-    const participantes: ParticipanteCadena[] = c.anuncios.map((id) => {
+    const participantes: ParticipanteCadena[] = c.anuncios.map((id, i) => {
       const a = todos.find((x) => x.id === id)!;
       const esVirtual = a.id === virtualId;
       const muni = muniInfo.get(a.municipio_actual_codigo);
+
+      // Distancia: el "siguiente" del ciclo es a quien voy a permutar (su
+      // plaza actual será la mía). Para el usuario virtual eso es la
+      // distancia al objetivo. Para los demás, distancia entre sus plazas.
+      const siguienteIdx = (i + 1) % c.anuncios.length;
+      const siguiente = todos.find((x) => x.id === c.anuncios[siguienteIdx])!;
+      const muniSig = muniInfo.get(siguiente.municipio_actual_codigo);
+      let km: number | null = null;
+      if (esVirtual && objLat !== null && objLon !== null && muniSig?.lat && muniSig?.lon) {
+        km = haversine(objLat, objLon, muniSig.lat, muniSig.lon);
+      } else if (
+        muni?.lat !== null && muni?.lat !== undefined &&
+        muni?.lon !== null && muni?.lon !== undefined &&
+        muniSig?.lat !== null && muniSig?.lat !== undefined &&
+        muniSig?.lon !== null && muniSig?.lon !== undefined
+      ) {
+        km = haversine(muni.lat!, muni.lon!, muniSig.lat!, muniSig.lon!);
+      }
+
       return {
         anuncio_id: a.id,
         es_perfil_busqueda: esVirtual,
@@ -265,6 +375,7 @@ export async function buscarCadenasDesdePerfil(
           ? null
           : (anuncios.find((r) => r.id === id)?.observaciones ?? null),
         contacto_disponible: !esVirtual && haySesion,
+        km_al_destino: km,
       };
     });
     return {
@@ -276,5 +387,14 @@ export async function buscarCadenasDesdePerfil(
     };
   });
 
-  return { ok: true, cadenas: detalle, totalAnunciosAnalizados: reales.length };
+  // Suprimir no-usados
+  void RADIO_DEFAULT_OTROS_KM;
+  void muniActualCoords;
+
+  return {
+    ok: true,
+    cadenas: detalle,
+    totalAnunciosAnalizados: reales.length,
+    municipios_en_radio: setRadio.size,
+  };
 }

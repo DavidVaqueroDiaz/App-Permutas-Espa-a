@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   buscarMunicipios,
-  expandirAtajos,
   type MunicipioBusqueda,
 } from "@/app/anuncios/nuevo/actions";
 import {
@@ -12,10 +11,8 @@ import {
   type ParticipanteCadena,
 } from "./actions";
 import type {
-  CcaaRow,
   CuerpoRow,
   EspecialidadRow,
-  ProvinciaRow,
   SectorRow,
 } from "@/app/anuncios/nuevo/types";
 
@@ -23,8 +20,6 @@ type Props = {
   sectores: SectorRow[];
   cuerpos: CuerpoRow[];
   especialidades: EspecialidadRow[];
-  ccaa: CcaaRow[];
-  provincias: ProvinciaRow[];
 };
 
 type TipoTab = "todas" | "directas" | "tres" | "cuatro";
@@ -33,10 +28,7 @@ export function Buscador({
   sectores,
   cuerpos,
   especialidades,
-  ccaa,
-  provincias,
 }: Props) {
-  // Solo activos en Fase 1.
   const sectoresActivos = useMemo(
     () => sectores.filter((s) => s.codigo === "docente_loe"),
     [sectores],
@@ -45,118 +37,35 @@ export function Buscador({
   const [sectorCodigo, setSectorCodigo] = useState<string>(
     sectoresActivos[0]?.codigo ?? "",
   );
-
   const cuerposDelSector = useMemo(
     () => cuerpos.filter((c) => c.sector_codigo === sectorCodigo),
     [cuerpos, sectorCodigo],
   );
-
   const [cuerpoId, setCuerpoId] = useState<string>("");
   const especialidadesDelCuerpo = useMemo(
     () => especialidades.filter((e) => e.cuerpo_id === cuerpoId),
     [especialidades, cuerpoId],
   );
-
   const [especialidadId, setEspecialidadId] = useState<string>("");
 
-  // Plaza actual (un único municipio)
+  // Plaza actual y destino: 1 municipio cada uno.
   const [muniActual, setMuniActual] = useState<MunicipioBusqueda | null>(null);
+  const [muniObjetivo, setMuniObjetivo] = useState<MunicipioBusqueda | null>(null);
 
-  // Plazas deseadas
-  const [plazasDeseadas, setPlazasDeseadas] = useState<string[]>([]);
-  const [atajosUsados, setAtajosUsados] = useState<
-    Array<{ tipo: "ccaa" | "provincia" | "municipio_individual"; valor: string; label: string }>
-  >([]);
-  const [aplicandoAtajo, setAplicandoAtajo] = useState(false);
+  // Radio en km
+  const [radio, setRadio] = useState<number>(40);
 
   // Resultados
   const [resultados, setResultados] = useState<DetalleCadena[] | null>(null);
   const [totalAnalizados, setTotalAnalizados] = useState(0);
+  const [municiposEnRadio, setMunicipiosEnRadio] = useState(0);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [buscando, startBuscar] = useTransition();
   const [tab, setTab] = useState<TipoTab>("todas");
 
-  // Recalcula la lista plana de plazas deseadas a partir de la lista actual
-  // de atajos. Se llama tras cualquier cambio en `nuevoAtajos`.
-  async function recalcular(nuevoAtajos: typeof atajosUsados) {
-    const expansiones = await Promise.all(
-      nuevoAtajos
-        .filter((a) => a.tipo !== "municipio_individual")
-        .map((a) =>
-          expandirAtajos([{ tipo: a.tipo as "ccaa" | "provincia", valor: a.valor }]),
-        ),
-    );
-    const indiv = nuevoAtajos
-      .filter((a) => a.tipo === "municipio_individual")
-      .map((a) => a.valor);
-    const set = new Set<string>([...expansiones.flat(), ...indiv]);
-    if (muniActual) set.delete(muniActual.codigo_ine);
-    setAtajosUsados(nuevoAtajos);
-    setPlazasDeseadas(Array.from(set));
-  }
-
-  async function añadirCcaaDeseada(codigo: string) {
-    if (!codigo || atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === codigo)) return;
-    setAplicandoAtajo(true);
-    try {
-      const cc = ccaa.find((c) => c.codigo_ine === codigo);
-      await recalcular([
-        ...atajosUsados,
-        { tipo: "ccaa", valor: codigo, label: cc?.nombre ?? codigo },
-      ]);
-    } finally {
-      setAplicandoAtajo(false);
-    }
-  }
-
-  async function añadirProvDeseada(codigo: string) {
-    if (!codigo || atajosUsados.some((a) => a.tipo === "provincia" && a.valor === codigo)) return;
-    setAplicandoAtajo(true);
-    try {
-      const pr = provincias.find((p) => p.codigo_ine === codigo);
-      await recalcular([
-        ...atajosUsados,
-        { tipo: "provincia", valor: codigo, label: pr?.nombre ?? codigo },
-      ]);
-    } finally {
-      setAplicandoAtajo(false);
-    }
-  }
-
-  function añadirMuniIndiv(m: MunicipioBusqueda) {
-    if (muniActual && m.codigo_ine === muniActual.codigo_ine) return;
-    if (atajosUsados.some((a) => a.tipo === "municipio_individual" && a.valor === m.codigo_ine)) return;
-    setAtajosUsados([
-      ...atajosUsados,
-      {
-        tipo: "municipio_individual",
-        valor: m.codigo_ine,
-        label: `${m.nombre} (${m.provincia_nombre})`,
-      },
-    ]);
-    setPlazasDeseadas(
-      Array.from(new Set([...plazasDeseadas, m.codigo_ine])).filter(
-        (c) => c !== muniActual?.codigo_ine,
-      ),
-    );
-  }
-
-  async function quitarAtajo(idx: number) {
-    setAplicandoAtajo(true);
-    try {
-      await recalcular(atajosUsados.filter((_, i) => i !== idx));
-    } finally {
-      setAplicandoAtajo(false);
-    }
-  }
-
   function buscar() {
-    if (!cuerpoId || !muniActual) {
-      setErrorBusqueda("Faltan datos: cuerpo y municipio actual.");
-      return;
-    }
-    if (plazasDeseadas.length === 0) {
-      setErrorBusqueda("Indica al menos una zona deseada.");
+    if (!cuerpoId || !muniActual || !muniObjetivo) {
+      setErrorBusqueda("Faltan datos: cuerpo, plaza actual y localidad objetivo.");
       return;
     }
     setErrorBusqueda(null);
@@ -165,8 +74,8 @@ export function Buscador({
         cuerpo_id: cuerpoId,
         especialidad_id: especialidadId || null,
         municipio_actual_codigo: muniActual.codigo_ine,
-        plazas_deseadas: plazasDeseadas,
-        // Defaults razonables para que pase las reglas legales.
+        municipio_objetivo_codigo: muniObjetivo.codigo_ine,
+        radio_km: radio,
         ano_nacimiento: 1985,
         anyos_servicio_totales: 10,
         fecha_toma_posesion_definitiva: "2018-09-01",
@@ -179,6 +88,7 @@ export function Buscador({
       }
       setResultados(r.cadenas);
       setTotalAnalizados(r.totalAnunciosAnalizados);
+      setMunicipiosEnRadio(r.municipios_en_radio);
       setTab("todas");
     });
   }
@@ -203,7 +113,6 @@ export function Buscador({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-      {/* Columna izquierda: perfil */}
       <aside className="self-start rounded-lg border border-slate-200 bg-white p-5 lg:sticky lg:top-20 dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Tu perfil
@@ -294,107 +203,37 @@ export function Buscador({
         <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Destino deseado
         </h2>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Añade una provincia para incluir todos sus municipios. Si quieres
-          acotar a municipios concretos, búscalos uno a uno abajo.
-        </p>
 
         <div className="mt-3 space-y-3">
-          <Field label="Añadir una provincia">
-            <select
-              value=""
-              onChange={(e) => {
-                const v = e.target.value;
-                e.target.value = "";
-                if (v) añadirProvDeseada(v);
-              }}
-              disabled={aplicandoAtajo}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
-            >
-              <option value="">— Selecciona una provincia —</option>
-              {provincias
-                .filter((p) => !atajosUsados.some((a) => a.tipo === "provincia" && a.valor === p.codigo_ine))
-                .map((p) => (
-                  <option key={p.codigo_ine} value={p.codigo_ine}>
-                    {p.nombre}
-                  </option>
-                ))}
-            </select>
-          </Field>
-
-          <Field label="Añadir un municipio concreto">
+          <Field label="Localidad objetivo">
             <Autocomplete
-              seleccionado={null}
-              onSeleccionar={(m) => añadirMuniIndiv(m)}
-              onLimpiar={() => undefined}
-              placeholder="Buscar municipio..."
-              autoLimpiar
+              seleccionado={muniObjetivo}
+              onSeleccionar={(m) => setMuniObjetivo(m)}
+              onLimpiar={() => setMuniObjetivo(null)}
+              placeholder="A donde te gustaría ir..."
             />
+            {muniObjetivo && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Provincia: {muniObjetivo.provincia_nombre}
+              </p>
+            )}
           </Field>
 
-          <details className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-900/50">
-            <summary className="cursor-pointer font-medium text-slate-700 dark:text-slate-300">
-              Atajo: añadir toda una CCAA
-            </summary>
-            <div className="mt-2">
-              <select
-                value=""
-                onChange={(e) => {
-                  const v = e.target.value;
-                  e.target.value = "";
-                  if (v) añadirCcaaDeseada(v);
-                }}
-                disabled={aplicandoAtajo}
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
-              >
-                <option value="">— Selecciona una CCAA —</option>
-                {ccaa
-                  .filter((c) => !atajosUsados.some((a) => a.tipo === "ccaa" && a.valor === c.codigo_ine))
-                  .map((c) => (
-                    <option key={c.codigo_ine} value={c.codigo_ine}>
-                      {c.nombre}
-                    </option>
-                  ))}
-              </select>
+          <Field label={`Radio máximo: ${radio} km`}>
+            <input
+              type="range"
+              min={10}
+              max={100}
+              step={5}
+              value={radio}
+              onChange={(e) => setRadio(Number.parseInt(e.target.value, 10))}
+              className="block w-full"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
+              <span>10 km</span>
+              <span>100 km</span>
             </div>
-          </details>
-
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-900/50">
-            <p className="font-medium text-slate-700 dark:text-slate-300">
-              {plazasDeseadas.length}{" "}
-              {plazasDeseadas.length === 1 ? "municipio aceptado" : "municipios aceptados"}
-            </p>
-            {atajosUsados.length === 0 ? (
-              <p className="mt-1 text-slate-500 dark:text-slate-400">
-                Aún no has añadido nada.
-              </p>
-            ) : (
-              <ul className="mt-1 flex flex-wrap gap-1">
-                {atajosUsados.map((a, i) => (
-                  <li
-                    key={`${a.tipo}-${a.valor}-${i}`}
-                    className={
-                      a.tipo === "ccaa"
-                        ? "rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200"
-                        : a.tipo === "provincia"
-                          ? "rounded-full bg-sky-100 px-2 py-0.5 text-[10px] text-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
-                          : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    }
-                  >
-                    {a.tipo === "ccaa" ? `Toda ${a.label}` : a.tipo === "provincia" ? `Toda ${a.label}` : a.label}
-                    <button
-                      type="button"
-                      onClick={() => quitarAtajo(i)}
-                      className="ml-1"
-                      aria-label="Quitar"
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          </Field>
         </div>
 
         {errorBusqueda && (
@@ -413,15 +252,14 @@ export function Buscador({
         </button>
       </aside>
 
-      {/* Columna derecha: resultados */}
       <section>
         {resultados === null ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
             <p>
-              Rellena tu perfil a la izquierda y pulsa <strong>Buscar permutas</strong> para ver las cadenas posibles.
+              Define tu perfil a la izquierda y pulsa <strong>Buscar permutas</strong> para ver las cadenas posibles.
             </p>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
-              No necesitas estar registrado para buscar. Solo para añadir tu propio anuncio.
+              Las plazas que te ofrecemos son las que están dentro del radio que indiques alrededor de tu localidad objetivo.
             </p>
           </div>
         ) : (
@@ -434,6 +272,7 @@ export function Buscador({
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {totalAnalizados} anuncios analizados
+                  {muniObjetivo && ` · ${municiposEnRadio} municipios en ${radio} km de ${muniObjetivo.nombre}`}
                 </p>
               </div>
             </header>
@@ -462,10 +301,6 @@ export function Buscador({
     </div>
   );
 }
-
-// ----------------------------------------------------------------------
-// Subcomponentes
-// ----------------------------------------------------------------------
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -513,16 +348,13 @@ function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
   return (
     <li className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-            {cadena.longitud === 2
-              ? "Permuta directa"
-              : `${cadena.participantes.length} personas`}
-          </span>
-        </div>
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+          {cadena.longitud === 2
+            ? "Permuta directa"
+            : `${cadena.participantes.length} personas`}
+        </span>
       </div>
 
-      {/* Visualización gráfica de la cadena */}
       <div className="mb-4 flex items-center justify-start gap-2 overflow-x-auto py-2">
         {cadena.participantes.map((p, i) => {
           const ultimo = i === cadena.participantes.length - 1;
@@ -555,14 +387,12 @@ function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
         })}
       </div>
 
-      {/* Lista detallada de participantes */}
       <ul className="space-y-2">
         {cadena.participantes.map((p) => (
           <ParticipanteFila key={p.anuncio_id} p={p} />
         ))}
       </ul>
 
-      {/* Barra de compatibilidad */}
       <div className="mt-4">
         <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>Compatibilidad</span>
@@ -597,6 +427,7 @@ function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
           <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
             {p.municipio_actual_nombre}
             {p.provincia_nombre && ` · ${p.provincia_nombre}`}
+            {p.km_al_destino !== null && ` · ${p.km_al_destino.toFixed(0)} km`}
           </span>
         </div>
         {!p.es_perfil_busqueda && p.contacto_disponible && (
@@ -632,13 +463,11 @@ function Autocomplete({
   onSeleccionar,
   onLimpiar,
   placeholder,
-  autoLimpiar,
 }: {
   seleccionado: MunicipioBusqueda | null;
   onSeleccionar: (m: MunicipioBusqueda) => void;
   onLimpiar: () => void;
   placeholder?: string;
-  autoLimpiar?: boolean;
 }) {
   const [query, setQuery] = useState(seleccionado?.nombre ?? "");
   const [resultados, setResultados] = useState<MunicipioBusqueda[]>([]);
@@ -664,7 +493,7 @@ function Autocomplete({
     };
   }, [query, seleccionado]);
 
-  if (seleccionado && !autoLimpiar) {
+  if (seleccionado) {
     return (
       <div className="flex items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900">
         <span className="text-sm text-slate-900 dark:text-slate-100">{seleccionado.nombre}</span>
@@ -706,12 +535,7 @@ function Autocomplete({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onSeleccionar(m);
-                  if (autoLimpiar) {
-                    setQuery("");
-                    setResultados([]);
-                  } else {
-                    setQuery(m.nombre);
-                  }
+                  setQuery(m.nombre);
                   setAbierto(false);
                 }}
                 className="flex w-full justify-between px-3 py-1.5 text-left text-xs hover:bg-slate-100 dark:hover:bg-slate-800"

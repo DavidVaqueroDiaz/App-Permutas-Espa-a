@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Buscador } from "./Buscador";
 import type {
-  CcaaRow,
   CuerpoRow,
   EspecialidadRow,
-  ProvinciaRow,
   SectorRow,
 } from "@/app/anuncios/nuevo/types";
 
@@ -20,29 +18,20 @@ export default async function AutoPermutasPage() {
 
   // Pública: NO requiere login. Solo se necesita registro para publicar
   // un anuncio propio o iniciar contacto con otro participante.
-  const [sectoresRes, cuerposRes, especialidadesRes, ccaaRes, provinciasRes] =
-    await Promise.all([
-      supabase
-        .from("sectores")
-        .select("codigo, nombre, descripcion")
-        .order("nombre"),
-      supabase
-        .from("cuerpos")
-        .select("id, sector_codigo, codigo_oficial, denominacion, subgrupo")
-        .order("codigo_oficial"),
-      supabase
-        .from("especialidades")
-        .select("id, cuerpo_id, codigo_oficial, denominacion")
-        .order("codigo_oficial"),
-      supabase
-        .from("ccaa")
-        .select("codigo_ine, nombre")
-        .order("nombre"),
-      supabase
-        .from("provincias")
-        .select("codigo_ine, nombre, ccaa_codigo")
-        .order("nombre"),
-    ]);
+  const [sectoresRes, cuerposRes, especialidadesRes] = await Promise.all([
+    supabase
+      .from("sectores")
+      .select("codigo, nombre, descripcion")
+      .order("nombre"),
+    supabase
+      .from("cuerpos")
+      .select("id, sector_codigo, codigo_oficial, denominacion, subgrupo")
+      .order("codigo_oficial"),
+    supabase
+      .from("especialidades")
+      .select("id, cuerpo_id, codigo_oficial, denominacion")
+      .order("codigo_oficial"),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-10">
@@ -61,8 +50,6 @@ export default async function AutoPermutasPage() {
         sectores={(sectoresRes.data ?? []) as SectorRow[]}
         cuerpos={(cuerposRes.data ?? []) as CuerpoRow[]}
         especialidades={(especialidadesRes.data ?? []) as EspecialidadRow[]}
-        ccaa={(ccaaRes.data ?? []) as CcaaRow[]}
-        provincias={(provinciasRes.data ?? []) as ProvinciaRow[]}
       />
     </main>
   );
