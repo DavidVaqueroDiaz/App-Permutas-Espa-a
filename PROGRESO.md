@@ -8,9 +8,9 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 ## Fase actual
 
-**Fase 0 — Setup técnico CERRADA.** La app está desplegada en internet en https://permutaes.vercel.app con el scaffold inicial: página provisional "PermutaES próximamente", SEO/GEO base configurado, conexiones a Supabase y Resend listas. Cualquier `git push` a `main` actualiza la web automáticamente en menos de 2 minutos.
-
-**La próxima sesión arranca Fase 1 — Alfa interna.** Es la fase larga (~15 sesiones) en la que construiremos la app completa para docencia LOE con datos sintéticos.
+**Fase 1 — Alfa interna en curso.**
+- Bloque 1 (modelo de datos en Supabase): COMPLETADO el 2026-04-30 (sesión 3).
+- Próximo: Bloque 2 (carga inicial de datos: 8.131 municipios INE, CCAA, provincias, GeoJSON, cuerpos LOE, especialidades).
 
 ---
 
@@ -200,3 +200,19 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 - Vaquero importa el repo en Vercel como proyecto `permutaes`, configura las 4 variables de entorno (Production + Preview) y dispara el primer deploy.
 - Despliegue exitoso en https://permutaes.vercel.app. Vaquero confirma que la URL pública carga correctamente.
 - **CIERRE DE FASE 0.** La app está en internet con scaffold mínimo y SEO/GEO base. La próxima sesión arranca Fase 1 (alfa interna, docencia LOE).
+
+### 2026-04-30 — Sesión 3 — Fase 1, Bloque 1 (modelo de datos) completado
+
+- Vaquero pidió ver el esquema antes de continuar y aprobó arrancar con el núcleo mínimo de tablas (geografía, taxonomía, identidad) en lugar de las 15 de Tarea 3.
+- Se cambió la regla del proyecto: a partir de ahora `git push` lo hace Claude automáticamente tras cada commit (antes lo hacía Vaquero). Memoria de proyecto actualizada.
+- Claude instala `@supabase/ssr` y `@supabase/supabase-js`. Crea `src/lib/supabase/client.ts` (Browser Client), `src/lib/supabase/server.ts` (Server Client con cookies) y `src/middleware.ts` (refresca sesión en cada request, excluye estáticos y archivos especiales SEO).
+- Claude crea `supabase/migrations/0001_initial_schema.sql` con:
+  - Tablas de geografía: `ccaa`, `provincias`, `municipios` (PK código INE, índices, full-text search en castellano sobre nombre).
+  - Tablas de taxonomía: `sectores`, `cuerpos`, `especialidades` (UUIDs, FKs y unique constraints).
+  - Tabla `perfiles_usuario` que extiende `auth.users` con alias_publico, ano_nacimiento, consentimiento RGPD, trigger de actualizado_el.
+  - RLS habilitado en todas. Geografía y taxonomía con lectura pública (anon + authenticated). `perfiles_usuario` con aislamiento por owner.
+  - Datos semilla: inserción de los 7 sectores cubiertos según TAREA_2.
+- Vaquero ejecuta el SQL en SQL Editor de Supabase. Resultado: "Success. No rows returned" — las 7 tablas y los 7 sectores creados sin errores.
+- Claude modifica `src/app/page.tsx` para que sea Server Component asíncrono y lea los sectores desde Supabase en lugar de hardcodearlos.
+- Despliegue automático en Vercel verifica end-to-end la conexión Next.js → Supabase. Vaquero confirma visualmente en https://permutaes.vercel.app que los 7 sectores aparecen ahora ordenados alfabéticamente (señal de que vienen de la BD).
+- 2 commits creados (`ecbc86c`, `858af6b`) y pusheados.
