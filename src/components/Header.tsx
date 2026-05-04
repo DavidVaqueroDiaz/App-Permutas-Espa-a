@@ -13,6 +13,14 @@ export async function Header() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Contador de conversaciones con mensajes nuevos para el usuario.
+  // Solo lo consultamos si hay sesión iniciada.
+  let noLeidos = 0;
+  if (user) {
+    const { data } = await supabase.rpc("contar_conversaciones_con_no_leidos");
+    noLeidos = (data as number) ?? 0;
+  }
+
   return (
     <header className="bg-brand text-white">
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-3 py-3 md:gap-4 md:px-8 md:py-4">
@@ -62,9 +70,17 @@ export async function Header() {
               )}
               <a
                 href="/mensajes"
-                className="text-sm text-white/85 hover:text-white"
+                className="relative text-sm text-white/85 hover:text-white"
               >
                 Mensajes
+                {noLeidos > 0 && (
+                  <span
+                    className="absolute -right-3 -top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-mint px-1 text-[10px] font-bold text-brand"
+                    aria-label={`${noLeidos} conversaciones sin leer`}
+                  >
+                    {noLeidos > 9 ? "9+" : noLeidos}
+                  </span>
+                )}
               </a>
               <a
                 href="/mi-cuenta"

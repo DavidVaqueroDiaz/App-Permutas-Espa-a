@@ -63,6 +63,68 @@ export async function iniciarConversacion(
 }
 
 /**
+ * Inicia (o recupera) una conversación a partir del id del anuncio
+ * con el que quieres contactar. Resuelve el `usuario_id` del otro
+ * lado en el servidor (no exponemos auth.users.id al cliente).
+ *
+ * Si el llamante no pasa `miAnuncioId`, intentamos buscar uno suyo
+ * activo en la misma taxonomía profesional para enlazarlo a la
+ * conversación. Si no tiene ninguno, la RPC fallará con un mensaje
+ * claro.
+ */
+export async function iniciarConversacionDesdeAnuncio(
+  otroAnuncioId: string,
+  miAnuncioId: string | null = null,
+): Promise<{ ok: true; conversacion_id: string } | { ok: false; mensaje: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, mensaje: "Tienes que iniciar sesión para contactar." };
+  }
+
+  // Resolver el usuario_id (y la taxonomía) del otro anuncio.
+  const { data: otroRow } = await supabase
+    .from("anuncios")
+    .select("usuario_id, sector_codigo, cuerpo_id, especialidad_id")
+    .eq("id", otroAnuncioId)
+    .maybeSingle();
+  if (!otroRow) {
+    return { ok: false, mensaje: "Anuncio no encontrado." };
+  }
+  type OtroRow = {
+    usuario_id: string;
+    sector_codigo: string;
+    cuerpo_id: string;
+    especialidad_id: string | null;
+  };
+  const otro = otroRow as OtroRow;
+
+  if (otro.usuario_id === user.id) {
+    return { ok: false, mensaje: "No puedes contactar contigo mismo." };
+  }
+
+  // Si no se especificó cuál de mis anuncios usar, busco uno activo
+  // con la misma taxonomía. Esto cubre el caso de que el usuario
+  // tenga varios y uno solo encaje.
+  let miAnuncioFinal = miAnuncioId;
+  if (!miAnuncioFinal) {
+    let miQ = supabase
+      .from("anuncios")
+      .select("id")
+      .eq("usuario_id", user.id)
+      .eq("estado", "activo")
+      .eq("sector_codigo", otro.sector_codigo)
+      .eq("cuerpo_id", otro.cuerpo_id);
+    if (otro.especialidad_id) miQ = miQ.eq("especialidad_id", otro.especialidad_id);
+    else miQ = miQ.is("especialidad_id", null);
+    const { data: mio } = await miQ.limit(1).maybeSingle();
+    if (mio) miAnuncioFinal = (mio as { id: string }).id;
+  }
+
+  return iniciarConversacion(otro.usuario_id, miAnuncioFinal, otroAnuncioId);
+}
+
+/**
  * Envía un mensaje en una conversación existente. RLS comprueba que
  * el usuario es participante y remitente.
  */

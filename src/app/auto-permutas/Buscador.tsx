@@ -6,6 +6,7 @@ import {
   type DetalleCadena,
   type ParticipanteCadena,
 } from "./actions";
+import { iniciarConversacionDesdeAnuncio } from "@/app/mensajes/actions";
 import type {
   CuerpoRow,
   EspecialidadRow,
@@ -655,14 +656,7 @@ function ParticipanteDetalle({
       </ul>
 
       {p.contacto_disponible ? (
-        <button
-          type="button"
-          disabled
-          className="mt-3 inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-[12.5px] font-medium text-white opacity-70"
-          title="La mensajería interna llegará en próximos bloques."
-        >
-          Contactar →
-        </button>
+        <BotonContactar anuncioId={p.anuncio_id} />
       ) : (
         <a
           href="/registro"
@@ -670,6 +664,47 @@ function ParticipanteDetalle({
         >
           Regístrate para contactar →
         </a>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Botón "Contactar" que abre (o crea) una conversación 1-on-1 con el
+ * dueño del anuncio indicado y redirige a `/mensajes/[id]`. Si no es
+ * posible (p.ej. el buscador aún no ha publicado un anuncio propio en
+ * la misma especialidad) muestra el mensaje de error inline.
+ */
+function BotonContactar({ anuncioId }: { anuncioId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function abrir() {
+    setError(null);
+    startTransition(async () => {
+      const r = await iniciarConversacionDesdeAnuncio(anuncioId);
+      if (!r.ok) {
+        setError(r.mensaje);
+        return;
+      }
+      window.location.href = `/mensajes/${r.conversacion_id}`;
+    });
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={abrir}
+        disabled={pending}
+        className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-[12.5px] font-medium text-white hover:bg-brand-dark disabled:opacity-60"
+      >
+        {pending ? "Abriendo…" : "Contactar →"}
+      </button>
+      {error && (
+        <p className="mt-1.5 text-[11.5px] text-red-700">
+          {error}
+        </p>
       )}
     </div>
   );
