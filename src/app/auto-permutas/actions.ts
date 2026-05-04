@@ -34,7 +34,72 @@ type AnuncioRaw = {
   anyos_servicio_totales: number;
   permuta_anterior_fecha: string | null;
   observaciones: string | null;
+  creado_el: string;
 };
+
+/**
+ * Datos parseados desde el campo `observaciones` (texto libre que en
+ * los anuncios importados de PermutaDoc lleva metadatos en línea).
+ *
+ * Formato esperado:
+ *   [Anuncio de prueba importado de PermutaDoc · <tipo>] <texto libre> Zona deseada: <zona> tipo plaza: <cxt|...> · centro origen: <codigo>
+ *
+ * Para anuncios creados en PermutaES nativos (sin prefijo) devolvemos
+ * solo `observacionesUsuario` con todo el texto.
+ */
+function parseObservacionesPermutadoc(rawObs: string | null): {
+  tipo: string | null;
+  observacionesUsuario: string | null;
+  zonaDeseada: string | null;
+  centroOrigen: string | null;
+} {
+  if (!rawObs) {
+    return { tipo: null, observacionesUsuario: null, zonaDeseada: null, centroOrigen: null };
+  }
+  let s = rawObs.trim();
+  let tipo: string | null = null;
+
+  // Prefijo "[Anuncio ... · <tipo>]"
+  const pref = s.match(/^\[Anuncio[^\]]*·\s*([^\]]+)\]\s*/i);
+  if (pref) {
+    tipo = pref[1].trim();
+    s = s.slice(pref[0].length);
+  }
+
+  // Centro origen (al final, código numérico)
+  let centroOrigen: string | null = null;
+  const centroIdx = s.toLowerCase().lastIndexOf("centro origen:");
+  if (centroIdx >= 0) {
+    const after = s.slice(centroIdx + "centro origen:".length).trim();
+    const m = after.match(/^([0-9]+)/);
+    if (m) centroOrigen = m[1];
+    s = s.slice(0, centroIdx).replace(/[·.\s]+$/u, "").trim();
+  }
+
+  // Tipo plaza (al final, después de quitar centro)
+  const tipoIdx = s.toLowerCase().lastIndexOf("tipo plaza:");
+  if (tipoIdx >= 0) {
+    const after = s.slice(tipoIdx + "tipo plaza:".length).trim();
+    const m = after.match(/^([^\s·.]+)/);
+    if (m && !tipo) tipo = m[1];
+    s = s.slice(0, tipoIdx).replace(/[·.\s]+$/u, "").trim();
+  }
+
+  // Zona deseada (al final ahora)
+  let zonaDeseada: string | null = null;
+  const zonaIdx = s.toLowerCase().lastIndexOf("zona deseada:");
+  if (zonaIdx >= 0) {
+    zonaDeseada = s.slice(zonaIdx + "zona deseada:".length).trim();
+    s = s.slice(0, zonaIdx).replace(/[·.\s]+$/u, "").trim();
+  }
+
+  return {
+    tipo,
+    observacionesUsuario: s || null,
+    zonaDeseada,
+    centroOrigen,
+  };
+}
 
 export type ParticipanteCadena = {
   anuncio_id: string;
@@ -44,10 +109,18 @@ export type ParticipanteCadena = {
   especialidad_texto: string | null;
   municipio_actual_nombre: string;
   municipio_actual_codigo: string;
+  municipio_destino_nombre: string; // a dónde se va esta persona (siguiente en el ciclo)
   provincia_nombre: string;
-  observaciones: string | null;
+
+  // Datos parseados (cuando vienen importados de PermutaDoc, si no null)
+  tipo: string | null;             // definitiva / provisional / cxt / null
+  zona_deseada: string | null;     // texto libre con la zona buscada
+  centro_origen: string | null;    // código de centro
+  observaciones: string | null;    // texto libre del usuario, ya limpio
+  fecha_publicacion: string | null;// YYYY-MM-DD
+
   contacto_disponible: boolean;
-  km_al_destino: number | null; // distancia al objetivo del que recibe la plaza
+  km_recta: number | null; // distancia en línea recta entre la plaza actual y la del destino
 };
 
 export type DetalleCadena = {
@@ -173,7 +246,7 @@ export async function buscarCadenasDesdePerfil(
   let q = supabase
     .from("anuncios")
     .select(
-      "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones",
+      "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el",
     )
     .eq("estado", "activo")
     .eq("sector_codigo", sector)
@@ -344,12 +417,15 @@ export async function buscarCadenasDesdePerfil(
       const esVirtual = a.id === virtualId;
       const muni = muniInfo.get(a.municipio_actual_codigo);
 
-      // Distancia: el "siguiente" del ciclo es a quien voy a permutar (su
-      // plaza actual será la mía). Para el usuario virtual eso es la
-      // distancia al objetivo. Para los demás, distancia entre sus plazas.
+      // El "siguiente" del ciclo es a quien voy a permutar (su plaza
+      // actual será la mía). Para el usuario virtual, su destino es el
+      // municipio objetivo declarado.
       const siguienteIdx = (i + 1) % c.anuncios.length;
       const siguiente = todos.find((x) => x.id === c.anuncios[siguienteIdx])!;
       const muniSig = muniInfo.get(siguiente.municipio_actual_codigo);
+
+      // Distancia en línea recta entre mi plaza actual y la plaza a la
+      // que voy a ir (la del siguiente).
       let km: number | null = null;
       if (esVirtual && objLat !== null && objLon !== null && muniSig?.lat && muniSig?.lon) {
         km = haversine(objLat, objLon, muniSig.lat, muniSig.lon);
@@ -362,6 +438,11 @@ export async function buscarCadenasDesdePerfil(
         km = haversine(muni.lat!, muni.lon!, muniSig.lat!, muniSig.lon!);
       }
 
+      // Datos parseados del anuncio real (cuando no es el virtual del
+      // usuario buscador).
+      const anuncioReal = esVirtual ? null : anuncios.find((r) => r.id === id) ?? null;
+      const parsed = parseObservacionesPermutadoc(anuncioReal?.observaciones ?? null);
+
       return {
         anuncio_id: a.id,
         es_perfil_busqueda: esVirtual,
@@ -370,12 +451,15 @@ export async function buscarCadenasDesdePerfil(
         especialidad_texto: especialidadTexto,
         municipio_actual_nombre: muni?.nombre ?? a.municipio_actual_codigo,
         municipio_actual_codigo: a.municipio_actual_codigo,
+        municipio_destino_nombre: muniSig?.nombre ?? siguiente.municipio_actual_codigo,
         provincia_nombre: muni?.provincia_nombre ?? "",
-        observaciones: esVirtual
-          ? null
-          : (anuncios.find((r) => r.id === id)?.observaciones ?? null),
+        tipo: parsed.tipo,
+        zona_deseada: parsed.zonaDeseada,
+        centro_origen: parsed.centroOrigen,
+        observaciones: esVirtual ? null : parsed.observacionesUsuario,
+        fecha_publicacion: anuncioReal?.creado_el?.slice(0, 10) ?? null,
         contacto_disponible: !esVirtual && haySesion,
-        km_al_destino: km,
+        km_recta: km,
       };
     });
     return {

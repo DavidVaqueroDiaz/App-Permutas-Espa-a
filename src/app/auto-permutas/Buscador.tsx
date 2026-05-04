@@ -325,8 +325,8 @@ export function Buscador({
               </div>
             ) : (
               <ul className="space-y-4">
-                {cadenasFiltradas.map((c) => (
-                  <CadenaCard key={c.huella} cadena={c} />
+                {cadenasFiltradas.map((c, i) => (
+                  <CadenaCard key={c.huella} cadena={c} mejor={i === 0} />
                 ))}
               </ul>
             )}
@@ -373,123 +373,299 @@ function Tab({
   );
 }
 
+/**
+ * Iniciales para mostrar dentro del círculo del nodo. Si el municipio
+ * tiene una sola palabra usamos la primera letra; si tiene varias,
+ * primera y última.
+ */
 function inicialesMunicipio(nombre: string): string {
   const palabras = nombre.split(/\s+/).filter(Boolean);
   if (palabras.length === 1) return palabras[0].slice(0, 1).toUpperCase();
   return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
 }
 
-function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
+/**
+ * Etiqueta humana del tipo de permuta, normalizada a castellano.
+ * Acepta los valores que vienen importados de PermutaDoc.
+ */
+function etiquetaTipo(t: string | null): string {
+  if (!t) return "—";
+  const v = t.toLowerCase().trim();
+  if (v === "cxt" || v === "definitiva") return "Definitiva";
+  if (v === "provisional") return "Provisional";
+  if (v === "ambas") return "Ambas";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function diasDesde(fechaIso: string | null): number {
+  if (!fechaIso) return 0;
+  const d = new Date(fechaIso);
+  if (Number.isNaN(d.getTime())) return 0;
+  return Math.floor((Date.now() - d.getTime()) / 86_400_000);
+}
+
+/**
+ * Tarjeta principal de una cadena detectada. Replica la estructura del
+ * `ResultCard` de PermutaDoc: cabecera con ruta y compatibilidad,
+ * diagrama de cadena cerrada, lista descriptiva de movimientos y
+ * detalle de cada participante (excluyéndote).
+ */
+function CadenaCard({ cadena, mejor }: { cadena: DetalleCadena; mejor: boolean }) {
+  const score = cadena.compatibilidad;
+  const longitudLabel =
+    cadena.longitud === 2
+      ? "Permuta directa"
+      : cadena.longitud === 3
+        ? "Permuta a 3"
+        : "Permuta a 4";
+
+  // Cierre del ciclo en el título: "Sobrado → Arteixo → Ferrol → Sobrado".
+  const tituloRuta = [
+    ...cadena.participantes.map((p) => p.municipio_actual_nombre),
+    cadena.participantes[0]?.municipio_actual_nombre ?? "",
+  ].join(" → ");
+
+  // En el grid de detalle excluimos al usuario (siempre el primero).
+  const otros = cadena.participantes.slice(1);
+
   return (
-    <li className="rounded-xl2 border border-slate-200 bg-white shadow-card p-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-brand-bg px-2 py-0.5 text-xs font-medium text-brand-text">
-          {cadena.longitud === 2
-            ? "Permuta directa"
-            : `${cadena.participantes.length} personas`}
-        </span>
-      </div>
+    <article className="space-y-4 rounded-xl2 border border-slate-200 bg-white p-4 shadow-card transition hover:shadow-card-hover sm:p-5 sm:space-y-5 md:p-6">
+      {mejor && (
+        <div className="-ml-1 -mt-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[11px] font-medium text-white">
+            ★ Mejor coincidencia
+          </span>
+        </div>
+      )}
 
-      <div className="mb-4 flex items-center justify-start gap-2 overflow-x-auto py-2">
-        {cadena.participantes.map((p, i) => {
-          const ultimo = i === cadena.participantes.length - 1;
-          return (
-            <div key={p.anuncio_id} className="flex items-center gap-2">
-              <div className="flex flex-col items-center">
-                <div
-                  className={
-                    "flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold shadow-sm " +
-                    (p.es_perfil_busqueda
-                      ? "bg-brand text-white ring-2 ring-brand-mint"
-                      : "bg-slate-700 text-white")
-                  }
-                  title={p.municipio_actual_nombre}
-                >
-                  {inicialesMunicipio(p.municipio_actual_nombre)}
-                </div>
-                <span className="mt-1 max-w-[80px] truncate text-center text-[10px] text-slate-700">
-                  {p.municipio_actual_nombre}
-                </span>
-              </div>
-              {!ultimo && (
-                <span className="text-2xl text-slate-400">→</span>
-              )}
-              {ultimo && cadena.participantes.length > 1 && (
-                <span className="text-2xl text-slate-400">↺</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wide text-slate-500">
+            {longitudLabel}
+          </div>
+          <h3 className="font-head text-sm font-semibold leading-snug text-slate-800 sm:text-base">
+            {tituloRuta}
+          </h3>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="font-head text-xl font-semibold leading-none text-brand sm:text-2xl">
+            {score}
+            <span className="text-xs text-brand-light sm:text-sm">%</span>
+          </div>
+          <div className="text-[10.5px] text-slate-500">compatibilidad</div>
+        </div>
+      </header>
 
-      <ul className="space-y-2">
-        {cadena.participantes.map((p) => (
-          <ParticipanteFila key={p.anuncio_id} p={p} />
-        ))}
-      </ul>
+      <Chain participantes={cadena.participantes} />
 
-      <div className="mt-4">
+      <Movimientos participantes={cadena.participantes} />
+
+      {otros.length > 0 && (
+        <div>
+          <h4 className="mb-2 font-head text-sm font-semibold text-slate-800">
+            Detalles de los participantes
+          </h4>
+          <div className={`grid gap-3 ${otros.length > 2 ? "md:grid-cols-2" : ""}`}>
+            {otros.map((p, idx) => (
+              <ParticipanteDetalle
+                key={p.anuncio_id}
+                participante={p}
+                indice={idx + 2}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <footer>
         <div className="flex justify-between text-xs text-slate-500">
           <span>Compatibilidad</span>
-          <span>{cadena.compatibilidad}%</span>
+          <span>{score}%</span>
         </div>
-        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
+        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
           <div
-            className="h-1.5 rounded-full bg-brand-light"
-            style={{ width: `${cadena.compatibilidad}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-brand-light to-brand transition-all"
+            style={{ width: `${score}%` }}
           />
         </div>
-      </div>
-    </li>
+      </footer>
+    </article>
   );
 }
 
-function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
+/**
+ * Diagrama horizontal con círculos, cerrando el ciclo (repite el
+ * primer nodo al final). Etiqueta encima ("TÚ" / "Persona N").
+ *
+ * Padding generoso (py-3) y `overflow-x-auto` con `-mx-1 px-1` para
+ * que el ring del círculo del usuario no se corte por arriba.
+ */
+function Chain({ participantes }: { participantes: ParticipanteCadena[] }) {
+  if (participantes.length < 2) return null;
+  const cerrada = [...participantes, participantes[0]];
+
   return (
-    <li
-      className={
-        "rounded-md border p-3 text-sm " +
-        (p.es_perfil_busqueda
-          ? "border-brand-mint bg-brand-bg"
-          : "border-slate-200 bg-slate-50")
-      }
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <span className="text-xs font-semibold text-slate-700">
-            {p.es_perfil_busqueda ? "TÚ" : p.alias_publico}
-          </span>
-          <span className="ml-2 text-xs text-slate-500">
-            {p.municipio_actual_nombre}
-            {p.provincia_nombre && ` · ${p.provincia_nombre}`}
-            {p.km_al_destino !== null && ` · ${p.km_al_destino.toFixed(0)} km`}
-          </span>
+    <div className="-mx-1 flex items-end gap-0.5 overflow-x-auto px-1 py-3 sm:gap-1">
+      {cerrada.map((p, i) => {
+        const esUsuario = i === 0 || i === cerrada.length - 1;
+        const etiqueta = esUsuario ? "TÚ" : `Persona ${i + 1}`;
+        return (
+          <div key={i} className="flex shrink-0 items-end gap-0.5 sm:gap-1">
+            <div className="flex w-[68px] flex-col items-center gap-1 sm:w-[100px]">
+              <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500 sm:text-[10px]">
+                {etiqueta}
+              </span>
+              <div
+                className={
+                  "flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:h-12 sm:w-12 sm:text-sm " +
+                  (esUsuario
+                    ? "bg-brand text-white ring-2 ring-brand/20"
+                    : "bg-brand-bg text-brand-text ring-2 ring-brand-mint/30")
+                }
+                title={p.municipio_actual_nombre}
+              >
+                {inicialesMunicipio(p.municipio_actual_nombre)}
+              </div>
+              <span className="line-clamp-2 text-center text-[10px] font-medium leading-tight text-slate-700 sm:text-[11px]">
+                {p.municipio_actual_nombre}
+              </span>
+            </div>
+            {i < cerrada.length - 1 && (
+              <span className="select-none pb-6 text-base text-slate-300 sm:pb-7 sm:text-xl">
+                →
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Lista descriptiva de cada movimiento de la cadena. Para cada nodo
+ * indicamos quién deja qué plaza y a dónde va. El último item marca
+ * "(tu plaza)" porque ahí se cierra el ciclo.
+ */
+function Movimientos({ participantes }: { participantes: ParticipanteCadena[] }) {
+  if (participantes.length < 2) return null;
+  const k = participantes.length;
+  return (
+    <div>
+      <h4 className="mb-2 font-head text-sm font-semibold text-slate-800">
+        Los movimientos de la permuta
+      </h4>
+      <ul className="space-y-2">
+        {participantes.map((p, i) => {
+          const siguiente = participantes[(i + 1) % k];
+          const esUsuario = i === 0;
+          const esUltimo = i === k - 1;
+          return (
+            <li
+              key={p.anuncio_id}
+              className="flex items-start gap-2.5 text-[13.5px] leading-relaxed"
+            >
+              <span
+                className={
+                  "mt-1.5 h-2 w-2 shrink-0 rounded-full " +
+                  (esUsuario ? "bg-brand" : "bg-info-text")
+                }
+              />
+              <span className="text-slate-700">
+                <strong className={esUsuario ? "text-brand" : "text-info-text"}>
+                  {esUsuario ? "Tú" : `Persona ${i + 1}`}
+                </strong>{" "}
+                {esUsuario ? "dejas" : "deja"}{" "}
+                <strong className="text-slate-900">{p.municipio_actual_nombre}</strong>
+                {p.centro_origen ? ` (${p.centro_origen})` : ""} y{" "}
+                {esUsuario ? "vas" : "va"} a{" "}
+                <strong className="text-slate-900">{siguiente.municipio_actual_nombre}</strong>
+                {esUltimo && (
+                  <span className="text-slate-500"> (tu plaza)</span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Tarjeta de detalle de un participante (excluyendo al usuario).
+ * Muestra centro, tipo, zona buscada, observaciones, fecha del anuncio
+ * y distancia en línea recta entre su plaza y la del usuario buscador.
+ */
+function ParticipanteDetalle({
+  participante: p,
+  indice,
+}: {
+  participante: ParticipanteCadena;
+  indice: number;
+}) {
+  const dias = diasDesde(p.fecha_publicacion);
+  const antiguo = dias > 30;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3.5">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-sm font-medium text-slate-800">
+          Persona {indice} · {p.municipio_actual_nombre}
+          {p.provincia_nombre ? ` · ${p.provincia_nombre}` : ""}
         </div>
-        {!p.es_perfil_busqueda && p.contacto_disponible && (
-          <button
-            type="button"
-            disabled
-            className="rounded-md bg-brand px-3 py-1 text-xs font-medium text-white opacity-70"
-            title="La mensajería interna llegará en próximos bloques."
-          >
-            Contactar
-          </button>
-        )}
-        {!p.es_perfil_busqueda && !p.contacto_disponible && (
-          <a
-            href="/registro"
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Regístrate para contactar
-          </a>
+        {antiguo && (
+          <span className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text">
+            ⚠ Anuncio con más de 30 días
+          </span>
         )}
       </div>
-      {p.observaciones && (
-        <p className="mt-2 text-xs italic text-slate-600">
-          “{p.observaciones}”
-        </p>
+      <ul className="space-y-1 text-[12.5px] leading-snug text-slate-700">
+        <li>
+          🏫 <span className="text-slate-500">Centro:</span> {p.centro_origen ?? "—"}
+        </li>
+        <li>
+          📋 <span className="text-slate-500">Tipo:</span> {etiquetaTipo(p.tipo)}
+        </li>
+        <li>
+          🎯 <span className="text-slate-500">Busca:</span>{" "}
+          {p.zona_deseada ?? "—"}
+        </li>
+        {p.observaciones && (
+          <li>
+            📝 <span className="text-slate-500">Obs.:</span> {p.observaciones}
+          </li>
+        )}
+        <li>
+          📅 <span className="text-slate-500">Anuncio del:</span>{" "}
+          {p.fecha_publicacion ?? "—"}
+        </li>
+        {p.km_recta !== null && (
+          <li className="italic text-slate-500">
+            {Math.round(p.km_recta)} km de {p.municipio_actual_nombre} a{" "}
+            {p.municipio_destino_nombre} en línea recta
+          </li>
+        )}
+      </ul>
+
+      {p.contacto_disponible ? (
+        <button
+          type="button"
+          disabled
+          className="mt-3 inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1 text-[12.5px] font-medium text-white opacity-70"
+          title="La mensajería interna llegará en próximos bloques."
+        >
+          Contactar →
+        </button>
+      ) : (
+        <a
+          href="/registro"
+          className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-brand-text hover:text-brand"
+        >
+          Regístrate para contactar →
+        </a>
       )}
-    </li>
+    </div>
   );
 }
 
