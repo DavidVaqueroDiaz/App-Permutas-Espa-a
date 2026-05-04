@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { enviarEmail } from "@/lib/email/resend";
+import { plantillaMensajeNuevo } from "@/lib/email/plantillas";
 
 export type ConversacionResumen = {
   id: string;
@@ -156,9 +158,74 @@ export async function enviarMensaje(
     return { ok: false, mensaje: error.message };
   }
 
+  // Aviso por email al destinatario. Best-effort: si falla no
+  // bloqueamos el envío del mensaje, solo lo registramos. Cuando
+  // tengamos cron de reintento, recogerá las notificaciones que
+  // se quedaron sin `enviada_email_el`.
+  await dispararEmailDestinatario(supabase, conversacionId, texto);
+
   revalidatePath(`/mensajes/${conversacionId}`);
   revalidatePath("/mensajes");
   return { ok: true };
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Resuelve email + alias del destinatario y dispara la plantilla
+ * "mensaje nuevo". No interrumpe el flujo si el email falla.
+ */
+async function dispararEmailDestinatario(
+  supabase: SupabaseServerClient,
+  conversacionId: string,
+  contenidoMensaje: string,
+): Promise<void> {
+  try {
+    const { data: filas } = await supabase.rpc(
+      "datos_email_destinatario_mensaje",
+      { conv_id: conversacionId },
+    );
+    if (!filas || (Array.isArray(filas) && filas.length === 0)) return;
+    type Fila = {
+      email: string | null;
+      alias_destinatario: string | null;
+      alias_remitente: string | null;
+      notificacion_id: string | null;
+    };
+    const f = (Array.isArray(filas) ? filas[0] : filas) as Fila;
+
+    if (!f.email) return;
+    // Evitar enviar emails a las cuentas sintéticas de prueba importadas
+    // de PermutaDoc — su TLD .test no se entrega y Resend devolvería
+    // error innecesariamente.
+    if (f.email.endsWith("@permutaes.test")) return;
+
+    const fragmento =
+      contenidoMensaje.length > 220
+        ? contenidoMensaje.slice(0, 217) + "…"
+        : contenidoMensaje;
+
+    const plantilla = plantillaMensajeNuevo({
+      remitenteAlias: f.alias_remitente ?? "Alguien",
+      fragmentoMensaje: fragmento,
+      conversacionId,
+    });
+
+    const r = await enviarEmail({
+      to: f.email,
+      subject: plantilla.subject,
+      html: plantilla.html,
+      text: plantilla.text,
+    });
+
+    if (r.ok && f.notificacion_id) {
+      await supabase.rpc("marcar_notificacion_email_enviada", {
+        notif_id: f.notificacion_id,
+      });
+    }
+  } catch (e) {
+    console.warn("[mensajeria] error disparando email:", e);
+  }
 }
 
 /**
