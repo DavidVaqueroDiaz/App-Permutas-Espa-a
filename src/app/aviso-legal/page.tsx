@@ -31,8 +31,13 @@ export default function AvisoLegalPage() {
 
       <h2>4. Datos de fuentes públicas utilizadas</h2>
       <ul>
-        <li>Códigos y nombres de municipios, provincias y comunidades autónomas: Instituto Nacional de Estadística (INE).</li>
-        <li>Geometrías administrativas: Centro Nacional de Información Geográfica (CNIG / IGN).</li>
+        <li>Códigos y nombres de municipios, provincias y comunidades autónomas: Instituto Nacional de Estadística (INE), datos abiertos.</li>
+        <li>Geometrías administrativas: Centro Nacional de Información Geográfica (CNIG / IGN), licencia CC-BY 4.0.</li>
+        <li>
+          Coordenadas (centroides) de los 8.132 municipios españoles: derivadas a través del proyecto comunitario{" "}
+          <a href="https://github.com/softline-informatica/softlinegeodb">softlinegeodb</a>{" "}
+          (SOFT LINE Informática S.L.), que consolida los datos públicos del INE y del CNIG/IGN.
+        </li>
         <li>Catálogos de cuerpos y especialidades docentes: Real Decreto 1834/2008 y normativa concordante.</li>
       </ul>
 

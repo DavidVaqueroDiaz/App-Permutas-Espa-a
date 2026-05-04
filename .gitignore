@@ -68,3 +68,6 @@ pnpm-debug.log*
 
 # Testing
 /coverage
+
+# Dumps temporales descargados por scripts (no se redistribuyen)
+/tmp/
