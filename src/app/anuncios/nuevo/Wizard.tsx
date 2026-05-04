@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   type AtajoState,
   type CcaaRow,
@@ -18,6 +19,14 @@ import {
   expandirAtajos,
   type MunicipioBusqueda,
 } from "./actions";
+
+// Carga perezosa de MapLibre GL — pesa ~700 KB gzip y solo se necesita
+// cuando el usuario abre el selector visual. SSR off porque depende
+// del DOM (window, canvas).
+const MapaSelectorMunicipios = dynamic(
+  () => import("@/components/MapaSelectorMunicipios").then((m) => m.MapaSelectorMunicipios),
+  { ssr: false },
+);
 
 /** Sectores REALMENTE activos en Fase 1. */
 const SECTORES_ACTIVOS = new Set<string>(["docente_loe"]);
@@ -454,6 +463,64 @@ function Paso5PlazasDeseadas({
   const [ccaaSeleccionada, setCcaaSeleccionada] = useState("");
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState("");
 
+  // Mapa visual
+  const [mapaAbierto, setMapaAbierto] = useState(false);
+
+  // CCAA inicial del mapa: si tu municipio actual está en una CCAA,
+  // arrancamos por esa para que veas la zona conocida.
+  const ccaaInicialMapa = useMemo(() => {
+    if (!municipioActual) return undefined;
+    const provCod = municipioActual.slice(0, 2);
+    return provincias.find((p) => p.codigo_ine === provCod)?.ccaa_codigo;
+  }, [municipioActual, provincias]);
+
+  // Set de plazas para el componente del mapa.
+  const seleccionadosSet = useMemo(() => new Set(plazas), [plazas]);
+  const excluidosSet = useMemo(
+    () => (municipioActual ? new Set([municipioActual]) : new Set<string>()),
+    [municipioActual],
+  );
+
+  function provinciaPorCodigo(codigoMuni: string): string {
+    const provCod = codigoMuni.slice(0, 2);
+    return provincias.find((p) => p.codigo_ine === provCod)?.nombre ?? "";
+  }
+
+  /**
+   * Toggle desde el mapa visual. Cuando se añade, registramos un
+   * `municipio_individual` en `atajos` igual que con el autocompletado
+   * por nombre. El nombre completo lo construimos con el nombre del
+   * GeoJSON + el de la provincia desde el state actual del wizard.
+   */
+  function onToggleMapa(codigoIne: string, isAdding: boolean, nombre: string) {
+    if (codigoIne === municipioActual) return;
+    if (isAdding) {
+      if (plazas.includes(codigoIne)) return;
+      const provNombre = provinciaPorCodigo(codigoIne);
+      const etiqueta = provNombre ? `${nombre} (${provNombre})` : nombre;
+      onChange(
+        [...plazas, codigoIne],
+        [...atajos, { tipo: "municipio_individual", valor: codigoIne }],
+        { ...plazasNombres, [codigoIne]: etiqueta },
+      );
+    } else {
+      // Quitar — solo si está como municipio individual; si vino de un
+      // atajo de provincia/CCAA, lo dejamos (el usuario puede quitar el
+      // atajo entero desde la lista de chips si quiere).
+      const fueIndividual = atajos.some(
+        (a) => a.tipo === "municipio_individual" && a.valor === codigoIne,
+      );
+      if (!fueIndividual) return;
+      const nuevoAtajos = atajos.filter(
+        (a) => !(a.tipo === "municipio_individual" && a.valor === codigoIne),
+      );
+      const nuevasPlazas = plazas.filter((c) => c !== codigoIne);
+      const nuevosNombres = { ...plazasNombres };
+      delete nuevosNombres[codigoIne];
+      onChange(nuevasPlazas, nuevoAtajos, nuevosNombres);
+    }
+  }
+
   const ccaaUsadas = new Set(atajos.filter((a) => a.tipo === "ccaa").map((a) => a.valor));
   const provinciasUsadas = new Set(atajos.filter((a) => a.tipo === "provincia").map((a) => a.valor));
 
@@ -613,7 +680,7 @@ function Paso5PlazasDeseadas({
         </button>
       </div>
 
-      {/* Buscador de municipios sueltos */}
+      {/* Buscador de municipios sueltos + selector visual */}
       <div className="mb-4">
         <p className="mb-1 text-xs font-medium text-slate-700">O añade municipios sueltos</p>
         <MunicipioAutocomplete
@@ -623,6 +690,13 @@ function Paso5PlazasDeseadas({
           placeholder="Escribe un municipio…"
           autoLimpiar
         />
+        <button
+          type="button"
+          onClick={() => setMapaAbierto(true)}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-brand-light hover:text-brand"
+        >
+          🗺 Seleccionar en el mapa
+        </button>
       </div>
 
       {/* Resumen de seleccionados */}
@@ -680,6 +754,23 @@ function Paso5PlazasDeseadas({
       </div>
 
       <NavBotones atras={onAtras} siguienteHabilitado={plazas.length > 0 && !aplicando} onSiguiente={onSiguiente} />
+
+      {/* Modal con el mapa visual */}
+      {mapaAbierto && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-sm">
+          <div className="m-2 flex flex-1 flex-col overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card md:m-6 md:max-w-6xl md:self-center md:w-full">
+            <MapaSelectorMunicipios
+              mode="multi"
+              ccaaOpciones={ccaa.map((c) => ({ codigo_ine: c.codigo_ine, nombre: c.nombre }))}
+              ccaaInicial={ccaaInicialMapa}
+              seleccionados={seleccionadosSet}
+              excluidos={excluidosSet}
+              onToggle={onToggleMapa}
+              onCerrar={() => setMapaAbierto(false)}
+            />
+          </div>
+        </div>
+      )}
     </PasoLayout>
   );
 }
