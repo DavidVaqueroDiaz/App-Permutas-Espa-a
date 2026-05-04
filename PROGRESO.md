@@ -175,8 +175,13 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 
 **Pendiente para la próxima sesión:**
 
-1. **Mapa interactivo en el Paso 5 del wizard** ("¿A qué municipios aceptarías irte?"). Pedido por Vaquero al cierre de la sesión: desplegable de CCAA + mapa donde haga clic sobre un municipio para añadirlo / quitarlo a las plazas deseadas. Convive con los dos atajos actuales (CCAA entera, provincia entera) y con el autocompletado por nombre. Implementación esperada: react-leaflet + GeoJSON, cargado por CCAA bajo demanda (no se cargan los 8.131 municipios de golpe). Coordinar con el plan PMTiles que ya estaba apuntado.
-2. Replicar el detalle visual de PermutaDoc en `/auto-permutas`: componente `Movementos` ("Tú dejas X y vas a Y") y `ParticipanteDetalle` (centro, tipo, busca, observaciones, fecha del anuncio, km en línea recta).
+1. **Mapa interactivo de selección de municipios** (alcance ampliado en sesión 2026-05-04 a petición de Vaquero). Dos puntos de uso:
+   - **Paso 5 del wizard** ("¿A qué municipios aceptarías irte?"): desplegable de CCAA + mapa donde el usuario hace clic sobre municipios para añadirlos/quitarlos de las plazas deseadas. Convive con los atajos actuales (CCAA entera, provincia entera) y el autocompletado por nombre.
+   - **`/auto-permutas`, campo "Localidad objetivo"**: junto al autocompletado, botón "Seleccionar en el mapa" que abre el mismo selector visual. El usuario elige por buscador o por mapa, lo que prefiera.
+
+   El componente debe ser uno solo, reutilizable en ambos sitios (modal o pantalla compartida). Implementación esperada: react-leaflet + GeoJSON, cargado por CCAA bajo demanda (no se cargan los 8.131 municipios de golpe). Coordinar con el plan PMTiles que ya estaba apuntado.
+
+2. Replicar el detalle visual de PermutaDoc en `/auto-permutas`: componente `Movementos` ("Tú dejas X y vas a Y") y `ParticipanteDetalle` (centro, tipo, busca, observaciones, fecha del anuncio, km en línea recta). **— Hecho en sesión 2026-05-04.**
 3. Mensajería interna entre participantes de una cadena.
 4. Cargar coordenadas para el resto de España (ahora solo Galicia tiene 311 munis con coords).
 
