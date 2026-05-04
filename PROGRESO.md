@@ -8,10 +8,25 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 ## Fase actual
 
-**Fase 1 — Alfa interna en curso.**
-- Bloque 1 (modelo de datos en Supabase): COMPLETADO el 2026-04-30 (sesión 3).
-- Bloque 2 (carga inicial de datos): COMPLETADO el 2026-04-30 (sesión 3) — geografía y taxonomía docente. Pendiente: GeoJSON, coordenadas y áreas sanitarias para fases posteriores.
-- Próximo: Bloque 3 (pantallas de identidad: registro, login, recuperación, "Mi cuenta").
+**Fase 1 — Alfa interna, recta final.**
+
+Bloques cerrados:
+- Bloque 1 (modelo de datos en Supabase) — 2026-04-30.
+- Bloque 2 (carga inicial de datos: geografía y taxonomía docente) — 2026-04-30. Coords nacionales: 2026-05-04.
+- Bloque 3 (pantallas de identidad: registro, login, recuperación, "Mi cuenta") — sesiones intermedias.
+- Bloque 4 (wizard de creación de anuncio en 8 pasos) — sesiones intermedias.
+- Bloque 5 parte 1/2 (mapa visual de selección en wizard, MapLibre + GeoJSON por CCAA) — 2026-05-04.
+- Bloque 6 (motor de matching con detección de cadenas 2/3/4) — sesión intermedia.
+- Bloque 7 (`/auto-permutas` con UI tipo PermutaDoc) — completado 2026-05-04.
+- Bloque 8 (mensajería interna 1-on-1 + email transaccional con Resend) — 2026-05-04.
+
+Pendiente para cerrar Fase 1:
+- Bloque 5 parte 2/2: mapa visual también en `/auto-permutas` (modo single).
+- Realtime de Supabase + cron de retención 2 años para mensajería.
+- Panel admin para Vaquero (desarrollador) — al final.
+- Bloque 9 (páginas pilar SEO: `/que-es-una-permuta`, `/permutas/docentes`, FAQ) — pendiente.
+- Bloque 10 (cookies y avisos legales) — completado en sesiones intermedias.
+- Bloque 11 (datos sintéticos de prueba) — completado (378 anuncios importados de PermutaDoc).
 
 ---
 
@@ -167,23 +182,64 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 
 ## Histórico
 
-### 2026-05-03 — Sesión actual — Fixes en Auto permutas
+### 2026-05-04 — Sesión — Tema visual PermutaDoc + mensajería + coords España + mapa wizard
+
+Sesión densa con cinco bloques cerrados de un tirón.
+
+**1. Migración del sistema visual al estilo PermutaDoc (commit `6701701`).**
+- Nueva paleta brand verde botánico (`#0d4a3a` principal, mint `#5dcaa5`, `brand-bg/text` para avisos), variables `--shadow-card` y `--radius-xl2`, fondo general `#f8fafb`.
+- Tipografías cambiadas: Geist sustituida por **DM Sans** (cuerpo) + **Sora** (titulares) cargadas con `next/font`.
+- **Modo oscuro eliminado** completo: 312 ocurrencias `dark:` en 28 archivos quitadas con script de migración (después borrado). La app es siempre claro, igual que PermutaDoc.
+- Reemplazo global `emerald-*` → `brand-*` y `bg-slate-900` → `bg-brand` en botones primarios.
+- Cabecera nueva al estilo PermutaDoc: fondo brand verde con logo SVG en pastilla mint, accesos en pills con ring blanco.
+- Tarjetas con `rounded-xl2` (14px) + `shadow-card` (sombra tintada en verde).
+
+**2. Visualización de cadenas tipo PermutaDoc en `/auto-permutas` (commits `bf21be2`, `b69ed43`).**
+- Nueva `CadenaCard` que replica `ResultCard` de PermutaDoc: cabecera con tipo de permuta + ruta cerrando el ciclo + porcentaje, badge "★ Mejor coincidencia" en la primera, diagrama `Chain` cerrando el ciclo, lista descriptiva "Los movimientos de la permuta", grid de detalles por participante con Centro / Tipo / Busca / Obs. / Anuncio del / km en línea recta + aviso ⚠ si > 30 días.
+- `actions.ts` parsea ahora el campo `observaciones` de los anuncios importados de PermutaDoc — extrae tipo, zona deseada, centro origen y deja la observación libre limpia.
+- Bug del corte del círculo S arreglado: nombres de 2 líneas ya no descuadran las columnas (`min-h-[2.5em]` con `leading-tight` en el span del nombre).
+
+**3. Bloque A — Mensajería interna (commits `594c065`, `22dba19`, `baaf25c`).**
+- Migración 0008: tablas `conversaciones` (par único usuario_a < usuario_b) y `mensajes` (max 2000 chars). Trigger que actualiza `ultimo_mensaje_el` y crea notificación tipo `mensaje_nuevo`. RLS estricta: solo participantes pueden leer; INSERT en conversaciones bloqueado salvo via RPC.
+- RPCs `iniciar_conversacion(otro_usuario, mi_anuncio, su_anuncio)` con validación de taxonomía, `marcar_conversacion_vista(conv_id)` y `datos_email_destinatario_mensaje(conv_id)` para resolver email sin exponer auth.users al cliente.
+- Server actions: `iniciarConversacion`, `iniciarConversacionDesdeAnuncio`, `enviarMensaje`, `listarMisConversaciones`, `leerConversacion`.
+- Páginas `/mensajes` (bandeja con conteo de no leídos por conversación) y `/mensajes/[id]` (chat con burbujas brand para tus mensajes y blancas para las del otro, optimistic UI al enviar, Enter envía / Shift+Enter salto, scroll automático al fondo).
+- Botón "Contactar →" en `/auto-permutas` conectado: redirige a `/mensajes/[conversacion_id]` o muestra el error si el usuario no tiene anuncio en la misma especialidad.
+- Migración 0009: función `contar_conversaciones_con_no_leidos()` para badge mint en el Header.
+- Migración 0010: función auxiliar para resolver email del destinatario y marcar notificación enviada.
+- **Email transaccional con Resend** (decisión K - "solo email transaccional crítico"): plantilla HTML responsive con cabecera brand, citado del mensaje (sanitizado), CTA "Responder en PermutaES →". Best-effort: si falla no rompe el envío del mensaje. Se omiten emails a `@permutaes.test` (cuentas sintéticas importadas).
+
+**4. Bloque C — Coordenadas de toda España (commit `daccf07`).**
+- Investigación: comparativa de fuentes (CNIG oficial Shapefile, Wikidata SPARQL 76% cobertura, repos comunitarios, datos.gob.es). Decidido `softlinegeodb` (consolida INE + CNIG en dump SQL).
+- `scripts/import-coords-spain.ts`: descarga el dump (~2 MB), parsea con regex la tabla `softlinegeodb_ine_municipios_geo`, calcula `codigo_ine = id_municipio_geo % 100000` (últimos 5 dígitos del campo CCAA+PROV+MUNI), aplica `UPDATE FROM VALUES` en lotes de 500 (no se usa TEMP TABLE porque el pooler de Supabase puede romper la transacción).
+- Parche manual para Usansolo (48916, segregado de Galdakao en 2022, posterior al snapshot del dump). **Cobertura: 8.132 / 8.132 municipios** ✅. Esto desbloquea búsquedas en `/auto-permutas` para toda España (antes solo Galicia).
+- Atribución añadida al aviso legal mencionando softlinegeodb (datos derivados de INE/CNIG, CC-BY 4.0 sobre los datos factuales).
+
+**5. Bloque B parte 1/2 — Mapa interactivo en wizard (commit `fa5936c`).**
+- `scripts/build-municipios-geojson.ts`: descarga el TopoJSON de `martgnz/es-atlas` (1,8 MB, INE como `id`), reconstruye GeoJSON con `topojson-client`, agrupa los 8.213 features por CCAA usando el mapping provincia→CCAA de la BD, combina polígonos múltiples del mismo municipio en MultiPolygon, parche manual para Usansolo. Genera 19 ficheros `public/geojson/munis-{ccaa}.geojson`. Cobertura: 8.132/8.132.
+- Componente `MapaSelectorMunicipios` con MapLibre GL: reutilizable en modos `single` y `multi`. Desplegable de CCAA carga el fichero correspondiente bajo demanda. Render minimalista (sin basemap externo): polígonos sobre fondo slate-100. Estados visuales: disponible (slate-200), seleccionado (brand verde), excluido (amarillo, p.ej. tu plaza actual). Hover muestra nombre en popup. Outline brand marca el municipio bajo el cursor.
+- Integración en Paso 5 del wizard: botón "🗺 Seleccionar en el mapa" debajo del autocompletado, modal a pantalla completa, carga perezosa con `next/dynamic` (MapLibre pesa ~700 KB gzip y solo se baja al abrir el modal).
+
+**Pendiente para mañana:**
+
+1. **Bloque B parte 2/2 — Mapa interactivo en `/auto-permutas`**: botón "🗺 Seleccionar en el mapa" junto al campo "Localidad objetivo" que abra el mismo `MapaSelectorMunicipios` en modo `single`. Pulido UX móvil + accesibilidad por teclado.
+2. **Mejoras pendientes del bloque A** (mensajería):
+   - Realtime de Supabase para que los mensajes nuevos aparezcan sin recargar.
+   - Cron diario de retención (borrar conversaciones inactivas > 2 años, decisión H).
+3. **Panel de administración para Vaquero (desarrollador)** — al final de Fase 1.
+
+### 2026-05-03 — Sesión — Fixes en Auto permutas
 
 - Bug 1: el buscador no encontraba "A Coruña" cuando se escribía "a coru". Causa: `normalizar` quitaba comas y bajaba a minúsculas, pero no había paso para neutralizar el artículo ("Coruña, A" vs "A Coruña" vs "a coru"). Solución: nueva función `clave(s) = quitarArticulo(normalizar(s))` aplicada en ambos lados de la comparación. Ahora "a coru", "coru", "a coruña" y "coruña a" resuelven al mismo municipio.
 - Bug 2: 11 municipios gallegos quedaron sin coordenadas tras la primera importación. El INE los guarda como "Coruña, A", "Baña, A", etc. y la regex de `quitarArticulo` en el script estaba en minúsculas y se aplicaba antes de `normalizar`, así que no acertaba el artículo pospuesto. Aplicado el mismo fix en `scripts/import-coords-galicia.ts` y reejecutado: 302 → 311 municipios gallegos con coords. Quedan 2 fuera del alcance porque no están en la fuente PermutaDoc: "A Peroxa" (32059) y "Pobra do Brollón" (27047, typo "de"/"do" en upstream). Cesuras está obsoleto desde 2013.
 - Commit: `a132711 fix(auto-permutas): autocomplete y coords reconocen articulo pospuesto`. Push pendiente.
 
-**Pendiente para la próxima sesión:**
+**Pendiente para próximas sesiones (estado al cierre del 2026-05-03):**
 
-1. **Mapa interactivo de selección de municipios** (alcance ampliado en sesión 2026-05-04 a petición de Vaquero). Dos puntos de uso:
-   - **Paso 5 del wizard** ("¿A qué municipios aceptarías irte?"): desplegable de CCAA + mapa donde el usuario hace clic sobre municipios para añadirlos/quitarlos de las plazas deseadas. Convive con los atajos actuales (CCAA entera, provincia entera) y el autocompletado por nombre.
-   - **`/auto-permutas`, campo "Localidad objetivo"**: junto al autocompletado, botón "Seleccionar en el mapa" que abre el mismo selector visual. El usuario elige por buscador o por mapa, lo que prefiera.
-
-   El componente debe ser uno solo, reutilizable en ambos sitios (modal o pantalla compartida). Implementación esperada: react-leaflet + GeoJSON, cargado por CCAA bajo demanda (no se cargan los 8.131 municipios de golpe). Coordinar con el plan PMTiles que ya estaba apuntado.
-
-2. Replicar el detalle visual de PermutaDoc en `/auto-permutas`: componente `Movementos` ("Tú dejas X y vas a Y") y `ParticipanteDetalle` (centro, tipo, busca, observaciones, fecha del anuncio, km en línea recta). **— Hecho en sesión 2026-05-04.**
-3. Mensajería interna entre participantes de una cadena. Retención: **2 años** desde el último mensaje (decisión H actualizada el 2026-05-04).
-4. Cargar coordenadas para el resto de España (ahora solo Galicia tiene 311 munis con coords).
+1. ~~Mapa interactivo wizard~~ → parte 1/2 hecha el 2026-05-04. Falta parte 2/2 (auto-permutas + pulido).
+2. ~~Replicar detalle visual de PermutaDoc en /auto-permutas~~ → hecho el 2026-05-04.
+3. ~~Mensajería interna entre participantes~~ → hecha en 2026-05-04 (faltan Realtime y cron de retención).
+4. ~~Cargar coordenadas para el resto de España~~ → hecho el 2026-05-04 (8.132 / 8.132).
 5. **Panel de administración para Vaquero (desarrollador)** — al final del ciclo. Acceso solo cuando Vaquero inicia sesión con su cuenta. Funciones: eliminar cualquier anuncio, y otras funciones de operación a concretar (eliminar usuarios, ver totales agregados, limpiar BD, etc.). Aún no se ha definido el detalle; se cierra cuando lleguemos a ese punto.
 
 ### 2026-04-30 — Sesión 1
