@@ -526,7 +526,13 @@ function Chain({ participantes }: { participantes: ParticipanteCadena[] }) {
               >
                 {inicialesMunicipio(p.municipio_actual_nombre)}
               </div>
-              <span className="line-clamp-2 text-center text-[10px] font-medium leading-tight text-slate-700 sm:text-[11px]">
+              {/*
+                Reservamos 2 líneas siempre (min-h-[2.5em] con leading-tight)
+                para que cuando un municipio ocupe 2 líneas (p.ej. "Barco
+                de Valdeorras, O") las columnas no queden a distinta altura
+                y los círculos sigan alineados con `items-end` arriba.
+              */}
+              <span className="line-clamp-2 min-h-[2.5em] text-center text-[10px] font-medium leading-tight text-slate-700 sm:text-[11px]">
                 {p.municipio_actual_nombre}
               </span>
             </div>
