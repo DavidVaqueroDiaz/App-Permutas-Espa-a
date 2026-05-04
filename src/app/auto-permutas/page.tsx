@@ -60,10 +60,10 @@ export default async function AutoPermutasPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-10">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+        <h1 className="font-head text-3xl font-semibold tracking-tight text-brand">
           Auto permutas
         </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-sm text-slate-600">
           Define tu perfil y descubre cadenas de permuta posibles entre los
           anuncios publicados. No necesitas estar registrado para buscar — solo
           si quieres publicar tu propio anuncio o contactar con otro participante.

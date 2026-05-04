@@ -22,10 +22,10 @@ export default async function RestablecerPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+      <h1 className="font-head text-3xl font-semibold tracking-tight text-brand">
         Nueva contraseña
       </h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-2 text-sm text-slate-600">
         Crea una nueva contraseña para acceder a tu cuenta.
       </p>
 

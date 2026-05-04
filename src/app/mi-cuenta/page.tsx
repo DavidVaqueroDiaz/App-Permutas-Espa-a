@@ -86,31 +86,31 @@ export default async function MiCuentaPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+      <h1 className="font-head text-3xl font-semibold tracking-tight text-brand">
         Mi cuenta
       </h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-2 text-sm text-slate-600">
         Datos básicos de tu cuenta y tus anuncios.
       </p>
 
       {creado === "1" && (
-        <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-100">
+        <div className="mt-6 rounded-md border border-brand-mint/40 bg-brand-bg p-4 text-sm text-brand-text">
           ¡Anuncio publicado! Lo tienes abajo en "Mis anuncios".
         </div>
       )}
       {actualizado === "1" && (
-        <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-100">
+        <div className="mt-6 rounded-md border border-brand-mint/40 bg-brand-bg p-4 text-sm text-brand-text">
           Anuncio actualizado correctamente.
         </div>
       )}
       {eliminado === "1" && (
-        <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           Anuncio eliminado.
         </div>
       )}
 
       {!user.email_confirmed_at && (
-        <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
+        <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-medium">Confirma tu email</p>
           <p className="mt-1">
             Te hemos enviado un enlace de confirmación. Hasta que pinches en él, no podrás publicar anuncios ni
@@ -122,17 +122,17 @@ export default async function MiCuentaPage({
       {user.email_confirmed_at && (
         <section className="mt-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Mis anuncios</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Mis anuncios</h2>
             <a
               href="/anuncios/nuevo"
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+              className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
             >
               + Publicar anuncio
             </a>
           </div>
 
           {anuncios.length === 0 ? (
-            <p className="mt-3 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+            <p className="mt-3 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
               Aún no has publicado ningún anuncio. Pulsa el botón de arriba para crear el primero.
             </p>
           ) : (
@@ -140,42 +140,42 @@ export default async function MiCuentaPage({
               {anuncios.map((a) => (
                 <li
                   key={a.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                  className="rounded-xl2 border border-slate-200 bg-white shadow-card p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">
+                      <p className="font-medium text-slate-900">
                         {a.cuerpo?.codigo_oficial ? `${a.cuerpo.codigo_oficial} · ` : ""}
                         {a.cuerpo?.denominacion ?? "Cuerpo desconocido"}
                       </p>
                       {a.especialidad && (
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="text-sm text-slate-600">
                           {a.especialidad.codigo_oficial ? `${a.especialidad.codigo_oficial} · ` : ""}
                           {a.especialidad.denominacion}
                         </p>
                       )}
-                      <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                      <p className="mt-2 text-sm text-slate-700">
                         Estás en <strong>{a.municipio?.nombre ?? "—"}</strong> · aceptarías irte a{" "}
                         <strong>{a.total_plazas} {a.total_plazas === 1 ? "municipio" : "municipios"}</strong>
                       </p>
                     </div>
                     <span className={
                       a.estado === "activo"
-                        ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                        : "rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        ? "rounded-full bg-brand-bg px-2 py-0.5 text-xs text-brand-text"
+                        : "rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700"
                     }>
                       {a.estado}
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500">
                       Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
                       {" · "}
                       Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
                     </p>
                     <a
                       href={`/anuncios/${a.id}/editar`}
-                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
                     >
                       Editar
                     </a>
@@ -188,22 +188,22 @@ export default async function MiCuentaPage({
       )}
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Datos de la cuenta</h2>
-        <dl className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white text-sm dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-lg font-semibold text-slate-900">Datos de la cuenta</h2>
+        <dl className="mt-3 divide-y divide-slate-200 rounded-xl2 border border-slate-200 bg-white shadow-card text-sm">
           <div className="flex justify-between px-4 py-3">
-            <dt className="font-medium text-slate-700 dark:text-slate-300">Email</dt>
-            <dd className="text-slate-900 dark:text-slate-100">{user.email}</dd>
+            <dt className="font-medium text-slate-700">Email</dt>
+            <dd className="text-slate-900">{user.email}</dd>
           </div>
           <div className="flex justify-between px-4 py-3">
-            <dt className="font-medium text-slate-700 dark:text-slate-300">Email verificado</dt>
-            <dd className="text-slate-900 dark:text-slate-100">
+            <dt className="font-medium text-slate-700">Email verificado</dt>
+            <dd className="text-slate-900">
               {user.email_confirmed_at ? "Sí" : "Pendiente"}
             </dd>
           </div>
           {perfil && (
             <div className="flex justify-between px-4 py-3">
-              <dt className="font-medium text-slate-700 dark:text-slate-300">Cuenta creada</dt>
-              <dd className="text-slate-900 dark:text-slate-100">
+              <dt className="font-medium text-slate-700">Cuenta creada</dt>
+              <dd className="text-slate-900">
                 {new Date(perfil.creado_el).toLocaleDateString("es-ES")}
               </dd>
             </div>
@@ -213,27 +213,27 @@ export default async function MiCuentaPage({
 
       {perfil && (
         <section className="mt-10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Editar perfil</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <h2 className="text-lg font-semibold text-slate-900">Editar perfil</h2>
+          <p className="mt-1 text-sm text-slate-600">
             Cambia tu alias público o tu año de nacimiento.
           </p>
-          <div className="mt-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mt-4 rounded-xl2 border border-slate-200 bg-white shadow-card p-5">
             <EditarPerfilForm aliasInicial={perfil.alias_publico} anoInicial={perfil.ano_nacimiento} />
           </div>
         </section>
       )}
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Cambiar contraseña</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <h2 className="text-lg font-semibold text-slate-900">Cambiar contraseña</h2>
+        <p className="mt-1 text-sm text-slate-600">
           Pon una nueva contraseña sin necesidad de pasar por el email de recuperación.
         </p>
-        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mt-4 rounded-xl2 border border-slate-200 bg-white shadow-card p-5">
           <CambiarContrasenaForm />
         </div>
       </section>
 
-      <p className="mt-10 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-10 text-xs text-slate-500">
         Las funciones de mensajería y detección de cadenas de permuta llegarán en próximos bloques del desarrollo.
       </p>
     </main>

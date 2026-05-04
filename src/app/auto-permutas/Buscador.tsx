@@ -146,8 +146,8 @@ export function Buscador({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-      <aside className="self-start rounded-lg border border-slate-200 bg-white p-5 lg:sticky lg:top-20 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <aside className="self-start rounded-xl2 border border-slate-200 bg-white shadow-card p-5 lg:sticky lg:top-20">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Tu perfil
         </h2>
 
@@ -160,7 +160,7 @@ export function Buscador({
                 setCuerpoId("");
                 setEspecialidadId("");
               }}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
             >
               {sectoresActivos.map((s) => (
                 <option key={s.codigo} value={s.codigo}>
@@ -169,7 +169,7 @@ export function Buscador({
               ))}
             </select>
             {sectoresActivos.length < sectores.length && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 Otros sectores próximamente.
               </p>
             )}
@@ -182,7 +182,7 @@ export function Buscador({
                 setCuerpoId(e.target.value);
                 setEspecialidadId("");
               }}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
             >
               <option value="">— Selecciona cuerpo —</option>
               {cuerposDelSector
@@ -202,7 +202,7 @@ export function Buscador({
               <select
                 value={especialidadId}
                 onChange={(e) => setEspecialidadId(e.target.value)}
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
               >
                 <option value="">— Selecciona especialidad —</option>
                 {especialidadesDelCuerpo
@@ -227,14 +227,14 @@ export function Buscador({
               municipios={municipios}
             />
             {muniActual && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 Provincia: {muniActual.provincia_nombre}
               </p>
             )}
           </Field>
         </div>
 
-        <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Destino deseado
         </h2>
 
@@ -248,7 +248,7 @@ export function Buscador({
               municipios={municipios}
             />
             {muniObjetivo && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 Provincia: {muniObjetivo.provincia_nombre}
               </p>
             )}
@@ -264,7 +264,7 @@ export function Buscador({
               onChange={(e) => setRadio(Number.parseInt(e.target.value, 10))}
               className="block w-full"
             />
-            <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
+            <div className="flex justify-between text-[10px] text-slate-500">
               <span>10 km</span>
               <span>100 km</span>
             </div>
@@ -272,7 +272,7 @@ export function Buscador({
         </div>
 
         {errorBusqueda && (
-          <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200">
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
             {errorBusqueda}
           </div>
         )}
@@ -281,7 +281,7 @@ export function Buscador({
           type="button"
           onClick={buscar}
           disabled={buscando}
-          className="mt-5 w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600"
+          className="mt-5 w-full rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
         >
           {buscando ? "Buscando..." : "Buscar permutas"}
         </button>
@@ -289,11 +289,11 @@ export function Buscador({
 
       <section>
         {resultados === null ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-600">
             <p>
               Define tu perfil a la izquierda y pulsa <strong>Buscar permutas</strong> para ver las cadenas posibles.
             </p>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
+            <p className="mt-2 text-xs text-slate-500">
               Las plazas que te ofrecemos son las que están dentro del radio que indiques alrededor de tu localidad objetivo.
             </p>
           </div>
@@ -301,11 +301,11 @@ export function Buscador({
           <>
             <header className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+                <h2 className="font-head text-2xl font-semibold tracking-tight text-brand">
                   {resultados.length}{" "}
                   {resultados.length === 1 ? "cadena detectada" : "cadenas detectadas"}
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-slate-600">
                   {totalAnalizados} anuncios analizados
                   {muniObjetivo && ` · ${municiposEnRadio} municipios en ${radio} km de ${muniObjetivo.nombre}`}
                 </p>
@@ -320,7 +320,7 @@ export function Buscador({
             </div>
 
             {cadenasFiltradas.length === 0 ? (
-              <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+              <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm text-slate-600">
                 No hay cadenas en esta categoría.
               </div>
             ) : (
@@ -340,7 +340,7 @@ export function Buscador({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+      <label className="block text-xs font-medium text-slate-700">
         {label}
       </label>
       <div className="mt-1">{children}</div>
@@ -364,8 +364,8 @@ function Tab({
       className={
         "rounded-full px-3 py-1.5 text-sm font-medium transition " +
         (activa
-          ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-          : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700")
+          ? "bg-brand text-white"
+          : "bg-slate-100 text-slate-700 hover:bg-slate-200")
       }
     >
       {label}
@@ -381,9 +381,9 @@ function inicialesMunicipio(nombre: string): string {
 
 function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
   return (
-    <li className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <li className="rounded-xl2 border border-slate-200 bg-white shadow-card p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+        <span className="rounded-full bg-brand-bg px-2 py-0.5 text-xs font-medium text-brand-text">
           {cadena.longitud === 2
             ? "Permuta directa"
             : `${cadena.participantes.length} personas`}
@@ -400,22 +400,22 @@ function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
                   className={
                     "flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold shadow-sm " +
                     (p.es_perfil_busqueda
-                      ? "bg-emerald-700 text-white ring-2 ring-emerald-300 dark:bg-emerald-600 dark:ring-emerald-400"
-                      : "bg-slate-700 text-white dark:bg-slate-600")
+                      ? "bg-brand text-white ring-2 ring-brand-mint"
+                      : "bg-slate-700 text-white")
                   }
                   title={p.municipio_actual_nombre}
                 >
                   {inicialesMunicipio(p.municipio_actual_nombre)}
                 </div>
-                <span className="mt-1 max-w-[80px] truncate text-center text-[10px] text-slate-700 dark:text-slate-300">
+                <span className="mt-1 max-w-[80px] truncate text-center text-[10px] text-slate-700">
                   {p.municipio_actual_nombre}
                 </span>
               </div>
               {!ultimo && (
-                <span className="text-2xl text-slate-400 dark:text-slate-500">→</span>
+                <span className="text-2xl text-slate-400">→</span>
               )}
               {ultimo && cadena.participantes.length > 1 && (
-                <span className="text-2xl text-slate-400 dark:text-slate-500">↺</span>
+                <span className="text-2xl text-slate-400">↺</span>
               )}
             </div>
           );
@@ -429,13 +429,13 @@ function CadenaCard({ cadena }: { cadena: DetalleCadena }) {
       </ul>
 
       <div className="mt-4">
-        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex justify-between text-xs text-slate-500">
           <span>Compatibilidad</span>
           <span>{cadena.compatibilidad}%</span>
         </div>
-        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
           <div
-            className="h-1.5 rounded-full bg-emerald-600"
+            className="h-1.5 rounded-full bg-brand-light"
             style={{ width: `${cadena.compatibilidad}%` }}
           />
         </div>
@@ -450,16 +450,16 @@ function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
       className={
         "rounded-md border p-3 text-sm " +
         (p.es_perfil_busqueda
-          ? "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20"
-          : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50")
+          ? "border-brand-mint bg-brand-bg"
+          : "border-slate-200 bg-slate-50")
       }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <span className="text-xs font-semibold text-slate-700">
             {p.es_perfil_busqueda ? "TÚ" : p.alias_publico}
           </span>
-          <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+          <span className="ml-2 text-xs text-slate-500">
             {p.municipio_actual_nombre}
             {p.provincia_nombre && ` · ${p.provincia_nombre}`}
             {p.km_al_destino !== null && ` · ${p.km_al_destino.toFixed(0)} km`}
@@ -469,7 +469,7 @@ function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
           <button
             type="button"
             disabled
-            className="rounded-md bg-emerald-700 px-3 py-1 text-xs font-medium text-white opacity-70"
+            className="rounded-md bg-brand px-3 py-1 text-xs font-medium text-white opacity-70"
             title="La mensajería interna llegará en próximos bloques."
           >
             Contactar
@@ -478,14 +478,14 @@ function ParticipanteFila({ p }: { p: ParticipanteCadena }) {
         {!p.es_perfil_busqueda && !p.contacto_disponible && (
           <a
             href="/registro"
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
             Regístrate para contactar
           </a>
         )}
       </div>
       {p.observaciones && (
-        <p className="mt-2 text-xs italic text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-xs italic text-slate-600">
           “{p.observaciones}”
         </p>
       )}
@@ -578,10 +578,10 @@ function Autocomplete({
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
         onKeyDown={onKeyDown}
-        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
       />
       {abierto && sugerencias.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg">
           {sugerencias.map((m, i) => (
             <li key={m.codigo_ine}>
               <button
@@ -592,12 +592,12 @@ function Autocomplete({
                 className={
                   "flex w-full justify-between px-3 py-1.5 text-left text-xs " +
                   (i === highlight
-                    ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-100"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800")
+                    ? "bg-brand-bg text-brand-text"
+                    : "hover:bg-slate-100")
                 }
               >
-                <span className="font-medium text-slate-900 dark:text-slate-100">{m.nombre}</span>
-                <span className="text-slate-500 dark:text-slate-400">{m.provincia_nombre}</span>
+                <span className="font-medium text-slate-900">{m.nombre}</span>
+                <span className="text-slate-500">{m.provincia_nombre}</span>
               </button>
             </li>
           ))}

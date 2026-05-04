@@ -290,13 +290,13 @@ export function MapaHomeChoropleth({
   }, [sector]);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+          <h2 className="text-lg font-semibold text-slate-900">
             Anuncios activos en España
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-600">
             {total}{" "}
             {total === 1 ? "anuncio publicado" : "anuncios publicados"} en este momento.
           </p>
@@ -305,7 +305,7 @@ export function MapaHomeChoropleth({
         <div>
           <label
             htmlFor="filtro-sector"
-            className="block text-xs font-medium text-slate-700 dark:text-slate-300"
+            className="block text-xs font-medium text-slate-700"
           >
             Filtrar por sector
           </label>
@@ -317,10 +317,10 @@ export function MapaHomeChoropleth({
               if (e.target.value) setAvisoSector(false);
             }}
             className={
-              "mt-1 rounded-md border bg-white px-3 py-1.5 text-sm dark:bg-slate-900 dark:text-slate-100 " +
+              "mt-1 rounded-md border bg-white px-3 py-1.5 text-sm " +
               (avisoSector
-                ? "border-amber-500 ring-2 ring-amber-300 dark:border-amber-400 dark:ring-amber-500/50"
-                : "border-slate-300 dark:border-slate-700")
+                ? "border-amber-500 ring-2 ring-amber-300"
+                : "border-slate-300")
             }
           >
             <option value="">Todos los sectores</option>
@@ -334,7 +334,7 @@ export function MapaHomeChoropleth({
       </div>
 
       {avisoSector && (
-        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-100">
+        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Selecciona primero el sector que estás buscando en el desplegable de arriba.
         </div>
       )}
@@ -342,19 +342,19 @@ export function MapaHomeChoropleth({
       <div className="relative mt-4">
         <div
           ref={containerMainRef}
-          className="h-[500px] w-full overflow-hidden rounded-md border border-slate-200 dark:border-slate-800"
+          className="h-[500px] w-full overflow-hidden rounded-md border border-slate-200"
         />
 
         {/* Inset Canarias absoluto en la esquina inferior izquierda */}
         <div
           ref={containerCanariasRef}
-          className="absolute bottom-3 left-3 h-[120px] w-[180px] overflow-hidden rounded-md border-2 border-slate-300 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900"
+          className="absolute bottom-3 left-3 h-[120px] w-[180px] overflow-hidden rounded-md border-2 border-slate-300 bg-white shadow-md"
           aria-label="Mapa de Canarias"
         />
 
         {tooltip && (
           <div
-            className="pointer-events-none fixed z-20 rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+            className="pointer-events-none fixed z-20 rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-lg"
             style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
           >
             <div className="font-semibold">{tooltip.nombre}</div>
@@ -366,7 +366,7 @@ export function MapaHomeChoropleth({
         )}
       </div>
 
-      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-3 text-xs text-slate-500">
         Pasa el ratón por encima de una comunidad para ver el detalle. Pulsa para ver sus anuncios.
       </p>
     </div>

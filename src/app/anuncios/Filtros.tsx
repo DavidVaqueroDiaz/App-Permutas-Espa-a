@@ -50,9 +50,9 @@ export function Filtros({ sectores, ccaas }: Props) {
   const hayFiltros = sectorActual || ccaaActual || qActual;
 
   return (
-    <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="space-y-3 rounded-xl2 border border-slate-200 bg-white shadow-card p-4">
       <div>
-        <label htmlFor="filtro-q" className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+        <label htmlFor="filtro-q" className="block text-xs font-medium text-slate-700">
           Buscar por ubicación, cuerpo o especialidad
         </label>
         <input
@@ -61,20 +61,20 @@ export function Filtros({ sectores, ccaas }: Props) {
           value={qLocal}
           onChange={(e) => onCambioTexto(e.target.value)}
           placeholder="Ej: Vigo, Maestros, Inglés..."
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
         />
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[180px]">
-          <label htmlFor="filtro-sector" className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="filtro-sector" className="block text-xs font-medium text-slate-700">
             Sector
           </label>
           <select
             id="filtro-sector"
             value={sectorActual}
             onChange={(e) => navegarA({ sector: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
           >
             <option value="">Todos los sectores</option>
             {sectores.map((s) => (
@@ -86,14 +86,14 @@ export function Filtros({ sectores, ccaas }: Props) {
         </div>
 
         <div className="flex-1 min-w-[180px]">
-          <label htmlFor="filtro-ccaa" className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="filtro-ccaa" className="block text-xs font-medium text-slate-700">
             Comunidad Autónoma
           </label>
           <select
             id="filtro-ccaa"
             value={ccaaActual}
             onChange={(e) => navegarA({ ccaa: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
           >
             <option value="">Todas las CCAA</option>
             {ccaas.map((c) => (
@@ -111,7 +111,7 @@ export function Filtros({ sectores, ccaas }: Props) {
               setQLocal("");
               navegarA({ sector: "", ccaa: "", q: "" });
             }}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
           >
             Quitar filtros
           </button>

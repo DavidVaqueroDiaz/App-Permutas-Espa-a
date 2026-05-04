@@ -7,9 +7,9 @@ export const metadata: Metadata = {
 
 export default function CondicionesUsoPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 prose prose-slate dark:prose-invert">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 prose prose-slate">
       <h1>Condiciones de uso</h1>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-slate-500">
         Versión v1 — Borrador en desarrollo. Será revisada por asesoría jurídica antes del lanzamiento público.
       </p>
 

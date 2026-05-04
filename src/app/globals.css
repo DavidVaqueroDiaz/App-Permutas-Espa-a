@@ -1,27 +1,79 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/**
+ * Sistema de tema PermutaES.
+ *
+ * Paleta inspirada en PermutaDoc para mantener una identidad visual
+ * coherente en toda la familia de apps. Verde botánico como color
+ * principal, sin modo oscuro (siempre claro).
+ *
+ * Tipografía:
+ *   - DM Sans para el cuerpo (sans).
+ *   - Sora para titulares (head).
+ * Las dos se cargan desde next/font en layout.tsx y se exponen aquí
+ * como variables --font-sans / --font-head.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #f8fafb;
+  --color-foreground: #1f2937;
+
+  /* Marca — verde botánico */
+  --color-brand: #0d4a3a;
+  --color-brand-dark: #0a3a2d;
+  --color-brand-light: #1d9e75;
+  --color-brand-mint: #5dcaa5;
+  --color-brand-bg: #e1f5ee;
+  --color-brand-text: #0f6e56;
+
+  /* Avisos */
+  --color-warn-text: #854f0b;
+  --color-warn-bg: #faeeda;
+  --color-info-text: #185fa5;
+  --color-info-bg: #e6f1fb;
+
+  /* Tipografía */
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-head: var(--font-sora), system-ui, sans-serif;
+
+  /* Sombras tintadas en verde */
+  --shadow-card: 0 1px 2px rgba(15, 110, 86, 0.04),
+    0 4px 14px rgba(15, 110, 86, 0.06);
+  --shadow-card-hover: 0 4px 8px rgba(15, 110, 86, 0.08),
+    0 12px 28px rgba(15, 110, 86, 0.1);
+
+  /* Border radius extra (14px) */
+  --radius-xl2: 14px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mejora la barra de scroll dentro de paneles */
+.scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollable::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* line-clamp helpers */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

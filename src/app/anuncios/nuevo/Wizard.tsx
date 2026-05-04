@@ -109,7 +109,7 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
   return (
     <div className="space-y-6">
       {borradorDetectado && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-medium">Tienes un borrador a medio rellenar.</p>
           <p className="mt-1">
             Detectamos un anuncio en progreso de antes (paso {state.paso} de {TOTAL_PASOS}).
@@ -119,14 +119,14 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
             <button
               type="button"
               onClick={() => setBorradorDetectado(false)}
-              className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 dark:bg-amber-600"
+              className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
             >
               Continuar el borrador
             </button>
             <button
               type="button"
               onClick={reset}
-              className="rounded-md border border-amber-700 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-300 dark:text-amber-200 dark:hover:bg-amber-900/40"
+              className="rounded-md border border-amber-700 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
             >
               Empezar desde cero
             </button>
@@ -146,7 +146,7 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
                 reset();
               }
             }}
-            className="text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            className="text-xs text-slate-500 underline hover:text-slate-700"
           >
             Empezar desde cero
           </button>
@@ -302,7 +302,7 @@ function Paso1Sector({
 }) {
   return (
     <PasoLayout titulo="¿En qué sector trabajas como funcionario?">
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-4 text-sm text-slate-600">
         Solo el sector "Profesorado no universitario" está activo en esta versión inicial. El resto se irá activando progresivamente.
       </p>
       <ul className="space-y-2">
@@ -318,21 +318,21 @@ function Paso1Sector({
                 className={[
                   "w-full rounded-lg border px-4 py-3 text-left transition",
                   seleccionado
-                    ? "border-slate-900 bg-slate-50 dark:border-slate-100 dark:bg-slate-800"
-                    : "border-slate-200 hover:border-slate-400 dark:border-slate-800 dark:hover:border-slate-600",
+                    ? "border-slate-900 bg-slate-50"
+                    : "border-slate-200 hover:border-slate-400",
                   !activo && "opacity-50 cursor-not-allowed",
                 ].filter(Boolean).join(" ")}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-slate-900 dark:text-slate-100">{s.nombre}</span>
+                  <span className="font-medium text-slate-900">{s.nombre}</span>
                   {!activo && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
                       Próximamente
                     </span>
                   )}
                 </div>
                 {s.descripcion && (
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{s.descripcion}</p>
+                  <p className="mt-1 text-xs text-slate-500">{s.descripcion}</p>
                 )}
               </button>
             </li>
@@ -362,7 +362,7 @@ function Paso2Cuerpo({
       <select
         value={valor ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
       >
         <option value="">— Selecciona tu cuerpo —</option>
         {ordenados.map((c) => (
@@ -394,7 +394,7 @@ function Paso3Especialidad({
       <select
         value={valor ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
       >
         <option value="">— Selecciona la especialidad —</option>
         {ordenadas.map((e) => (
@@ -420,7 +420,7 @@ function Paso4PlazaActual({
 }) {
   return (
     <PasoLayout titulo="¿Dónde está tu plaza actualmente?">
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-3 text-sm text-slate-600">
         Empieza a escribir el nombre del municipio donde tienes destino definitivo.
       </p>
       <MunicipioAutocomplete
@@ -557,12 +557,12 @@ function Paso5PlazasDeseadas({
 
   return (
     <PasoLayout titulo="¿A qué municipios aceptarías irte?">
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-4 text-sm text-slate-600">
         Puedes combinar tres formas: añadir toda una CCAA, toda una provincia o municipios sueltos.
       </p>
 
       {error && (
-        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           {error}
         </div>
       )}
@@ -573,7 +573,7 @@ function Paso5PlazasDeseadas({
           value={ccaaSeleccionada}
           onChange={(e) => setCcaaSeleccionada(e.target.value)}
           disabled={aplicando}
-          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
         >
           <option value="">Toda una Comunidad Autónoma…</option>
           {ccaa.filter((c) => !ccaaUsadas.has(c.codigo_ine)).map((c) => (
@@ -584,7 +584,7 @@ function Paso5PlazasDeseadas({
           type="button"
           disabled={!ccaaSeleccionada || aplicando}
           onClick={añadirAtajoCcaa}
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
+          className="rounded-md bg-brand px-3 py-2 text-sm text-white disabled:opacity-50"
         >
           Añadir
         </button>
@@ -596,7 +596,7 @@ function Paso5PlazasDeseadas({
           value={provinciaSeleccionada}
           onChange={(e) => setProvinciaSeleccionada(e.target.value)}
           disabled={aplicando}
-          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
         >
           <option value="">Toda una provincia…</option>
           {provinciasDisponibles.map((p) => (
@@ -607,7 +607,7 @@ function Paso5PlazasDeseadas({
           type="button"
           disabled={!provinciaSeleccionada || aplicando}
           onClick={añadirAtajoProvincia}
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
+          className="rounded-md bg-brand px-3 py-2 text-sm text-white disabled:opacity-50"
         >
           Añadir
         </button>
@@ -615,7 +615,7 @@ function Paso5PlazasDeseadas({
 
       {/* Buscador de municipios sueltos */}
       <div className="mb-4">
-        <p className="mb-1 text-xs font-medium text-slate-700 dark:text-slate-300">O añade municipios sueltos</p>
+        <p className="mb-1 text-xs font-medium text-slate-700">O añade municipios sueltos</p>
         <MunicipioAutocomplete
           seleccionado={null}
           onSeleccionar={añadirMunicipioIndividual}
@@ -626,18 +626,18 @@ function Paso5PlazasDeseadas({
       </div>
 
       {/* Resumen de seleccionados */}
-      <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900/50">
-        <p className="mb-2 font-medium text-slate-900 dark:text-slate-100">
+      <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+        <p className="mb-2 font-medium text-slate-900">
           {plazas.length} {plazas.length === 1 ? "municipio seleccionado" : "municipios seleccionados"}
         </p>
 
         {atajosCcaa.length === 0 && atajosProvincia.length === 0 && municipiosIndividuales.length === 0 && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">Aún no has añadido nada.</p>
+          <p className="text-xs text-slate-500">Aún no has añadido nada.</p>
         )}
 
         {atajosCcaa.length > 0 && (
           <div className="mb-2">
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Comunidades enteras:</p>
+            <p className="text-xs font-medium text-slate-600">Comunidades enteras:</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {atajosCcaa.map((a) => {
                 const c = ccaa.find((x) => x.codigo_ine === a.valor);
@@ -651,7 +651,7 @@ function Paso5PlazasDeseadas({
 
         {atajosProvincia.length > 0 && (
           <div className="mb-2">
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Provincias enteras:</p>
+            <p className="text-xs font-medium text-slate-600">Provincias enteras:</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {atajosProvincia.map((a) => {
                 const p = provincias.find((x) => x.codigo_ine === a.valor);
@@ -665,7 +665,7 @@ function Paso5PlazasDeseadas({
 
         {municipiosIndividuales.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Municipios sueltos:</p>
+            <p className="text-xs font-medium text-slate-600">Municipios sueltos:</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {municipiosIndividuales.map((a) => (
                 <Chip
@@ -702,13 +702,13 @@ function Paso6DatosLegales({
 
   return (
     <PasoLayout titulo="Datos para validar reglas legales">
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-4 text-sm text-slate-600">
         Esta información NO se muestra públicamente. Solo se usa para que la app respete las reglas legales de las permutas (≥2 años en destino, diferencia máxima de antigüedad, ≥10 años hasta jubilación, carencia de 10 años desde la última permuta).
       </p>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+          <label className="block text-sm font-medium text-slate-900">
             Fecha de toma de posesión definitiva en tu plaza actual
           </label>
           <input
@@ -716,12 +716,12 @@ function Paso6DatosLegales({
             max={new Date().toISOString().slice(0, 10)}
             value={fecha ?? ""}
             onChange={(e) => onChange({ fecha_toma_posesion_definitiva: e.target.value || null })}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+          <label className="block text-sm font-medium text-slate-900">
             Años totales de servicio como funcionario (en cualquier destino)
           </label>
           <input
@@ -733,11 +733,11 @@ function Paso6DatosLegales({
               const v = e.target.value;
               onChange({ anyos_servicio_totales: v === "" ? null : Number.parseInt(v, 10) });
             }}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
           />
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -747,11 +747,11 @@ function Paso6DatosLegales({
                 permuta_anterior_fecha: e.target.checked ? fechaPermuta : null,
               })}
             />
-            <span className="text-slate-900 dark:text-slate-100">Ya he permutado antes en mi carrera</span>
+            <span className="text-slate-900">Ya he permutado antes en mi carrera</span>
           </label>
           {haPermutado && (
             <div className="mt-3">
-              <label className="block text-xs text-slate-700 dark:text-slate-300">
+              <label className="block text-xs text-slate-700">
                 Fecha de la última permuta
               </label>
               <input
@@ -759,9 +759,9 @@ function Paso6DatosLegales({
                 max={new Date().toISOString().slice(0, 10)}
                 value={fechaPermuta ?? ""}
                 onChange={(e) => onChange({ permuta_anterior_fecha: e.target.value || null })}
-                className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
               />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 La regla legal exige al menos 10 años desde la permuta anterior.
               </p>
             </div>
@@ -786,10 +786,10 @@ function Paso7Observaciones({
   const restantes = 500 - valor.length;
   return (
     <PasoLayout titulo="Observaciones (opcional)">
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-3 text-sm text-slate-600">
         Texto libre que SOLO verá la otra parte cuando haya un match. No se usa para emparejar — solo para que ambos os entendáis. Máximo 500 caracteres.
       </p>
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-100">
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
         No incluyas datos sensibles (motivos de salud, situaciones personales delicadas, datos económicos) ni datos de contacto.
       </div>
       <textarea
@@ -797,9 +797,9 @@ function Paso7Observaciones({
         onChange={(e) => onChange(e.target.value.slice(0, 500))}
         rows={5}
         placeholder="Por ejemplo: prefiero centros públicos, busco acercarme a familia en X, etc."
-        className="mt-3 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="mt-3 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
       />
-      <p className="mt-1 text-right text-xs text-slate-500 dark:text-slate-400">{restantes} caracteres restantes</p>
+      <p className="mt-1 text-right text-xs text-slate-500">{restantes} caracteres restantes</p>
       <NavBotones atras={onAtras} siguienteHabilitado={true} onSiguiente={onSiguiente} />
     </PasoLayout>
   );
@@ -826,7 +826,7 @@ function Paso8Confirmacion({
   return (
     <PasoLayout titulo="Revisa antes de publicar">
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200">
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {error}
         </div>
       )}
@@ -834,7 +834,7 @@ function Paso8Confirmacion({
       <Resumen titulo="Sector y cuerpo">
         <p>{cuerpoElegido?.codigo_oficial} · {cuerpoElegido?.denominacion}</p>
         {especialidadElegida && (
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-600">
             Especialidad: {especialidadElegida.codigo_oficial ? `${especialidadElegida.codigo_oficial} · ` : ""}{especialidadElegida.denominacion}
           </p>
         )}
@@ -884,7 +884,7 @@ function Paso8Confirmacion({
           type="button"
           onClick={onAtras}
           disabled={publicando}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           ← Atrás
         </button>
@@ -892,7 +892,7 @@ function Paso8Confirmacion({
           type="button"
           onClick={onPublicar}
           disabled={publicando}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
         >
           {publicando ? "Publicando…" : "Publicar anuncio"}
         </button>
@@ -940,12 +940,12 @@ function MunicipioAutocomplete({
 
   if (seleccionado && !autoLimpiar) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-md border border-slate-300 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-        <span className="text-sm text-slate-900 dark:text-slate-100">{seleccionado.nombre}</span>
+      <div className="flex items-center justify-between gap-3 rounded-md border border-slate-300 bg-slate-50 px-3 py-2">
+        <span className="text-sm text-slate-900">{seleccionado.nombre}</span>
         <button
           type="button"
           onClick={() => { setQuery(""); onLimpiar(); }}
-          className="text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          className="text-xs text-slate-500 underline hover:text-slate-700"
         >
           Cambiar
         </button>
@@ -962,10 +962,10 @@ function MunicipioAutocomplete({
         onChange={(e) => { setQuery(e.target.value); setAbierto(true); }}
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
-        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
       />
       {abierto && (resultados.length > 0 || buscando) && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg">
           {buscando && <li className="px-3 py-2 text-sm text-slate-500">Buscando…</li>}
           {resultados.map((m) => (
             <li key={m.codigo_ine}>
@@ -982,10 +982,10 @@ function MunicipioAutocomplete({
                   }
                   setAbierto(false);
                 }}
-                className="flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-slate-100"
               >
-                <span className="text-slate-900 dark:text-slate-100">{m.nombre}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{m.provincia_nombre}</span>
+                <span className="text-slate-900">{m.nombre}</span>
+                <span className="text-xs text-slate-500">{m.provincia_nombre}</span>
               </button>
             </li>
           ))}
@@ -997,12 +997,12 @@ function MunicipioAutocomplete({
 
 function Chip({ label, onQuitar }: { label: string; onQuitar: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+    <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-800">
       {label}
       <button
         type="button"
         onClick={onQuitar}
-        className="ml-0.5 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700"
+        className="ml-0.5 rounded-full hover:bg-slate-300"
         aria-label="Quitar"
       >
         ×
@@ -1013,9 +1013,9 @@ function Chip({ label, onQuitar }: { label: string; onQuitar: () => void }) {
 
 function Resumen({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/50">
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{titulo}</h3>
-      <div className="mt-1 text-slate-700 dark:text-slate-300">{children}</div>
+    <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
+      <div className="mt-1 text-slate-700">{children}</div>
     </div>
   );
 }
@@ -1024,12 +1024,12 @@ function ProgressBar({ paso }: { paso: number }) {
   const pct = Math.round(((paso - 1) / (TOTAL_PASOS - 1)) * 100);
   return (
     <div>
-      <div className="mb-1 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+      <div className="mb-1 flex justify-between text-xs text-slate-500">
         <span>Paso {paso} de {TOTAL_PASOS}</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800">
-        <div className="h-1.5 rounded-full bg-slate-900 transition-all dark:bg-slate-100" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 w-full rounded-full bg-slate-200">
+        <div className="h-1.5 rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -1037,8 +1037,8 @@ function ProgressBar({ paso }: { paso: number }) {
 
 function PasoLayout({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{titulo}</h2>
+    <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6">
+      <h2 className="text-lg font-semibold text-slate-900">{titulo}</h2>
       <div className="mt-4">{children}</div>
     </div>
   );
@@ -1057,7 +1057,7 @@ function NavBotones({
         <button
           type="button"
           onClick={atras}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
         >
           ← Atrás
         </button>
@@ -1068,7 +1068,7 @@ function NavBotones({
         type="button"
         onClick={onSiguiente}
         disabled={!siguienteHabilitado}
-        className="rounded-md bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+        className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
       >
         Siguiente →
       </button>
