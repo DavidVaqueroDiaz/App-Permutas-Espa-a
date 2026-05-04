@@ -75,7 +75,7 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 | E | Dato de edad del usuario | Solo año de nacimiento |
 | F | Caducidad de anuncios | 6 meses, renovable con un clic |
 | G | Idiomas de la taxonomía | Solo castellano en MVP |
-| H | Retención de mensajes | 1 año desde último mensaje, luego borrado automático |
+| H | Retención de mensajes | 2 años desde último mensaje, luego borrado automático *(actualizada el 2026-05-04: era 1 año, Vaquero lo amplía a 2 para no romper conexiones de un año a otro)* |
 | I | Idioma de la interfaz | Solo castellano en MVP |
 | J | Nivel de la landing pública | Simple con explicación + buscador |
 | K | Notificaciones por email | Solo email transaccional crítico |
@@ -182,8 +182,9 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
    El componente debe ser uno solo, reutilizable en ambos sitios (modal o pantalla compartida). Implementación esperada: react-leaflet + GeoJSON, cargado por CCAA bajo demanda (no se cargan los 8.131 municipios de golpe). Coordinar con el plan PMTiles que ya estaba apuntado.
 
 2. Replicar el detalle visual de PermutaDoc en `/auto-permutas`: componente `Movementos` ("Tú dejas X y vas a Y") y `ParticipanteDetalle` (centro, tipo, busca, observaciones, fecha del anuncio, km en línea recta). **— Hecho en sesión 2026-05-04.**
-3. Mensajería interna entre participantes de una cadena.
+3. Mensajería interna entre participantes de una cadena. Retención: **2 años** desde el último mensaje (decisión H actualizada el 2026-05-04).
 4. Cargar coordenadas para el resto de España (ahora solo Galicia tiene 311 munis con coords).
+5. **Panel de administración para Vaquero (desarrollador)** — al final del ciclo. Acceso solo cuando Vaquero inicia sesión con su cuenta. Funciones: eliminar cualquier anuncio, y otras funciones de operación a concretar (eliminar usuarios, ver totales agregados, limpiar BD, etc.). Aún no se ha definido el detalle; se cierra cuando lleguemos a ese punto.
 
 ### 2026-04-30 — Sesión 1
 
