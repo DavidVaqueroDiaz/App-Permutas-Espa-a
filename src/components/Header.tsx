@@ -61,6 +61,12 @@ export async function Header() {
                 </a>
               )}
               <a
+                href="/mensajes"
+                className="text-sm text-white/85 hover:text-white"
+              >
+                Mensajes
+              </a>
+              <a
                 href="/mi-cuenta"
                 className="text-sm text-white/85 hover:text-white"
               >
