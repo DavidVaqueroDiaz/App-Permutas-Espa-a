@@ -54,6 +54,9 @@ export function MapaSelectorMunicipios({
   const contenedor = useRef<HTMLDivElement | null>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const popup = useRef<maplibregl.Popup | null>(null);
+  // Guardamos el GeoJSON cargado para poder re-aplicar feature-state
+  // cuando cambian las props de seleccionados / excluidos.
+  const geojsonRef = useRef<FeatureCollection<Geometry, GeoProps> | null>(null);
 
   const [ccaa, setCcaa] = useState<string>(
     ccaaInicial ?? ccaaOpciones[0]?.codigo_ine ?? "",
@@ -152,6 +155,7 @@ export function MapaSelectorMunicipios({
       .then((geojson) => {
         if (cancelado || !map.current) return;
         const m = map.current;
+        geojsonRef.current = geojson;
 
         // Construir el mapping codigo_ine → name en este momento.
         const mapping: Record<string, string> = {};
@@ -170,15 +174,24 @@ export function MapaSelectorMunicipios({
             m.addSource("munis", {
               type: "geojson",
               data: geojson,
-              promoteId: undefined,
-              generateId: false,
             });
             m.addLayer({
               id: "munis-fill",
               type: "fill",
               source: "munis",
               paint: {
-                "fill-color": pintarColorPorEstado(),
+                // Usamos feature-state, no expresiones con ["id"] +
+                // listas: feature-state evita los problemas de
+                // coerción de tipo entre el id del GeoJSON y los
+                // valores que guarda MapLibre internamente.
+                "fill-color": [
+                  "case",
+                  ["boolean", ["feature-state", "excluido"], false],
+                  "#fde68a",
+                  ["boolean", ["feature-state", "seleccionado"], false],
+                  "#0d4a3a",
+                  "#e1f5ee",
+                ],
                 "fill-opacity": 0.9,
               },
             });
@@ -187,8 +200,6 @@ export function MapaSelectorMunicipios({
               type: "line",
               source: "munis",
               paint: {
-                // Borde verde mint para que las divisiones se vean
-                // claramente sobre el verde claro del fill.
                 "line-color": "#5dcaa5",
                 "line-width": 0.6,
               },
@@ -200,50 +211,74 @@ export function MapaSelectorMunicipios({
               paint: {
                 "line-color": "#0d4a3a",
                 "line-width": 2,
+                "line-opacity": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  1,
+                  0,
+                ],
               },
-              // Comparamos siempre como string (ver nota en
-              // pintarColorPorEstado).
-              filter: ["==", ["to-string", ["id"]], ""],
             });
+
+            let hoveredId: string | number | null = null;
 
             m.on("click", "munis-fill", (e) => {
               const f = e.features?.[0];
-              if (!f) return;
-              const codigo = String(f.id ?? "");
-              if (!codigo) return;
+              if (!f || f.id == null) return;
+              const codigo = String(f.id);
               if (excluidosRef.current?.has(codigo)) return;
               const isSelected = seleccionadosRef.current.has(codigo);
               const nombre = mapping[codigo] ?? codigo;
+              // Optimistic: actualizamos el feature-state en local
+              // y notificamos al padre. El padre actualizará la
+              // prop `seleccionados` y el efecto de sincronización
+              // re-confirmará el estado.
+              m.setFeatureState(
+                { source: "munis", id: f.id },
+                { seleccionado: !isSelected },
+              );
               onToggle(codigo, !isSelected, nombre);
               if (modeRef.current === "single") onCerrar();
             });
 
             m.on("mousemove", "munis-fill", (e) => {
               const f = e.features?.[0];
-              if (!f || !popup.current || !map.current) return;
-              const codigo = String(f.id ?? "");
+              if (!f || f.id == null || !popup.current || !map.current) return;
+              const codigo = String(f.id);
               const nombre = mapping[codigo] ?? codigo;
               map.current.getCanvas().style.cursor = excluidosRef.current?.has(codigo)
                 ? "not-allowed"
                 : "pointer";
-              map.current.setFilter("munis-hover-outline", [
-                "==",
-                ["to-string", ["id"]],
-                codigo,
-              ]);
+              if (hoveredId !== null && hoveredId !== f.id) {
+                m.setFeatureState(
+                  { source: "munis", id: hoveredId },
+                  { hover: false },
+                );
+              }
+              hoveredId = f.id;
+              m.setFeatureState({ source: "munis", id: f.id }, { hover: true });
               popup.current.setLngLat(e.lngLat).setText(nombre).addTo(map.current);
             });
             m.on("mouseleave", "munis-fill", () => {
               if (!popup.current || !map.current) return;
               map.current.getCanvas().style.cursor = "";
-              map.current.setFilter("munis-hover-outline", [
-                "==",
-                ["to-string", ["id"]],
-                "",
-              ]);
+              if (hoveredId !== null) {
+                m.setFeatureState(
+                  { source: "munis", id: hoveredId },
+                  { hover: false },
+                );
+                hoveredId = null;
+              }
               popup.current.remove();
             });
           }
+
+          // Aplicar el estado inicial / actualizado a todos los
+          // features del source. Los IDs van tal cual los entrega el
+          // GeoJSON (MapLibre los normaliza internamente y la
+          // operación de comparación contra setFeatureState usa el
+          // mismo formato, así que NO hay problema de tipos).
+          aplicarFeatureStates(m, geojson, seleccionadosRef.current, excluidosRef.current);
         };
 
         if (m.isStyleLoaded()) {
@@ -270,30 +305,12 @@ export function MapaSelectorMunicipios({
     };
   }, [ccaa, onCerrar, onToggle]);
 
-  // 3) Repintar cuando cambian los seleccionados/excluidos.
+  // 3) Re-aplicar feature-state cuando cambian las props.
   useEffect(() => {
     const m = map.current;
-    if (!m || !m.getLayer("munis-fill")) return;
-    m.setPaintProperty("munis-fill", "fill-color", pintarColorPorEstado());
+    if (!m || !m.getSource("munis") || !geojsonRef.current) return;
+    aplicarFeatureStates(m, geojsonRef.current, seleccionados, excluidos);
   }, [seleccionados, excluidos]);
-
-  // Memoizar la expresión de color para no reconstruirla en cada render
-  // (función real, no useMemo, para tener acceso al cierre de seleccionados).
-  function pintarColorPorEstado(): maplibregl.ExpressionSpecification {
-    const seleccionadosArr = Array.from(seleccionadosRef.current);
-    const excluidosArr = Array.from(excluidosRef.current ?? []);
-    // OJO: MapLibre puede internamente convertir los IDs numéricos
-    // tipo string ("15030") a number, así que comparamos siempre
-    // forzando a string en ambos lados con `to-string`.
-    return [
-      "case",
-      ["in", ["to-string", ["id"]], ["literal", excluidosArr]],
-      "#fde68a", // amarillo: tu municipio actual o excluido
-      ["in", ["to-string", ["id"]], ["literal", seleccionadosArr]],
-      "#0d4a3a", // brand: seleccionado
-      "#e1f5ee", // brand-bg: por defecto (verde muy claro, color de marca)
-    ];
-  }
 
   // Lista visible de CCAA seleccionables.
   const ccaaSorted = useMemo(
@@ -402,6 +419,31 @@ function Leyenda({ mode }: { mode: "single" | "multi" }) {
       </p>
     </div>
   );
+}
+
+/**
+ * Aplica el feature-state {seleccionado, excluido} a cada feature del
+ * source "munis" según los Sets que pasa el padre. Pasa el id del
+ * feature directamente a setFeatureState (mismo formato que MapLibre
+ * almacena internamente, así no hay desajuste de tipo).
+ */
+function aplicarFeatureStates(
+  m: maplibregl.Map,
+  fc: FeatureCollection<Geometry, GeoProps>,
+  seleccionados: Set<string>,
+  excluidos?: Set<string>,
+) {
+  for (const f of fc.features) {
+    if (f.id == null) continue;
+    const codigo = String(f.id);
+    m.setFeatureState(
+      { source: "munis", id: f.id },
+      {
+        seleccionado: seleccionados.has(codigo),
+        excluido: excluidos?.has(codigo) ?? false,
+      },
+    );
+  }
 }
 
 /**
