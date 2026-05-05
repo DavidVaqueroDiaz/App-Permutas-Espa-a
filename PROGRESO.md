@@ -180,6 +180,34 @@ Las plazas deseadas se almacenan como lista LIMPIA de códigos INE municipales (
 
 ---
 
+## Mejoras de UX detectadas (sesión 2026-05-06, paseo como usuario nuevo)
+
+Apuntadas para implementar más adelante. Por orden de prioridad:
+
+1. **Empty state del buscador de cadenas con explicación accionable.** Ahora dice solo *"No hay cadenas en esta categoría"*. Mejor: indicar cuántos anuncios se han analizado del cuerpo elegido, sugerir ampliar radio o añadir más localidades objetivo, y un CTA a publicar el propio anuncio.
+
+2. **Aviso "alfa con datos de Galicia" en la home.** El mapa choropleta muestra los 380 anuncios casi todos en Galicia (porque solo hemos importado PermutaDoc). Sin contexto, parece que la app solo cubre Galicia. Añadir un aviso pequeño junto al mapa: *"Estamos en alfa. Los anuncios actuales vienen de la importación inicial de PermutaDoc. Cuando se abra el registro, los anuncios crecerán por toda España."*
+
+3. **Etiqueta "En construcción" del hero choca con tener 380 anuncios.** Reformular a *"Versión alfa · Datos iniciales de Galicia"* o quitarla cuando ya haya tracción.
+
+4. **Layout shift en `/auto-permutas` al elegir cuerpo.** El campo `Especialidad` aparece dinámicamente y empuja todo hacia abajo, haciendo que clicks en curso caigan en el campo equivocado. Reservar espacio o animar.
+
+5. **Mensaje de error pegajoso en el formulario de auto-permutas.** El aviso *"Faltan datos…"* se queda visible mientras el usuario va rellenando. Limpiarlo en cuanto cambie cualquier campo.
+
+6. **Atribución del mapa de la home dice "Code for Germany"**, suena raro. Cambiar a "CNIG / IGN España" u otra atribución natural.
+
+7. **Logout vía link GET no cierra sesión.** El endpoint pide POST. Si un usuario distraído pulsa una hipotética URL `/logout`, se queda confuso al ver que sigue logueado. Considerar aceptar también GET, o redirigir con un formulario.
+
+8. **"Otros sectores próximamente"** se lee como carencia. Reformular como *"Versión alfa: empezamos por docencia LOE. Más sectores se irán abriendo en beta."* — encuadre de decisión controlada, no de funcionalidad ausente.
+
+9. **Placeholders de ejemplo en campos de localidad.** En `/auto-permutas` los inputs de plaza actual y destino dicen *"Empieza a escribir..."* y *"A dónde te gustaría ir..."*. Mejor con un ejemplo concreto: *"Ej: Zaragoza, Madrid, Vigo..."* — el usuario adivina mejor el formato.
+
+10. **Mapa interactivo del wizard / auto-permutas en móvil.** Pendiente revisar UX en pantallas pequeñas: el modal a pantalla completa funciona pero el desplegable de CCAA + leyenda + map controls pueden quedar apretados.
+
+11. **Hero de la home: aclarar qué funciona ya y qué no.** Una frase breve tipo *"Buscar cadenas y ver anuncios ya funciona. El registro y la mensajería están en alfa cerrada"* baja confusión sobre el estado del producto.
+
+---
+
 ## Histórico
 
 ### 2026-05-04 — Sesión — Tema visual PermutaDoc + mensajería + coords España + mapa wizard

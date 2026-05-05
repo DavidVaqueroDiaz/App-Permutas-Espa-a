@@ -13,6 +13,7 @@ type SearchParams = Promise<{
   ccaa?: string;
   cuerpo?: string;
   especialidad?: string;
+  municipio?: string;
   q?: string;
 }>;
 
@@ -50,6 +51,7 @@ export default async function AnunciosPage({
   const ccaaFiltro = params.ccaa ?? "";
   const cuerpoFiltro = params.cuerpo ?? "";
   const especialidadFiltro = params.especialidad ?? "";
+  const municipioFiltro = params.municipio ?? "";
   const qFiltro = (params.q ?? "").trim();
 
   const supabase = await createClient();
@@ -126,6 +128,7 @@ export default async function AnunciosPage({
       if (ccaaFiltro) q = q.eq("ccaa_codigo", ccaaFiltro);
       if (cuerpoFiltro) q = q.eq("cuerpo_id", cuerpoFiltro);
       if (especialidadFiltro) q = q.eq("especialidad_id", especialidadFiltro);
+      if (municipioFiltro) q = q.eq("municipio_actual_codigo", municipioFiltro);
       if (anuncioIdsFiltrados !== null) {
         if (anuncioIdsFiltrados.length === 0) q = q.eq("id", "00000000-0000-0000-0000-000000000000");
         else q = q.in("id", anuncioIdsFiltrados);
@@ -164,6 +167,24 @@ export default async function AnunciosPage({
     cuerpo: e.cuerpo_id,
     label: `${e.codigo_oficial ? e.codigo_oficial + " — " : ""}${e.denominacion}`,
   }));
+
+  // Resolver el nombre del municipio filtrado actual (si lo hay) para
+  // que el componente Filtros pueda pintar el chip "Municipio: X" en
+  // vez del codigo INE crudo.
+  let municipioFiltroNombre: string | null = null;
+  if (municipioFiltro) {
+    const { data } = await supabase
+      .from("municipios")
+      .select("nombre, provincias!inner(nombre)")
+      .eq("codigo_ine", municipioFiltro)
+      .maybeSingle();
+    if (data) {
+      type R = { nombre: string; provincias: { nombre: string } | { nombre: string }[] };
+      const r = data as unknown as R;
+      const prov = Array.isArray(r.provincias) ? r.provincias[0]?.nombre : r.provincias?.nombre;
+      municipioFiltroNombre = prov ? `${r.nombre} (${prov})` : r.nombre;
+    }
+  }
 
   // Para resolver los atajos a nombres legibles, recolectamos primero los
   // códigos que aparecen en cualquier anuncio y los buscamos en bloque.
@@ -259,6 +280,7 @@ export default async function AnunciosPage({
           ccaas={ccaasOpciones}
           cuerpos={cuerposOpciones}
           especialidades={especialidadesOpciones}
+          municipioFiltroNombre={municipioFiltroNombre}
         />
       </div>
 
@@ -279,6 +301,7 @@ export default async function AnunciosPage({
             {qFiltro && ` · texto: "${qFiltro}"`}
             {sectorFiltro && ` · sector: ${sectorPorCodigo.get(sectorFiltro) ?? sectorFiltro}`}
             {ccaaFiltro && ` · ${ccaaPorCodigo.get(ccaaFiltro) ?? ccaaFiltro}`}
+            {municipioFiltroNombre && ` · ${municipioFiltroNombre}`}
           </p>
         )}
       </div>
