@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   buscarCadenasDesdePerfil,
   type DetalleCadena,
@@ -13,17 +14,32 @@ import type {
   SectorRow,
 } from "@/app/anuncios/nuevo/types";
 
+// Carga perezosa del mapa: pesa ~700 KB gzip y solo se necesita cuando
+// el usuario abre el modal de selección visual.
+const MapaSelectorMunicipios = dynamic(
+  () =>
+    import("@/components/MapaSelectorMunicipios").then(
+      (m) => m.MapaSelectorMunicipios,
+    ),
+  { ssr: false },
+);
+
 type MunicipioLocal = {
   codigo_ine: string;
   nombre: string;
   provincia_nombre: string;
 };
 
+type CcaaLocal = { codigo_ine: string; nombre: string };
+type ProvinciaLocal = { codigo_ine: string; ccaa_codigo: string };
+
 type Props = {
   sectores: SectorRow[];
   cuerpos: CuerpoRow[];
   especialidades: EspecialidadRow[];
   municipios: MunicipioLocal[];
+  ccaa: CcaaLocal[];
+  provincias: ProvinciaLocal[];
 };
 
 // Normaliza para búsqueda por nombre: lowercase, sin tildes, sin signos.
@@ -62,7 +78,22 @@ export function Buscador({
   cuerpos,
   especialidades,
   municipios,
+  ccaa,
+  provincias,
 }: Props) {
+  // Índice rápido para reconstruir un MunicipioLocal a partir de un
+  // codigo_ine cuando el usuario selecciona uno desde el mapa.
+  const muniPorCodigo = useMemo(
+    () => new Map(municipios.map((m) => [m.codigo_ine, m])),
+    [municipios],
+  );
+
+  // Mapping provincia → CCAA para arrancar el mapa en una CCAA tiene
+  // sentido (la del muni actual del usuario, si lo tiene seleccionado).
+  const ccaaDeProv = useMemo(
+    () => new Map(provincias.map((p) => [p.codigo_ine, p.ccaa_codigo])),
+    [provincias],
+  );
   const sectoresActivos = useMemo(
     () => sectores.filter((s) => s.codigo === "docente_loe"),
     [sectores],
@@ -85,6 +116,34 @@ export function Buscador({
   // Plaza actual y destino: 1 municipio cada uno.
   const [muniActual, setMuniActual] = useState<MunicipioLocal | null>(null);
   const [muniObjetivo, setMuniObjetivo] = useState<MunicipioLocal | null>(null);
+
+  // Modal del mapa visual: indica qué campo está seleccionando el
+  // usuario ("actual" | "objetivo") o null si está cerrado.
+  const [mapaPara, setMapaPara] = useState<null | "actual" | "objetivo">(null);
+
+  // Cuando el usuario selecciona un municipio en el mapa, lo
+  // resolvemos a un MunicipioLocal completo (con provincia) usando el
+  // índice precargado. Si el código no está en ese índice (caso raro
+  // — por ejemplo un municipio sin coords si volvieran a faltar)
+  // construimos uno mínimo con el nombre que viene del GeoJSON.
+  function onMapaToggle(codigoIne: string, _isAdding: boolean, nombre: string) {
+    const m: MunicipioLocal = muniPorCodigo.get(codigoIne) ?? {
+      codigo_ine: codigoIne,
+      nombre,
+      provincia_nombre: "",
+    };
+    if (mapaPara === "actual") setMuniActual(m);
+    if (mapaPara === "objetivo") setMuniObjetivo(m);
+  }
+
+  // CCAA inicial del mapa en función del campo: si el usuario ya tiene
+  // muni actual definido, arrancamos por esa CCAA.
+  const ccaaInicialMapa = useMemo(() => {
+    const refMuni = mapaPara === "actual" ? null : muniActual;
+    if (!refMuni) return undefined;
+    const provCod = refMuni.codigo_ine.slice(0, 2);
+    return ccaaDeProv.get(provCod);
+  }, [mapaPara, muniActual, ccaaDeProv]);
 
   // Radio en km
   const [radio, setRadio] = useState<number>(40);
@@ -227,6 +286,13 @@ export function Buscador({
               placeholder="Empieza a escribir..."
               municipios={municipios}
             />
+            <button
+              type="button"
+              onClick={() => setMapaPara("actual")}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-text hover:text-brand"
+            >
+              🗺 Seleccionar en el mapa
+            </button>
             {muniActual && (
               <p className="mt-1 text-xs text-slate-500">
                 Provincia: {muniActual.provincia_nombre}
@@ -248,6 +314,13 @@ export function Buscador({
               placeholder="A donde te gustaría ir..."
               municipios={municipios}
             />
+            <button
+              type="button"
+              onClick={() => setMapaPara("objetivo")}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-text hover:text-brand"
+            >
+              🗺 Seleccionar en el mapa
+            </button>
             {muniObjetivo && (
               <p className="mt-1 text-xs text-slate-500">
                 Provincia: {muniObjetivo.provincia_nombre}
@@ -334,6 +407,42 @@ export function Buscador({
           </>
         )}
       </section>
+
+      {/* Modal con el mapa visual (modo single: click selecciona uno y cierra) */}
+      {mapaPara && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-sm">
+          <div className="m-2 flex flex-1 flex-col overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card md:m-6 md:max-w-6xl md:self-center md:w-full">
+            <MapaSelectorMunicipios
+              mode="single"
+              ccaaOpciones={ccaa}
+              ccaaInicial={ccaaInicialMapa}
+              seleccionados={
+                new Set(
+                  mapaPara === "actual"
+                    ? muniActual
+                      ? [muniActual.codigo_ine]
+                      : []
+                    : muniObjetivo
+                      ? [muniObjetivo.codigo_ine]
+                      : [],
+                )
+              }
+              excluidos={
+                // Si estás eligiendo el objetivo, excluimos tu plaza
+                // actual; si estás eligiendo la actual, excluimos el
+                // destino. Así no se solapan.
+                mapaPara === "objetivo" && muniActual
+                  ? new Set([muniActual.codigo_ine])
+                  : mapaPara === "actual" && muniObjetivo
+                    ? new Set([muniObjetivo.codigo_ine])
+                    : undefined
+              }
+              onToggle={onMapaToggle}
+              onCerrar={() => setMapaPara(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
