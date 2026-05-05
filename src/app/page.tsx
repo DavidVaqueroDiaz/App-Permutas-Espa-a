@@ -37,22 +37,55 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center px-6 py-12">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-4 inline-flex items-center rounded-full bg-warn-bg px-3 py-1 text-xs font-medium text-warn-text">
-          En construcción · Lanzamiento próximamente
-        </div>
+        {/* Hero — la PRIMERA cosa que ve el usuario al entrar.
+            Empuja al buscador inteligente (auto-permutas), que es la
+            herramienta más potente. El mapa queda más abajo como vía
+            alternativa de descubrimiento. */}
+        <section className="rounded-xl2 border border-brand-mint/40 bg-brand-bg/50 p-6 shadow-card md:p-8">
+          <div className="mb-3 inline-flex items-center rounded-full bg-warn-bg px-3 py-1 text-[11px] font-medium text-warn-text">
+            En construcción · Lanzamiento próximamente
+          </div>
 
-        <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-          PermutaES
-        </h1>
+          <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
+            Encuentra tu permuta de plaza
+          </h1>
 
-        <p className="mt-6 text-pretty text-lg leading-8 text-slate-700">
-          La primera plataforma nacional para que cualquier funcionario público
-          español encuentre cadenas de permuta de plaza compatibles, en toda
-          España y en todos los sectores con permuta legalmente admitida.
+          <p className="mt-4 text-pretty text-lg leading-8 text-slate-700">
+            Plataforma nacional gratuita para funcionarios públicos en España.
+            Cruzamos automáticamente los anuncios y detectamos{" "}
+            <strong>cadenas de permuta directas, a 3 o a 4 personas</strong>{" "}
+            que cumplen las reglas legales de tu sector.
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href="/auto-permutas"
+              className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+            >
+              🔍 Buscar permutas posibles →
+            </a>
+            <a
+              href="/registro"
+              className="inline-flex items-center gap-1 rounded-md border border-brand-mint bg-white px-4 py-3 text-sm font-medium text-brand-text transition hover:border-brand hover:text-brand"
+            >
+              Crear cuenta y publicar mi anuncio
+            </a>
+          </div>
+
+          <p className="mt-4 text-xs text-slate-500">
+            No necesitas registro para buscar — solo si quieres publicar tu
+            propio anuncio o contactar con otros participantes.
+          </p>
+        </section>
+
+        {/* Mapa secundario, exploración por CCAA */}
+        <h2 className="mt-12 font-head text-xl font-semibold text-brand">
+          O explora los anuncios por comunidad autónoma
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Pulsa una CCAA para ver los anuncios publicados allí. {totalAnuncios > 0 ? `Hay ${totalAnuncios} anuncios activos en total.` : ""}
         </p>
-
-        {/* Mapa de actividad por CCAA */}
-        <div className="mt-10">
+        <div className="mt-4">
           <MapaHomeChoropleth
             sectoresOpciones={sectoresOpciones}
             conteosIniciales={conteos}
@@ -61,22 +94,7 @@ export default async function Home() {
         </div>
 
         <h2 className="mt-12 font-head text-xl font-semibold text-brand">
-          ¿Qué cubrirá PermutaES?
-        </h2>
-        {sectores.length > 0 ? (
-          <ul className="mt-4 grid gap-2 text-slate-700 sm:grid-cols-2">
-            {sectores.map((sector) => (
-              <li key={sector.codigo}>· {sector.nombre}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 text-sm italic text-slate-500">
-            Cargando catálogo de sectores…
-          </p>
-        )}
-
-        <h2 className="mt-12 font-head text-xl font-semibold text-brand">
-          ¿Cómo funcionará?
+          ¿Cómo funciona?
         </h2>
         <ol className="mt-4 space-y-2 text-slate-700">
           <li>
@@ -96,6 +114,21 @@ export default async function Home() {
             vuestra administración.
           </li>
         </ol>
+
+        <h2 className="mt-12 font-head text-xl font-semibold text-brand">
+          Sectores cubiertos
+        </h2>
+        {sectores.length > 0 ? (
+          <ul className="mt-4 grid gap-2 text-slate-700 sm:grid-cols-2">
+            {sectores.map((sector) => (
+              <li key={sector.codigo}>· {sector.nombre}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm italic text-slate-500">
+            Cargando catálogo de sectores…
+          </p>
+        )}
 
         <h2 className="mt-12 font-head text-xl font-semibold text-brand">
           Más información
@@ -135,18 +168,6 @@ export default async function Home() {
             </a>{" "}
             <span className="text-slate-500">
               — Las dudas más habituales con respuesta directa.
-            </span>
-          </li>
-          <li>
-            →{" "}
-            <a
-              href="/auto-permutas"
-              className="font-medium text-brand-text hover:text-brand"
-            >
-              Buscador de cadenas
-            </a>{" "}
-            <span className="text-slate-500">
-              — Sin necesidad de registro.
             </span>
           </li>
         </ul>
