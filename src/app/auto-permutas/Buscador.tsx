@@ -113,37 +113,66 @@ export function Buscador({
   );
   const [especialidadId, setEspecialidadId] = useState<string>("");
 
-  // Plaza actual y destino: 1 municipio cada uno.
+  // Plaza actual: un solo municipio.
   const [muniActual, setMuniActual] = useState<MunicipioLocal | null>(null);
-  const [muniObjetivo, setMuniObjetivo] = useState<MunicipioLocal | null>(null);
+
+  // Localidades objetivo: lista. La búsqueda devuelve cualquier cadena
+  // que toque un municipio dentro del radio de cualquiera de estas.
+  const [munisObjetivo, setMunisObjetivo] = useState<MunicipioLocal[]>([]);
 
   // Modal del mapa visual: indica qué campo está seleccionando el
-  // usuario ("actual" | "objetivo") o null si está cerrado.
+  // usuario ("actual" o "objetivo") o null si está cerrado.
   const [mapaPara, setMapaPara] = useState<null | "actual" | "objetivo">(null);
 
-  // Cuando el usuario selecciona un municipio en el mapa, lo
-  // resolvemos a un MunicipioLocal completo (con provincia) usando el
-  // índice precargado. Si el código no está en ese índice (caso raro
-  // — por ejemplo un municipio sin coords si volvieran a faltar)
-  // construimos uno mínimo con el nombre que viene del GeoJSON.
-  function onMapaToggle(codigoIne: string, _isAdding: boolean, nombre: string) {
+  /**
+   * Toggle desde el mapa visual. Para "actual" siempre seleccionamos
+   * uno (single mode). Para "objetivo" hacemos toggle (multi mode).
+   * Resolvemos a un MunicipioLocal completo (con provincia) usando el
+   * índice precargado.
+   */
+  function onMapaToggle(codigoIne: string, isAdding: boolean, nombre: string) {
     const m: MunicipioLocal = muniPorCodigo.get(codigoIne) ?? {
       codigo_ine: codigoIne,
       nombre,
       provincia_nombre: "",
     };
-    if (mapaPara === "actual") setMuniActual(m);
-    if (mapaPara === "objetivo") setMuniObjetivo(m);
+    if (mapaPara === "actual") {
+      setMuniActual(m);
+      return;
+    }
+    if (mapaPara === "objetivo") {
+      if (isAdding) {
+        setMunisObjetivo((prev) =>
+          prev.some((x) => x.codigo_ine === codigoIne) ? prev : [...prev, m],
+        );
+      } else {
+        setMunisObjetivo((prev) => prev.filter((x) => x.codigo_ine !== codigoIne));
+      }
+    }
+  }
+
+  function añadirObjetivo(m: MunicipioLocal) {
+    setMunisObjetivo((prev) =>
+      prev.some((x) => x.codigo_ine === m.codigo_ine) ? prev : [...prev, m],
+    );
+  }
+  function quitarObjetivo(codigoIne: string) {
+    setMunisObjetivo((prev) => prev.filter((x) => x.codigo_ine !== codigoIne));
   }
 
   // CCAA inicial del mapa en función del campo: si el usuario ya tiene
   // muni actual definido, arrancamos por esa CCAA.
   const ccaaInicialMapa = useMemo(() => {
-    const refMuni = mapaPara === "actual" ? null : muniActual;
-    if (!refMuni) return undefined;
-    const provCod = refMuni.codigo_ine.slice(0, 2);
-    return ccaaDeProv.get(provCod);
-  }, [mapaPara, muniActual, ccaaDeProv]);
+    if (mapaPara === "objetivo" && munisObjetivo.length > 0) {
+      const provCod = munisObjetivo[0].codigo_ine.slice(0, 2);
+      return ccaaDeProv.get(provCod);
+    }
+    if (muniActual) {
+      const provCod = muniActual.codigo_ine.slice(0, 2);
+      return ccaaDeProv.get(provCod);
+    }
+    return undefined;
+  }, [mapaPara, muniActual, munisObjetivo, ccaaDeProv]);
 
   // Radio en km
   const [radio, setRadio] = useState<number>(40);
@@ -157,8 +186,10 @@ export function Buscador({
   const [tab, setTab] = useState<TipoTab>("todas");
 
   function buscar() {
-    if (!cuerpoId || !muniActual || !muniObjetivo) {
-      setErrorBusqueda("Faltan datos: cuerpo, plaza actual y localidad objetivo.");
+    if (!cuerpoId || !muniActual || munisObjetivo.length === 0) {
+      setErrorBusqueda(
+        "Faltan datos: cuerpo, plaza actual y al menos una localidad objetivo.",
+      );
       return;
     }
     setErrorBusqueda(null);
@@ -167,7 +198,7 @@ export function Buscador({
         cuerpo_id: cuerpoId,
         especialidad_id: especialidadId || null,
         municipio_actual_codigo: muniActual.codigo_ine,
-        municipio_objetivo_codigo: muniObjetivo.codigo_ine,
+        municipios_objetivo_codigos: munisObjetivo.map((m) => m.codigo_ine),
         radio_km: radio,
         ano_nacimiento: 1985,
         anyos_servicio_totales: 10,
@@ -306,13 +337,14 @@ export function Buscador({
         </h2>
 
         <div className="mt-3 space-y-3">
-          <Field label="Localidad objetivo">
+          <Field label="Localidades objetivo (puedes añadir varias)">
             <Autocomplete
-              seleccionado={muniObjetivo}
-              onSeleccionar={(m) => setMuniObjetivo(m)}
-              onLimpiar={() => setMuniObjetivo(null)}
-              placeholder="A donde te gustaría ir..."
+              seleccionado={null}
+              onSeleccionar={(m) => añadirObjetivo(m)}
+              onLimpiar={() => undefined}
+              placeholder="A dónde te gustaría ir..."
               municipios={municipios}
+              autoLimpiar
             />
             <button
               type="button"
@@ -321,10 +353,25 @@ export function Buscador({
             >
               🗺 Seleccionar en el mapa
             </button>
-            {muniObjetivo && (
-              <p className="mt-1 text-xs text-slate-500">
-                Provincia: {muniObjetivo.provincia_nombre}
-              </p>
+            {munisObjetivo.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {munisObjetivo.map((m) => (
+                  <span
+                    key={m.codigo_ine}
+                    className="inline-flex items-center gap-1 rounded-full bg-brand-bg px-2 py-0.5 text-[11px] font-medium text-brand-text"
+                  >
+                    {m.nombre}
+                    <button
+                      type="button"
+                      onClick={() => quitarObjetivo(m.codigo_ine)}
+                      aria-label={`Quitar ${m.nombre}`}
+                      className="text-brand hover:text-brand-dark"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
           </Field>
 
@@ -381,7 +428,12 @@ export function Buscador({
                 </h2>
                 <p className="text-sm text-slate-600">
                   {totalAnalizados} anuncios analizados
-                  {muniObjetivo && ` · ${municiposEnRadio} municipios en ${radio} km de ${muniObjetivo.nombre}`}
+                  {munisObjetivo.length > 0 &&
+                    ` · ${municiposEnRadio} municipios en ${radio} km de ${
+                      munisObjetivo.length === 1
+                        ? munisObjetivo[0].nombre
+                        : `${munisObjetivo.length} localidades objetivo`
+                    }`}
                 </p>
               </div>
             </header>
@@ -413,7 +465,7 @@ export function Buscador({
         <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-sm">
           <div className="m-2 flex flex-1 flex-col overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card md:m-6 md:max-w-6xl md:self-center md:w-full">
             <MapaSelectorMunicipios
-              mode="single"
+              mode={mapaPara === "actual" ? "single" : "multi"}
               ccaaOpciones={ccaa}
               ccaaInicial={ccaaInicialMapa}
               seleccionados={
@@ -422,20 +474,18 @@ export function Buscador({
                     ? muniActual
                       ? [muniActual.codigo_ine]
                       : []
-                    : muniObjetivo
-                      ? [muniObjetivo.codigo_ine]
-                      : [],
+                    : munisObjetivo.map((m) => m.codigo_ine),
                 )
               }
               excluidos={
                 // Si estás eligiendo el objetivo, excluimos tu plaza
-                // actual; si estás eligiendo la actual, excluimos el
-                // destino. Así no se solapan.
+                // actual (no quieres seleccionar tu propia plaza como
+                // destino). Si estás eligiendo la actual, no excluimos
+                // los objetivos: cambiar tu plaza actual no debería
+                // estar limitado por dónde quieres ir.
                 mapaPara === "objetivo" && muniActual
                   ? new Set([muniActual.codigo_ine])
-                  : mapaPara === "actual" && muniObjetivo
-                    ? new Set([muniObjetivo.codigo_ine])
-                    : undefined
+                  : undefined
               }
               onToggle={onMapaToggle}
               onCerrar={() => setMapaPara(null)}
@@ -830,12 +880,19 @@ function Autocomplete({
   onLimpiar,
   placeholder,
   municipios,
+  autoLimpiar = false,
 }: {
   seleccionado: MunicipioLocal | null;
   onSeleccionar: (m: MunicipioLocal) => void;
   onLimpiar: () => void;
   placeholder?: string;
   municipios: MunicipioLocal[];
+  /**
+   * Si está activo, al seleccionar un municipio el input se vacía
+   * en vez de quedarse con el nombre. Útil para campos multi-select
+   * donde la siguiente acción es añadir otro.
+   */
+  autoLimpiar?: boolean;
 }) {
   const [query, setQuery] = useState(seleccionado?.nombre ?? "");
   const [abierto, setAbierto] = useState(false);
@@ -858,7 +915,7 @@ function Autocomplete({
 
   function seleccionar(m: MunicipioLocal) {
     onSeleccionar(m);
-    setQuery(m.nombre);
+    setQuery(autoLimpiar ? "" : m.nombre);
     setAbierto(false);
   }
 

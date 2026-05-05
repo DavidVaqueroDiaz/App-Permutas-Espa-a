@@ -12,7 +12,16 @@ export type PerfilBusqueda = {
   cuerpo_id: string;
   especialidad_id: string | null;
   municipio_actual_codigo: string;
-  municipio_objetivo_codigo: string;
+  /**
+   * Lista de municipios objetivo. La búsqueda devuelve cualquier
+   * cadena que toque un municipio dentro del radio de CUALQUIERA de
+   * estos centros. Permite, p.ej., "quiero ir a Vigo, Pontevedra o
+   * Santiago, en cualquier caso a 40 km a la redonda".
+   *
+   * Si la lista solo tiene 1 elemento, el comportamiento es
+   * equivalente al "modo single" anterior.
+   */
+  municipios_objetivo_codigos: string[];
   radio_km: number;
   // Datos legales razonables por defecto.
   ano_nacimiento: number;
@@ -182,21 +191,25 @@ export async function buscarCadenasDesdePerfil(
 
   const sector = (cuerpoRow as { sector_codigo: string }).sector_codigo;
 
-  // 2) Coordenadas del municipio objetivo y municipios en su radio.
-  const { data: muniObjRow } = await supabase
+  // 2) Coordenadas de los municipios objetivo (puede haber varios).
+  if (input.municipios_objetivo_codigos.length === 0) {
+    return { ok: false, mensaje: "Tienes que indicar al menos una localidad objetivo." };
+  }
+  const { data: muniObjRows } = await supabase
     .from("municipios")
     .select("codigo_ine, latitud, longitud")
-    .eq("codigo_ine", input.municipio_objetivo_codigo)
-    .maybeSingle();
-  if (!muniObjRow) return { ok: false, mensaje: "Municipio objetivo no válido." };
-
-  const objLat = (muniObjRow as { latitud: number | null }).latitud;
-  const objLon = (muniObjRow as { longitud: number | null }).longitud;
-  if (objLat === null || objLon === null) {
+    .in("codigo_ine", input.municipios_objetivo_codigos);
+  if (!muniObjRows || muniObjRows.length === 0) {
+    return { ok: false, mensaje: "Ningún municipio objetivo válido." };
+  }
+  type ObjRow = { codigo_ine: string; latitud: number | null; longitud: number | null };
+  const objetivos = (muniObjRows as ObjRow[]).filter(
+    (r) => r.latitud !== null && r.longitud !== null,
+  );
+  if (objetivos.length === 0) {
     return {
       ok: false,
-      mensaje:
-        "El municipio objetivo no tiene coordenadas cargadas. Por ahora la búsqueda por radio solo funciona en Galicia.",
+      mensaje: "Ninguno de los municipios objetivo tiene coordenadas cargadas.",
     };
   }
 
@@ -219,18 +232,24 @@ export async function buscarCadenasDesdePerfil(
   }
   const { data: muniRows } = await muniQ;
 
-  const codigosEnRadio: string[] = [];
+  // Un municipio entra si está dentro del radio de CUALQUIERA de los
+  // objetivos. Calculamos la distancia al objetivo más cercano para
+  // poder mostrar luego la mejor opción.
+  const codigosEnRadio = new Set<string>();
   for (const r of muniRows ?? []) {
     const lat = (r as { latitud: number | null }).latitud;
     const lon = (r as { longitud: number | null }).longitud;
     if (lat === null || lon === null) continue;
-    const km = haversine(objLat, objLon, lat, lon);
-    if (km <= input.radio_km) {
-      codigosEnRadio.push((r as { codigo_ine: string }).codigo_ine);
+    for (const obj of objetivos) {
+      const km = haversine(obj.latitud!, obj.longitud!, lat, lon);
+      if (km <= input.radio_km) {
+        codigosEnRadio.add((r as { codigo_ine: string }).codigo_ine);
+        break;
+      }
     }
   }
   // El propio municipio actual nunca puede estar en plazas deseadas.
-  const setRadio = new Set(codigosEnRadio);
+  const setRadio = codigosEnRadio;
   setRadio.delete(input.municipio_actual_codigo);
 
   if (setRadio.size === 0) {
@@ -290,7 +309,7 @@ export async function buscarCadenasDesdePerfil(
             new Set([
               ...anuncios.map((a) => a.municipio_actual_codigo),
               input.municipio_actual_codigo,
-              input.municipio_objetivo_codigo,
+              ...input.municipios_objetivo_codigos,
             ]),
           ),
         ),
@@ -425,10 +444,18 @@ export async function buscarCadenasDesdePerfil(
       const muniSig = muniInfo.get(siguiente.municipio_actual_codigo);
 
       // Distancia en línea recta entre mi plaza actual y la plaza a la
-      // que voy a ir (la del siguiente).
+      // que voy a ir (la del siguiente). Para el usuario virtual usamos
+      // el objetivo MÁS CERCANO al destino, que es el más relevante en
+      // un escenario multi-objetivo.
       let km: number | null = null;
-      if (esVirtual && objLat !== null && objLon !== null && muniSig?.lat && muniSig?.lon) {
-        km = haversine(objLat, objLon, muniSig.lat, muniSig.lon);
+      if (esVirtual && muniSig?.lat && muniSig?.lon) {
+        let mejor: number | null = null;
+        for (const obj of objetivos) {
+          if (obj.latitud === null || obj.longitud === null) continue;
+          const d = haversine(obj.latitud, obj.longitud, muniSig.lat, muniSig.lon);
+          if (mejor === null || d < mejor) mejor = d;
+        }
+        km = mejor;
       } else if (
         muni?.lat !== null && muni?.lat !== undefined &&
         muni?.lon !== null && muni?.lon !== undefined &&

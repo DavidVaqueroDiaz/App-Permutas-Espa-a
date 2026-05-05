@@ -22,7 +22,6 @@ export default async function AutoPermutasPage() {
     sectoresRes,
     cuerposRes,
     especialidadesRes,
-    municipiosConCoordsRes,
     ccaaRes,
     provinciasRes,
   ] = await Promise.all([
@@ -38,33 +37,47 @@ export default async function AutoPermutasPage() {
       .from("especialidades")
       .select("id, cuerpo_id, codigo_oficial, denominacion")
       .order("codigo_oficial"),
-    // Municipios CON coordenadas (los únicos en los que la búsqueda
-    // por radio funciona). Se envían al cliente para autocompletado
-    // instantáneo en memoria.
-    supabase
-      .from("municipios")
-      .select("codigo_ine, nombre, provincias!inner(nombre)")
-      .not("latitud", "is", null)
-      .order("nombre"),
     // CCAA y provincias para el desplegable del mapa visual.
     supabase.from("ccaa").select("codigo_ine, nombre").order("nombre"),
     supabase.from("provincias").select("codigo_ine, ccaa_codigo").order("codigo_ine"),
   ]);
 
-  type MuniRow = {
+  // Municipios CON coordenadas — paginados porque Supabase corta a
+  // 1000 filas por defecto y nosotros tenemos 8.132. Se cargan los
+  // 9 lotes en paralelo para no añadir latencia.
+  type MuniRaw = {
     codigo_ine: string;
     nombre: string;
     provincias: { nombre: string } | { nombre: string }[];
   };
-  const municipios = (municipiosConCoordsRes.data ?? []).map((m) => {
-    const r = m as unknown as MuniRow;
-    const provNombre = Array.isArray(r.provincias) ? r.provincias[0]?.nombre ?? "" : r.provincias.nombre;
-    return {
-      codigo_ine: r.codigo_ine,
-      nombre: r.nombre,
-      provincia_nombre: provNombre,
-    };
-  });
+  const PAGE = 1000;
+  const TOTAL = 8500;
+  const lotes = await Promise.all(
+    Array.from({ length: Math.ceil(TOTAL / PAGE) }, (_, i) =>
+      supabase
+        .from("municipios")
+        .select("codigo_ine, nombre, provincias!inner(nombre)")
+        .not("latitud", "is", null)
+        .order("codigo_ine")
+        .range(i * PAGE, (i + 1) * PAGE - 1),
+    ),
+  );
+  const muniRows: MuniRaw[] = lotes.flatMap(
+    (l) => (l.data ?? []) as unknown as MuniRaw[],
+  );
+
+  const municipios = muniRows
+    .map((r) => {
+      const provNombre = Array.isArray(r.provincias)
+        ? r.provincias[0]?.nombre ?? ""
+        : r.provincias.nombre;
+      return {
+        codigo_ine: r.codigo_ine,
+        nombre: r.nombre,
+        provincia_nombre: provNombre,
+      };
+    })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-10">

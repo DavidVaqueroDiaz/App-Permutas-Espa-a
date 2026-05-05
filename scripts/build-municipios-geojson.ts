@@ -59,7 +59,9 @@ async function main() {
   ) as unknown as FeatureCollection<Geometry, Props>;
   console.log(`Reconstruidas ${fc.features.length} features (incluye polígonos múltiples por municipio).`);
 
-  // Mapping provincia → ccaa desde la BD
+  // Mapping provincia → ccaa y nombres oficiales INE de los municipios
+  // desde la BD. Usar BD garantiza nombres consistentes y evita
+  // problemas de codificación de la fuente externa (es-atlas).
   const client = new Client({
     user: process.env.SUPABASE_DB_USER!,
     password: process.env.SUPABASE_DB_PASSWORD!,
@@ -75,6 +77,13 @@ async function main() {
   const provACcaa = new Map<string, string>();
   for (const r of provs.rows) provACcaa.set(r.codigo_ine, r.ccaa_codigo);
   console.log(`Cargado mapping provincia→CCAA: ${provACcaa.size} provincias.`);
+
+  const munis = await client.query<{ codigo_ine: string; nombre: string }>(
+    "select codigo_ine, nombre from public.municipios",
+  );
+  const nombrePorCodigo = new Map<string, string>();
+  for (const r of munis.rows) nombrePorCodigo.set(r.codigo_ine, r.nombre);
+  console.log(`Cargados nombres oficiales de ${nombrePorCodigo.size} municipios.`);
 
   // Agrupar features por CCAA. Si un municipio aparece varias veces
   // (multi-polígono — islas por ejemplo), las concatenamos en una
@@ -142,8 +151,16 @@ async function main() {
   for (const [ccaa, porIne] of porCcaa) {
     const features: FeatureCollection<Geometry, Props>["features"] = [];
     for (const [codigoIne, lista] of porIne) {
+      // Nombre OFICIAL de la BD (INE). Si no está, fallback al de
+      // es-atlas. Si tampoco, el código.
+      const nombreOficial =
+        nombrePorCodigo.get(codigoIne) ?? lista[0].properties?.name ?? codigoIne;
+
       if (lista.length === 1) {
-        features.push(lista[0]);
+        features.push({
+          ...lista[0],
+          properties: { name: nombreOficial },
+        });
       } else {
         // Combinar múltiples polígonos en MultiPolygon
         const coords: number[][][][] = [];
@@ -159,7 +176,7 @@ async function main() {
         features.push({
           type: "Feature",
           id: codigoIne,
-          properties: { name: lista[0].properties?.name },
+          properties: { name: nombreOficial },
           geometry: { type: "MultiPolygon", coordinates: coords },
         });
       }
