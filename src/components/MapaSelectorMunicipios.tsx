@@ -201,7 +201,9 @@ export function MapaSelectorMunicipios({
                 "line-color": "#0d4a3a",
                 "line-width": 2,
               },
-              filter: ["==", ["id"], ""],
+              // Comparamos siempre como string (ver nota en
+              // pintarColorPorEstado).
+              filter: ["==", ["to-string", ["id"]], ""],
             });
 
             m.on("click", "munis-fill", (e) => {
@@ -224,13 +226,21 @@ export function MapaSelectorMunicipios({
               map.current.getCanvas().style.cursor = excluidosRef.current?.has(codigo)
                 ? "not-allowed"
                 : "pointer";
-              map.current.setFilter("munis-hover-outline", ["==", ["id"], codigo]);
+              map.current.setFilter("munis-hover-outline", [
+                "==",
+                ["to-string", ["id"]],
+                codigo,
+              ]);
               popup.current.setLngLat(e.lngLat).setText(nombre).addTo(map.current);
             });
             m.on("mouseleave", "munis-fill", () => {
               if (!popup.current || !map.current) return;
               map.current.getCanvas().style.cursor = "";
-              map.current.setFilter("munis-hover-outline", ["==", ["id"], ""]);
+              map.current.setFilter("munis-hover-outline", [
+                "==",
+                ["to-string", ["id"]],
+                "",
+              ]);
               popup.current.remove();
             });
           }
@@ -272,11 +282,14 @@ export function MapaSelectorMunicipios({
   function pintarColorPorEstado(): maplibregl.ExpressionSpecification {
     const seleccionadosArr = Array.from(seleccionadosRef.current);
     const excluidosArr = Array.from(excluidosRef.current ?? []);
+    // OJO: MapLibre puede internamente convertir los IDs numéricos
+    // tipo string ("15030") a number, así que comparamos siempre
+    // forzando a string en ambos lados con `to-string`.
     return [
       "case",
-      ["in", ["id"], ["literal", excluidosArr]],
+      ["in", ["to-string", ["id"]], ["literal", excluidosArr]],
       "#fde68a", // amarillo: tu municipio actual o excluido
-      ["in", ["id"], ["literal", seleccionadosArr]],
+      ["in", ["to-string", ["id"]], ["literal", seleccionadosArr]],
       "#0d4a3a", // brand: seleccionado
       "#e1f5ee", // brand-bg: por defecto (verde muy claro, color de marca)
     ];
