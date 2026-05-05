@@ -90,7 +90,7 @@ export function MapaSelectorMunicipios({
           {
             id: "background",
             type: "background",
-            paint: { "background-color": "#f1f5f9" },
+            paint: { "background-color": "#ffffff" },
           },
         ],
       },
@@ -179,7 +179,7 @@ export function MapaSelectorMunicipios({
               source: "munis",
               paint: {
                 "fill-color": pintarColorPorEstado(),
-                "fill-opacity": 0.85,
+                "fill-opacity": 0.9,
               },
             });
             m.addLayer({
@@ -187,8 +187,10 @@ export function MapaSelectorMunicipios({
               type: "line",
               source: "munis",
               paint: {
-                "line-color": "#94a3b8",
-                "line-width": 0.5,
+                // Borde verde mint para que las divisiones se vean
+                // claramente sobre el verde claro del fill.
+                "line-color": "#5dcaa5",
+                "line-width": 0.6,
               },
             });
             m.addLayer({
@@ -276,7 +278,7 @@ export function MapaSelectorMunicipios({
       "#fde68a", // amarillo: tu municipio actual o excluido
       ["in", ["id"], ["literal", seleccionadosArr]],
       "#0d4a3a", // brand: seleccionado
-      "#e2e8f0", // slate-200: por defecto
+      "#e1f5ee", // brand-bg: por defecto (verde muy claro, color de marca)
     ];
   }
 
@@ -304,13 +306,34 @@ export function MapaSelectorMunicipios({
         {cargando && (
           <span className="text-xs italic text-slate-500">Cargando municipios…</span>
         )}
-        <button
-          type="button"
-          onClick={onCerrar}
-          className="ml-auto rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-        >
-          Cerrar
-        </button>
+
+        {/* Acciones a la derecha */}
+        <div className="ml-auto flex items-center gap-2">
+          {mode === "multi" && (
+            <>
+              <span className="hidden text-xs text-slate-500 sm:inline">
+                {seleccionados.size}{" "}
+                {seleccionados.size === 1 ? "seleccionado" : "seleccionados"}
+              </span>
+              <button
+                type="button"
+                onClick={onCerrar}
+                disabled={seleccionados.size === 0}
+                className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+              >
+                Seleccionar
+                {seleccionados.size > 0 && ` (${seleccionados.size})`}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            {mode === "multi" ? "Cancelar" : "Cerrar"}
+          </button>
+        </div>
       </div>
 
       {/*
@@ -348,7 +371,7 @@ function Leyenda({ mode }: { mode: "single" | "multi" }) {
         {mode === "single" ? "Elige una localidad" : "Elige los municipios"}
       </p>
       <div className="flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-sm bg-[#e2e8f0]" />
+        <span className="h-3 w-3 rounded-sm bg-brand-bg ring-1 ring-brand-mint" />
         <span>Disponible</span>
       </div>
       <div className="mt-1 flex items-center gap-1.5">
