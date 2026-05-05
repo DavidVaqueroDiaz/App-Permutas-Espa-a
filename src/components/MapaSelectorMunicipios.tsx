@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { type GeoJSONSource } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection, Geometry } from "geojson";
+
+// Nota: el CSS de maplibre-gl se importa ahora globalmente en layout.tsx
+// para asegurar que esté presente antes del render del canvas.
 
 export type CcaaOpcion = { codigo_ine: string; nombre: string };
 
@@ -91,7 +93,6 @@ export function MapaSelectorMunicipios({
             paint: { "background-color": "#f1f5f9" },
           },
         ],
-        glyphs: undefined as unknown as string,
       },
       center: [-3.7, 40.4], // Madrid
       zoom: 5,
@@ -115,7 +116,19 @@ export function MapaSelectorMunicipios({
 
     map.current = m;
 
+    // Forzar un resize después de que el modal haya terminado su layout,
+    // y observar el contenedor para mantener el canvas en la talla correcta
+    // si el viewport cambia (rotación móvil, modal de tamaño dinámico, etc.).
+    const timeoutResize = window.setTimeout(() => m.resize(), 50);
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && contenedor.current) {
+      observer = new ResizeObserver(() => m.resize());
+      observer.observe(contenedor.current);
+    }
+
     return () => {
+      window.clearTimeout(timeoutResize);
+      observer?.disconnect();
       popup.current?.remove();
       m.remove();
       map.current = null;
@@ -272,7 +285,7 @@ export function MapaSelectorMunicipios({
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3">
         <label className="text-sm font-medium text-slate-700">CCAA:</label>
         <select
@@ -298,7 +311,13 @@ export function MapaSelectorMunicipios({
         </button>
       </div>
 
-      <div className="relative flex-1">
+      {/*
+        Contenedor del canvas de MapLibre. Se le da una min-h explícita
+        para evitar que el canvas nazca a 0px si el flex padre todavía no
+        ha calculado la altura cuando MapLibre se inicializa (clásico bug
+        en modales con dynamic import).
+      */}
+      <div className="relative min-h-[400px] flex-1">
         <div ref={contenedor} className="absolute inset-0" />
         {error && (
           <div className="absolute inset-x-4 top-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">

@@ -7,7 +7,7 @@ import maplibregl, {
   type GeoJSONSource,
   type StyleSpecification,
 } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+// CSS de maplibre-gl cargado globalmente en layout.tsx.
 import {
   obtenerConteosPorCcaa,
   type ConteoPorCcaa,

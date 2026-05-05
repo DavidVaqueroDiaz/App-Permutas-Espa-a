@@ -3,6 +3,10 @@ import { DM_Sans, Sora } from "next/font/google";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import "./globals.css";
+// CSS de MapLibre cargado globalmente. Es pequeño (~40 KB) y así está
+// siempre disponible cuando un componente con dynamic import lo necesita
+// (evita carrera donde el canvas se crea antes de que llegue el CSS).
+import "maplibre-gl/dist/maplibre-gl.css";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
