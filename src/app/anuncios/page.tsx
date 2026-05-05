@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 type SearchParams = Promise<{
   sector?: string;
   ccaa?: string;
+  cuerpo?: string;
+  especialidad?: string;
   q?: string;
 }>;
 
@@ -46,6 +48,8 @@ export default async function AnunciosPage({
   const params = await searchParams;
   const sectorFiltro = params.sector ?? "";
   const ccaaFiltro = params.ccaa ?? "";
+  const cuerpoFiltro = params.cuerpo ?? "";
+  const especialidadFiltro = params.especialidad ?? "";
   const qFiltro = (params.q ?? "").trim();
 
   const supabase = await createClient();
@@ -82,9 +86,28 @@ export default async function AnunciosPage({
     }
   }
 
-  const [sectoresFiltroRes, ccaasRes, anunciosRes] = await Promise.all([
+  const [sectoresFiltroRes, ccaasRes, cuerposRes, especialidadesRes, anunciosRes] = await Promise.all([
     supabase.from("sectores").select("codigo, nombre").order("nombre"),
     supabase.from("ccaa").select("codigo_ine, nombre").order("nombre"),
+    // Cuerpos: si hay sector filtrado, solo los suyos. Si no, todos
+    // (para mostrar el desplegable cuando aún no se ha elegido sector).
+    (() => {
+      let q = supabase
+        .from("cuerpos")
+        .select("id, sector_codigo, codigo_oficial, denominacion")
+        .order("codigo_oficial");
+      if (sectorFiltro) q = q.eq("sector_codigo", sectorFiltro);
+      return q;
+    })(),
+    // Especialidades: si hay cuerpo filtrado, solo las suyas.
+    (() => {
+      let q = supabase
+        .from("especialidades")
+        .select("id, cuerpo_id, codigo_oficial, denominacion")
+        .order("codigo_oficial");
+      if (cuerpoFiltro) q = q.eq("cuerpo_id", cuerpoFiltro);
+      return q;
+    })(),
     (async () => {
       let q = supabase
         .from("anuncios")
@@ -101,6 +124,8 @@ export default async function AnunciosPage({
         .limit(50);
       if (sectorFiltro) q = q.eq("sector_codigo", sectorFiltro);
       if (ccaaFiltro) q = q.eq("ccaa_codigo", ccaaFiltro);
+      if (cuerpoFiltro) q = q.eq("cuerpo_id", cuerpoFiltro);
+      if (especialidadFiltro) q = q.eq("especialidad_id", especialidadFiltro);
       if (anuncioIdsFiltrados !== null) {
         if (anuncioIdsFiltrados.length === 0) q = q.eq("id", "00000000-0000-0000-0000-000000000000");
         else q = q.in("id", anuncioIdsFiltrados);
@@ -116,6 +141,28 @@ export default async function AnunciosPage({
   const ccaasOpciones = (ccaasRes.data ?? []).map((c) => ({
     value: c.codigo_ine as string,
     label: c.nombre as string,
+  }));
+  type CuerpoRowFiltro = {
+    id: string;
+    sector_codigo: string;
+    codigo_oficial: string | null;
+    denominacion: string;
+  };
+  type EspRowFiltro = {
+    id: string;
+    cuerpo_id: string;
+    codigo_oficial: string | null;
+    denominacion: string;
+  };
+  const cuerposOpciones = ((cuerposRes.data ?? []) as CuerpoRowFiltro[]).map((c) => ({
+    value: c.id,
+    sector: c.sector_codigo,
+    label: `${c.codigo_oficial ? c.codigo_oficial + " — " : ""}${c.denominacion}`,
+  }));
+  const especialidadesOpciones = ((especialidadesRes.data ?? []) as EspRowFiltro[]).map((e) => ({
+    value: e.id,
+    cuerpo: e.cuerpo_id,
+    label: `${e.codigo_oficial ? e.codigo_oficial + " — " : ""}${e.denominacion}`,
   }));
 
   // Para resolver los atajos a nombres legibles, recolectamos primero los
@@ -207,7 +254,12 @@ export default async function AnunciosPage({
       </p>
 
       <div className="mt-6">
-        <Filtros sectores={sectoresOpciones} ccaas={ccaasOpciones} />
+        <Filtros
+          sectores={sectoresOpciones}
+          ccaas={ccaasOpciones}
+          cuerpos={cuerposOpciones}
+          especialidades={especialidadesOpciones}
+        />
       </div>
 
       <div className="mt-4 text-sm text-slate-600">
