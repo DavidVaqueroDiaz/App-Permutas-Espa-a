@@ -97,6 +97,48 @@ export default async function Home() {
           </li>
         </ol>
 
+        <h2 className="mt-12 font-head text-xl font-semibold text-brand">
+          Más información
+        </h2>
+        <ul className="mt-4 space-y-1.5 text-slate-700">
+          <li>
+            →{" "}
+            <a
+              href="/que-es-una-permuta"
+              className="font-medium text-brand-text hover:text-brand"
+            >
+              ¿Qué es una permuta de plaza entre funcionarios?
+            </a>{" "}
+            <span className="text-slate-500">
+              — Guía completa con requisitos, cadenas y proceso.
+            </span>
+          </li>
+          <li>
+            →{" "}
+            <a
+              href="/permutas/docentes"
+              className="font-medium text-brand-text hover:text-brand"
+            >
+              Permutas docentes en España
+            </a>{" "}
+            <span className="text-slate-500">
+              — Cuerpos LOE, requisitos del RD 1834/2008 y casos prácticos.
+            </span>
+          </li>
+          <li>
+            →{" "}
+            <a
+              href="/auto-permutas"
+              className="font-medium text-brand-text hover:text-brand"
+            >
+              Buscador de cadenas
+            </a>{" "}
+            <span className="text-slate-500">
+              — Sin necesidad de registro.
+            </span>
+          </li>
+        </ul>
+
         <p className="mt-12 text-sm text-slate-500">
           Estamos terminando de construir la plataforma. Próximamente abriremos
           registro para los primeros usuarios.
