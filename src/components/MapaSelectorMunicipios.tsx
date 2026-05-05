@@ -65,11 +65,19 @@ export function MapaSelectorMunicipios({
   const [error, setError] = useState<string | null>(null);
   const [nombrePorCodigo, setNombrePorCodigo] = useState<Record<string, string>>({});
 
-  // Refs para que los handlers de MapLibre lean siempre el último estado
-  // de selección sin tener que reinscribirse.
+  // Refs para que los handlers de MapLibre lean siempre el último
+  // estado y los últimos callbacks sin tener que reinscribirse. Las
+  // refs de callbacks (onToggle, onCerrar) son críticas: el listener
+  // se registra UNA vez al cargar la primera GeoJSON, así que sin ref
+  // se queda con el closure del primer render → al hacer click rápido
+  // varias veces, las llamadas siguientes ven el estado VIEJO del
+  // padre y los toggles se sobreescriben entre ellos (bug de "solo
+  // 3-4 selecciones" reportado en el wizard).
   const seleccionadosRef = useRef(seleccionados);
   const excluidosRef = useRef(excluidos);
   const modeRef = useRef(mode);
+  const onToggleRef = useRef(onToggle);
+  const onCerrarRef = useRef(onCerrar);
   useEffect(() => {
     seleccionadosRef.current = seleccionados;
   }, [seleccionados]);
@@ -79,6 +87,12 @@ export function MapaSelectorMunicipios({
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+  useEffect(() => {
+    onToggleRef.current = onToggle;
+  }, [onToggle]);
+  useEffect(() => {
+    onCerrarRef.current = onCerrar;
+  }, [onCerrar]);
 
   // 1) Inicializar el mapa una sola vez.
   useEffect(() => {
@@ -237,8 +251,11 @@ export function MapaSelectorMunicipios({
                 { source: "munis", id: f.id },
                 { seleccionado: !isSelected },
               );
-              onToggle(codigo, !isSelected, nombre);
-              if (modeRef.current === "single") onCerrar();
+              // Llamamos via ref para asegurar que es la versión
+              // ACTUAL del callback (con el último estado del padre),
+              // no la del primer render que se quedó en este closure.
+              onToggleRef.current(codigo, !isSelected, nombre);
+              if (modeRef.current === "single") onCerrarRef.current();
             });
 
             m.on("mousemove", "munis-fill", (e) => {
@@ -303,7 +320,11 @@ export function MapaSelectorMunicipios({
     return () => {
       cancelado = true;
     };
-  }, [ccaa, onCerrar, onToggle]);
+    // Solo reaccionamos al cambio de CCAA. onToggle/onCerrar se leen
+    // siempre via ref dentro del handler, así que no deben disparar
+    // re-ejecutar este efecto (evita re-añadir capas de MapLibre).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ccaa]);
 
   // 3) Re-aplicar feature-state cuando cambian las props.
   useEffect(() => {
