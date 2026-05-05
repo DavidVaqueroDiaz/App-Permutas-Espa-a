@@ -64,6 +64,12 @@ export function MapaSelectorMunicipios({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nombrePorCodigo, setNombrePorCodigo] = useState<Record<string, string>>({});
+  // Ref espejo del mapping. Los listeners de click/mousemove se
+  // registran una sola vez (sobre el primer GeoJSON) y guardan en su
+  // closure el `mapping` de aquel momento. Sin esta ref, al cambiar
+  // de CCAA el source se actualiza pero los tooltips siguen leyendo
+  // el mapping VIEJO → muestran códigos en vez de nombres.
+  const nombrePorCodigoRef = useRef<Record<string, string>>({});
 
   // Refs para que los handlers de MapLibre lean siempre el último
   // estado y los últimos callbacks sin tener que reinscribirse. Las
@@ -179,6 +185,10 @@ export function MapaSelectorMunicipios({
           }
         }
         setNombrePorCodigo(mapping);
+        // Actualiza la ref para que los listeners ya registrados
+        // (que tienen `mapping` viejo en su closure) puedan leer la
+        // versión nueva al hacer click/mousemove.
+        nombrePorCodigoRef.current = mapping;
 
         const setOrCreate = () => {
           const existing = m.getSource("munis");
@@ -242,7 +252,9 @@ export function MapaSelectorMunicipios({
               const codigo = String(f.id);
               if (excluidosRef.current?.has(codigo)) return;
               const isSelected = seleccionadosRef.current.has(codigo);
-              const nombre = mapping[codigo] ?? codigo;
+              // Lee del ref para que muestre el nombre correcto si el
+              // usuario ha cambiado de CCAA después del primer render.
+              const nombre = nombrePorCodigoRef.current[codigo] ?? codigo;
               // Optimistic: actualizamos el feature-state en local
               // y notificamos al padre. El padre actualizará la
               // prop `seleccionados` y el efecto de sincronización
@@ -262,7 +274,8 @@ export function MapaSelectorMunicipios({
               const f = e.features?.[0];
               if (!f || f.id == null || !popup.current || !map.current) return;
               const codigo = String(f.id);
-              const nombre = mapping[codigo] ?? codigo;
+              // Lee del ref (igual que en el click).
+              const nombre = nombrePorCodigoRef.current[codigo] ?? codigo;
               map.current.getCanvas().style.cursor = excluidosRef.current?.has(codigo)
                 ? "not-allowed"
                 : "pointer";
