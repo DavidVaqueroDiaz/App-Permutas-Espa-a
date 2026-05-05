@@ -26,6 +26,11 @@ export function Footer() {
                   Permutas docentes
                 </a>
               </li>
+              <li>
+                <a href="/preguntas-frecuentes" className="hover:text-brand">
+                  Preguntas frecuentes
+                </a>
+              </li>
             </ul>
           </div>
 

@@ -18,6 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/anuncios`,           lastModified: now, changeFrequency: "daily",   priority: 0.8 },
     { url: `${baseUrl}/que-es-una-permuta`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/permutas/docentes`,  lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${baseUrl}/preguntas-frecuentes`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/registro`,           lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/login`,              lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${baseUrl}/aviso-legal`,        lastModified: now, changeFrequency: "yearly",  priority: 0.3 },

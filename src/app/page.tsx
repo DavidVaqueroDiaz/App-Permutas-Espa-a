@@ -128,6 +128,18 @@ export default async function Home() {
           <li>
             →{" "}
             <a
+              href="/preguntas-frecuentes"
+              className="font-medium text-brand-text hover:text-brand"
+            >
+              Preguntas frecuentes
+            </a>{" "}
+            <span className="text-slate-500">
+              — Las dudas más habituales con respuesta directa.
+            </span>
+          </li>
+          <li>
+            →{" "}
+            <a
               href="/auto-permutas"
               className="font-medium text-brand-text hover:text-brand"
             >
