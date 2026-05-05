@@ -81,15 +81,6 @@ export function MapaSelectorMunicipios({
   useEffect(() => {
     if (!contenedor.current || map.current) return;
 
-    // Diagnóstico: tamaño del contenedor en el momento de inicializar
-    // el mapa. Si esto es 0, el canvas nace a 0×0 y no se ve nada.
-    const r = contenedor.current.getBoundingClientRect();
-    console.log("[MapaSelector] init", {
-      width: r.width,
-      height: r.height,
-      maplibreVersion: maplibregl.version,
-    });
-
     const m = new maplibregl.Map({
       container: contenedor.current,
       style: {
@@ -108,15 +99,6 @@ export function MapaSelectorMunicipios({
       attributionControl: false,
     });
 
-    m.on("load", () => {
-      const c = m.getCanvas();
-      console.log("[MapaSelector] map load", {
-        canvasWidth: c.width,
-        canvasHeight: c.height,
-        canvasClientWidth: c.clientWidth,
-        canvasClientHeight: c.clientHeight,
-      });
-    });
     m.on("error", (e) => console.error("[MapaSelector] map error", e));
 
     m.addControl(
@@ -162,17 +144,14 @@ export function MapaSelectorMunicipios({
     setError(null);
 
     let cancelado = false;
-    console.log(`[MapaSelector] fetching /geojson/munis-${ccaa}.geojson`);
     fetch(`/geojson/munis-${ccaa}.geojson`)
       .then((r) => {
-        console.log(`[MapaSelector] fetch response status=${r.status}`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<FeatureCollection<Geometry, GeoProps>>;
       })
       .then((geojson) => {
         if (cancelado || !map.current) return;
         const m = map.current;
-        console.log(`[MapaSelector] geojson loaded, ${geojson.features.length} features`);
 
         // Construir el mapping codigo_ine → name en este momento.
         const mapping: Record<string, string> = {};
@@ -335,13 +314,22 @@ export function MapaSelectorMunicipios({
       </div>
 
       {/*
-        Contenedor del canvas de MapLibre. Se le da una min-h explícita
-        para evitar que el canvas nazca a 0px si el flex padre todavía no
-        ha calculado la altura cuando MapLibre se inicializa (clásico bug
-        en modales con dynamic import).
+        Contenedor del canvas de MapLibre.
+
+        IMPORTANTE: usamos `h-full w-full`, NO `absolute inset-0`.
+        MapLibre añade su propia clase `.maplibregl-map { position:
+        relative }` al div al inicializarse. Como su CSS se carga
+        después de la de Tailwind, su `position: relative` gana sobre
+        cualquier `position: absolute` que intentemos aplicar con
+        Tailwind. Eso dejaba al div en posición relativa con `inset:
+        0` ignorado, resultando en altura 0 y mapa invisible.
+
+        La min-h y flex-1 las llevamos en el wrapper relative para
+        garantizar que este contenedor tenga tamaño aunque el flex
+        padre tarde en establecerlo.
       */}
       <div className="relative min-h-[400px] flex-1">
-        <div ref={contenedor} className="absolute inset-0" />
+        <div ref={contenedor} className="h-full w-full" />
         {error && (
           <div className="absolute inset-x-4 top-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
             {error}
