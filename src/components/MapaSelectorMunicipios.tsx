@@ -81,6 +81,15 @@ export function MapaSelectorMunicipios({
   useEffect(() => {
     if (!contenedor.current || map.current) return;
 
+    // Diagnóstico: tamaño del contenedor en el momento de inicializar
+    // el mapa. Si esto es 0, el canvas nace a 0×0 y no se ve nada.
+    const r = contenedor.current.getBoundingClientRect();
+    console.log("[MapaSelector] init", {
+      width: r.width,
+      height: r.height,
+      maplibreVersion: maplibregl.version,
+    });
+
     const m = new maplibregl.Map({
       container: contenedor.current,
       style: {
@@ -98,6 +107,17 @@ export function MapaSelectorMunicipios({
       zoom: 5,
       attributionControl: false,
     });
+
+    m.on("load", () => {
+      const c = m.getCanvas();
+      console.log("[MapaSelector] map load", {
+        canvasWidth: c.width,
+        canvasHeight: c.height,
+        canvasClientWidth: c.clientWidth,
+        canvasClientHeight: c.clientHeight,
+      });
+    });
+    m.on("error", (e) => console.error("[MapaSelector] map error", e));
 
     m.addControl(
       new maplibregl.AttributionControl({
@@ -142,14 +162,17 @@ export function MapaSelectorMunicipios({
     setError(null);
 
     let cancelado = false;
+    console.log(`[MapaSelector] fetching /geojson/munis-${ccaa}.geojson`);
     fetch(`/geojson/munis-${ccaa}.geojson`)
       .then((r) => {
+        console.log(`[MapaSelector] fetch response status=${r.status}`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<FeatureCollection<Geometry, GeoProps>>;
       })
       .then((geojson) => {
         if (cancelado || !map.current) return;
         const m = map.current;
+        console.log(`[MapaSelector] geojson loaded, ${geojson.features.length} features`);
 
         // Construir el mapping codigo_ine → name en este momento.
         const mapping: Record<string, string> = {};
