@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { aplicarRateLimit, ipDesdeHeaders } from "@/lib/rate-limit";
 
 export type RegistroState = {
   ok: boolean;
@@ -55,6 +57,19 @@ export async function registrarUsuario(
       message: "Debes aceptar la política de privacidad y las condiciones de uso.",
     };
   }
+
+  // Rate limit por IP: 5 registros nuevos por hora desde la misma IP.
+  // Una persona razonable crea 1 cuenta. Una pareja o familia 2-3.
+  // Mas de 5/h en una IP huele a abuso.
+  const ip = ipDesdeHeaders(await headers());
+  const rl = await aplicarRateLimit({
+    clave: `registro:${ip}`,
+    ventanaSegundos: 3600,
+    max: 5,
+    mensajeBloqueado:
+      "Demasiados registros desde tu conexión en la última hora. Inténtalo más tarde.",
+  });
+  if (!rl.permitido) return { ok: false, message: rl.mensaje };
 
   const supabase = await createClient();
 

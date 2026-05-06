@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { enviarEmail } from "@/lib/email/resend";
 import { plantillaMensajeNuevo } from "@/lib/email/plantillas";
+import { aplicarRateLimit } from "@/lib/rate-limit";
 
 export type ConversacionResumen = {
   id: string;
@@ -105,6 +106,17 @@ export async function iniciarConversacionDesdeAnuncio(
     return { ok: false, mensaje: "No puedes contactar contigo mismo." };
   }
 
+  // Rate limit: 20 conversaciones nuevas por hora. Una persona normal
+  // abre 2-3 al dia; 20/h bloquea bots y abuso sin molestar a nadie.
+  const rl = await aplicarRateLimit({
+    clave: `conv:${user.id}`,
+    ventanaSegundos: 3600,
+    max: 20,
+    mensajeBloqueado:
+      "Has abierto demasiadas conversaciones en la última hora. Espera un poco antes de contactar a más personas.",
+  });
+  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
+
   // Si no se especificó cuál de mis anuncios usar, busco uno activo
   // con la misma taxonomía. Esto cubre el caso de que el usuario
   // tenga varios y uno solo encaje.
@@ -147,6 +159,17 @@ export async function enviarMensaje(
   if (!user) {
     return { ok: false, mensaje: "Tienes que iniciar sesión." };
   }
+
+  // Rate limit: 30 mensajes por usuario por minuto. Suficiente para
+  // conversaciones reales, bloquea spam automatizado.
+  const rl = await aplicarRateLimit({
+    clave: `mensaje:${user.id}`,
+    ventanaSegundos: 60,
+    max: 30,
+    mensajeBloqueado:
+      "Has enviado demasiados mensajes en el último minuto. Espera un poco antes de seguir.",
+  });
+  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
 
   const { error } = await supabase.from("mensajes").insert({
     conversacion_id: conversacionId,

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
+import { aplicarRateLimit } from "@/lib/rate-limit";
 
 // ----------------------------------------------------------------------
 // Búsqueda de municipios para autocompletado
@@ -134,6 +135,18 @@ export async function crearAnuncio(
   if (!user.email_confirmed_at) {
     return { ok: false, mensaje: "Tienes que confirmar tu email antes de publicar." };
   }
+
+  // Rate limit: 5 anuncios por usuario por dia. Una persona normal
+  // publica 1-2 (uno por cuerpo si es el caso). Mas de 5 al dia sugiere
+  // bot o abuso.
+  const rl = await aplicarRateLimit({
+    clave: `anuncio_nuevo:${user.id}`,
+    ventanaSegundos: 86400,
+    max: 5,
+    mensajeBloqueado:
+      "Has publicado demasiados anuncios hoy. Espera 24 horas antes de seguir.",
+  });
+  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
 
   // Validaciones básicas (la lógica fina ya la aplica el cliente; esto es
   // la red de seguridad por si alguien manipula el envío).

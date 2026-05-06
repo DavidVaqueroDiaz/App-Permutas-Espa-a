@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { aplicarRateLimit } from "@/lib/rate-limit";
 
 export type MotivoReporte =
   | "spam"
@@ -49,6 +50,17 @@ export async function reportarAnuncio(input: {
       mensaje: "El comentario no puede superar los 500 caracteres.",
     };
   }
+
+  // Rate limit: 10 reportes/usuario/hora. Si alguien tiene mas de 10
+  // motivos legitimos de reporte en una hora, hay otro problema.
+  const rl = await aplicarRateLimit({
+    clave: `reporte:${user.id}`,
+    ventanaSegundos: 3600,
+    max: 10,
+    mensajeBloqueado:
+      "Has enviado demasiados reportes en la última hora. Espera un poco antes de seguir.",
+  });
+  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
 
   // No puedes reportar tu propio anuncio.
   const { data: anuncio } = await supabase
