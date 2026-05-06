@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EditarPerfilForm } from "./EditarPerfilForm";
 import { CambiarContrasenaForm } from "./CambiarContrasenaForm";
 import { MiAnuncioCard, type AnuncioCardData } from "./MiAnuncioCard";
+import { contarCadenasParaMisAnuncios } from "./actions";
 
 export const metadata: Metadata = {
   title: "Mi cuenta",
@@ -35,7 +36,7 @@ export default async function MiCuentaPage({
 
   const { creado, actualizado, eliminado } = await searchParams;
 
-  const [perfilRes, anunciosRes, noLeidosRes] = await Promise.all([
+  const [perfilRes, anunciosRes, noLeidosRes, conteoCadenas] = await Promise.all([
     supabase
       .from("perfiles_usuario")
       .select("alias_publico, ano_nacimiento, creado_el")
@@ -54,6 +55,7 @@ export default async function MiCuentaPage({
       .neq("estado", "eliminado")
       .order("creado_el", { ascending: false }),
     supabase.rpc("contar_conversaciones_con_no_leidos"),
+    contarCadenasParaMisAnuncios(),
   ]);
 
   const perfil = perfilRes.data;
@@ -130,17 +132,35 @@ export default async function MiCuentaPage({
           <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
             <a
               href="/auto-permutas"
-              className="rounded-xl2 border border-brand-mint bg-brand-bg/40 p-4 shadow-card transition hover:bg-brand-bg"
+              className={
+                "rounded-xl2 border p-4 shadow-card transition " +
+                (conteoCadenas.total > 0
+                  ? "border-brand bg-brand-bg hover:shadow-card-hover"
+                  : "border-brand-mint bg-brand-bg/40 hover:bg-brand-bg")
+              }
             >
               <p className="text-[11px] uppercase tracking-wide text-brand-text">
-                Buscar cadenas
+                Cadenas detectadas
               </p>
-              <p className="mt-1 font-head text-base font-semibold text-brand">
-                Auto permutas →
+              <p className="mt-1 font-head text-2xl font-semibold text-brand">
+                {conteoCadenas.total}
               </p>
-              <p className="mt-1 text-[11px] text-slate-600">
-                Mira qué cadenas posibles hay con tu perfil ahora mismo.
-              </p>
+              {conteoCadenas.total > 0 ? (
+                <p className="mt-1 text-[11px] text-brand-text">
+                  🎉 {conteoCadenas.porLongitud.directas} directas
+                  {conteoCadenas.porLongitud.tres > 0 &&
+                    ` · ${conteoCadenas.porLongitud.tres} a 3`}
+                  {conteoCadenas.porLongitud.cuatro > 0 &&
+                    ` · ${conteoCadenas.porLongitud.cuatro} a 4`}
+                  <br />
+                  Pulsa para verlas →
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-slate-600">
+                  Aún no hay cadenas con tu perfil. Prueba en Auto permutas con
+                  más localidades objetivo →
+                </p>
+              )}
             </a>
             <a
               href="/mensajes"
@@ -201,7 +221,11 @@ export default async function MiCuentaPage({
             ) : (
               <ul className="mt-3 space-y-3">
                 {anuncios.map((a) => (
-                  <MiAnuncioCard key={a.id} anuncio={a} />
+                  <MiAnuncioCard
+                    key={a.id}
+                    anuncio={a}
+                    cadenasCount={conteoCadenas.porAnuncio[a.id] ?? 0}
+                  />
                 ))}
               </ul>
             )}

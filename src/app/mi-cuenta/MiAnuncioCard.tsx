@@ -18,9 +18,16 @@ export type AnuncioCardData = {
 /**
  * Tarjeta de un anuncio propio del usuario en /mi-cuenta.
  * Soporta eliminar con confirmación y muestra aviso si el anuncio
- * caduca en los próximos 30 días.
+ * caduca en los próximos 30 días o si hay cadenas detectadas que lo
+ * incluyen (`cadenasCount` > 0).
  */
-export function MiAnuncioCard({ anuncio }: { anuncio: AnuncioCardData }) {
+export function MiAnuncioCard({
+  anuncio,
+  cadenasCount,
+}: {
+  anuncio: AnuncioCardData;
+  cadenasCount: number;
+}) {
   const router = useRouter();
   const [borrando, startBorrar] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +84,18 @@ export function MiAnuncioCard({ anuncio }: { anuncio: AnuncioCardData }) {
           {anuncio.estado}
         </span>
       </div>
+
+      {/* Aviso destacado: hay cadenas para este anuncio */}
+      {anuncio.estado === "activo" && cadenasCount > 0 && (
+        <a
+          href="/auto-permutas"
+          className="mt-3 block rounded-md border border-brand bg-brand-bg p-2 text-xs text-brand-text hover:bg-brand-bg/70"
+        >
+          🎉 <strong>{cadenasCount}</strong>{" "}
+          {cadenasCount === 1 ? "cadena posible incluye" : "cadenas posibles incluyen"}{" "}
+          este anuncio. Pulsa para verlas →
+        </a>
+      )}
 
       {/* Aviso de caducidad */}
       {anuncio.estado === "activo" && (caducaPronto || yaCaducado) && (
