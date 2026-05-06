@@ -878,6 +878,23 @@ function ParticipanteDetalle({
         )}
       </ul>
 
+      {/* Avisos legales personales: solo si hay alguno detectado */}
+      {p.avisos_legales.length > 0 && (
+        <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-warn-text">
+            ⚠ Verificar antes de tramitar
+          </p>
+          <ul className="mt-1.5 space-y-1 text-[11.5px] leading-snug text-warn-text">
+            {p.avisos_legales.map((av, i) => (
+              <li key={i}>
+                <strong>{av.titulo}.</strong>{" "}
+                <span className="opacity-90">{av.detalle}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {p.contacto_disponible ? (
         <BotonContactar anuncioId={p.anuncio_id} />
       ) : (

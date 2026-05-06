@@ -7,6 +7,11 @@ import {
   type Cadena,
 } from "@/lib/matching";
 import { haversine } from "@/lib/haversine";
+import {
+  verificarReglasParticipante,
+  verificarReglasPareja,
+  type AvisoLegalPersonal,
+} from "@/lib/reglas-personales";
 
 export type PerfilBusqueda = {
   cuerpo_id: string;
@@ -130,6 +135,12 @@ export type ParticipanteCadena = {
 
   contacto_disponible: boolean;
   km_recta: number | null; // distancia en línea recta entre la plaza actual y la del destino
+
+  /** Avisos legales personales (jubilación, antigüedad, carencia,
+   * tiempo en destino) calculados con los datos disponibles. Si la
+   * lista está vacía, no hay incumplimientos detectables — pero el
+   * usuario igualmente debe confirmar con su administración. */
+  avisos_legales: AvisoLegalPersonal[];
 };
 
 export type DetalleCadena = {
@@ -470,6 +481,29 @@ export async function buscarCadenasDesdePerfil(
       const anuncioReal = esVirtual ? null : anuncios.find((r) => r.id === id) ?? null;
       const parsed = parseObservacionesPermutadoc(anuncioReal?.observaciones ?? null);
 
+      // Avisos legales personales: solo se calculan para los OTROS
+      // participantes (no para el usuario buscador, cuyas reglas se
+      // las aplica a sí mismo). El usuario buscador (a.id === virtualId)
+      // tiene avisos_legales = []; los otros, los calcula.
+      const datosPersonales = {
+        ano_nacimiento: a.ano_nacimiento,
+        fecha_toma_posesion_definitiva: a.fecha_toma_posesion_definitiva,
+        anyos_servicio_totales: a.anyos_servicio_totales,
+        permuta_anterior_fecha: a.permuta_anterior_fecha,
+      };
+      const avisosIndiv = esVirtual ? [] : verificarReglasParticipante(datosPersonales);
+      const avisosPareja = esVirtual
+        ? []
+        : verificarReglasPareja(
+            {
+              ano_nacimiento: virtual.ano_nacimiento,
+              fecha_toma_posesion_definitiva: virtual.fecha_toma_posesion_definitiva,
+              anyos_servicio_totales: virtual.anyos_servicio_totales,
+              permuta_anterior_fecha: virtual.permuta_anterior_fecha,
+            },
+            datosPersonales,
+          );
+
       return {
         anuncio_id: a.id,
         es_perfil_busqueda: esVirtual,
@@ -487,6 +521,7 @@ export async function buscarCadenasDesdePerfil(
         fecha_publicacion: anuncioReal?.creado_el?.slice(0, 10) ?? null,
         contacto_disponible: !esVirtual && haySesion,
         km_recta: km,
+        avisos_legales: [...avisosIndiv, ...avisosPareja],
       };
     });
     return {
