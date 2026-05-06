@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditarPerfilForm } from "./EditarPerfilForm";
 import { CambiarContrasenaForm } from "./CambiarContrasenaForm";
+import { MiAnuncioCard, type AnuncioCardData } from "./MiAnuncioCard";
 
 export const metadata: Metadata = {
   title: "Mi cuenta",
@@ -13,18 +14,6 @@ type Perfil = {
   alias_publico: string;
   ano_nacimiento: number;
   creado_el: string;
-};
-
-type AnuncioListado = {
-  id: string;
-  estado: string;
-  creado_el: string;
-  caduca_el: string;
-  observaciones: string | null;
-  cuerpo: { codigo_oficial: string | null; denominacion: string } | null;
-  especialidad: { codigo_oficial: string | null; denominacion: string } | null;
-  municipio: { nombre: string } | null;
-  total_plazas: number;
 };
 
 type SearchParams = Promise<{
@@ -46,7 +35,7 @@ export default async function MiCuentaPage({
 
   const { creado, actualizado, eliminado } = await searchParams;
 
-  const [perfilRes, anunciosRes] = await Promise.all([
+  const [perfilRes, anunciosRes, noLeidosRes] = await Promise.all([
     supabase
       .from("perfiles_usuario")
       .select("alias_publico, ano_nacimiento, creado_el")
@@ -64,25 +53,41 @@ export default async function MiCuentaPage({
       .eq("usuario_id", user.id)
       .neq("estado", "eliminado")
       .order("creado_el", { ascending: false }),
+    supabase.rpc("contar_conversaciones_con_no_leidos"),
   ]);
 
   const perfil = perfilRes.data;
+  const noLeidos = (noLeidosRes.data as number | null) ?? 0;
 
-  // Reformatear anuncios para tener total_plazas como número.
-  const anuncios: AnuncioListado[] = (anunciosRes.data ?? []).map((a) => {
+  // Reformatear anuncios para el componente cliente.
+  type RawCuerpo = { codigo_oficial: string | null; denominacion: string };
+  type RawEsp = { codigo_oficial: string | null; denominacion: string };
+  const anuncios: AnuncioCardData[] = (anunciosRes.data ?? []).map((a) => {
     const plazas = a.anuncio_plazas_deseadas as unknown as { count: number }[];
+    const cuerpo = Array.isArray(a.cuerpo) ? a.cuerpo[0] : (a.cuerpo as RawCuerpo | null);
+    const esp = Array.isArray(a.especialidad)
+      ? a.especialidad[0]
+      : (a.especialidad as RawEsp | null);
+    const muni = Array.isArray(a.municipio)
+      ? a.municipio[0]
+      : (a.municipio as { nombre: string } | null);
     return {
       id: a.id as string,
       estado: a.estado as string,
       creado_el: a.creado_el as string,
       caduca_el: a.caduca_el as string,
-      observaciones: (a.observaciones as string | null) ?? null,
-      cuerpo: Array.isArray(a.cuerpo) ? a.cuerpo[0] ?? null : (a.cuerpo as AnuncioListado["cuerpo"]),
-      especialidad: Array.isArray(a.especialidad) ? a.especialidad[0] ?? null : (a.especialidad as AnuncioListado["especialidad"]),
-      municipio: Array.isArray(a.municipio) ? a.municipio[0] ?? null : (a.municipio as AnuncioListado["municipio"]),
+      cuerpo_label: cuerpo
+        ? `${cuerpo.codigo_oficial ? cuerpo.codigo_oficial + " · " : ""}${cuerpo.denominacion}`
+        : "Cuerpo desconocido",
+      especialidad_label: esp
+        ? `${esp.codigo_oficial ? esp.codigo_oficial + " · " : ""}${esp.denominacion}`
+        : null,
+      municipio_nombre: muni?.nombre ?? "—",
       total_plazas: plazas?.[0]?.count ?? 0,
     };
   });
+
+  const anunciosActivos = anuncios.filter((a) => a.estado === "activo").length;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-12">
@@ -120,71 +125,88 @@ export default async function MiCuentaPage({
       )}
 
       {user.email_confirmed_at && (
-        <section className="mt-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Mis anuncios</h2>
+        <>
+          {/* Stats personales: lo primero que ve el usuario al entrar */}
+          <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
+            <a
+              href="/auto-permutas"
+              className="rounded-xl2 border border-brand-mint bg-brand-bg/40 p-4 shadow-card transition hover:bg-brand-bg"
+            >
+              <p className="text-[11px] uppercase tracking-wide text-brand-text">
+                Buscar cadenas
+              </p>
+              <p className="mt-1 font-head text-base font-semibold text-brand">
+                Auto permutas →
+              </p>
+              <p className="mt-1 text-[11px] text-slate-600">
+                Mira qué cadenas posibles hay con tu perfil ahora mismo.
+              </p>
+            </a>
+            <a
+              href="/mensajes"
+              className="rounded-xl2 border border-slate-200 bg-white p-4 shadow-card transition hover:border-brand-mint"
+            >
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Mensajes sin leer
+              </p>
+              <p className="mt-1 font-head text-2xl font-semibold text-brand">
+                {noLeidos}
+              </p>
+              {noLeidos > 0 ? (
+                <p className="mt-1 text-[11px] text-brand-text">
+                  Tienes mensajes nuevos →
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Bandeja al día.
+                </p>
+              )}
+            </a>
             <a
               href="/anuncios/nuevo"
-              className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
+              className="col-span-2 rounded-xl2 border border-slate-200 bg-white p-4 shadow-card transition hover:border-brand-mint md:col-span-1"
             >
-              + Publicar anuncio
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                Mis anuncios activos
+              </p>
+              <p className="mt-1 font-head text-2xl font-semibold text-brand">
+                {anunciosActivos}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                + Publicar otro anuncio →
+              </p>
             </a>
-          </div>
+          </section>
 
-          {anuncios.length === 0 ? (
-            <p className="mt-3 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              Aún no has publicado ningún anuncio. Pulsa el botón de arriba para crear el primero.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-3">
-              {anuncios.map((a) => (
-                <li
-                  key={a.id}
-                  className="rounded-xl2 border border-slate-200 bg-white shadow-card p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {a.cuerpo?.codigo_oficial ? `${a.cuerpo.codigo_oficial} · ` : ""}
-                        {a.cuerpo?.denominacion ?? "Cuerpo desconocido"}
-                      </p>
-                      {a.especialidad && (
-                        <p className="text-sm text-slate-600">
-                          {a.especialidad.codigo_oficial ? `${a.especialidad.codigo_oficial} · ` : ""}
-                          {a.especialidad.denominacion}
-                        </p>
-                      )}
-                      <p className="mt-2 text-sm text-slate-700">
-                        Estás en <strong>{a.municipio?.nombre ?? "—"}</strong> · aceptarías irte a{" "}
-                        <strong>{a.total_plazas} {a.total_plazas === 1 ? "municipio" : "municipios"}</strong>
-                      </p>
-                    </div>
-                    <span className={
-                      a.estado === "activo"
-                        ? "rounded-full bg-brand-bg px-2 py-0.5 text-xs text-brand-text"
-                        : "rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700"
-                    }>
-                      {a.estado}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-500">
-                      Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
-                      {" · "}
-                      Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
-                    </p>
-                    <a
-                      href={`/anuncios/${a.id}/editar`}
-                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      Editar
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          {/* Listado de anuncios propios */}
+          <section className="mt-10">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Mis anuncios
+              </h2>
+              <a
+                href="/anuncios/nuevo"
+                className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
+              >
+                + Publicar anuncio
+              </a>
+            </div>
+
+            {anuncios.length === 0 ? (
+              <p className="mt-3 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                Aún no has publicado ningún anuncio. Pulsa el botón de arriba
+                para crear el primero — sin él no podemos detectar cadenas que
+                te incluyan.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {anuncios.map((a) => (
+                  <MiAnuncioCard key={a.id} anuncio={a} />
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
       )}
 
       <section className="mt-10">
@@ -233,9 +255,6 @@ export default async function MiCuentaPage({
         </div>
       </section>
 
-      <p className="mt-10 text-xs text-slate-500">
-        Las funciones de mensajería y detección de cadenas de permuta llegarán en próximos bloques del desarrollo.
-      </p>
     </main>
   );
 }
