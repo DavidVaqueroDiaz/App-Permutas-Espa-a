@@ -65,7 +65,7 @@ export async function registrarUsuario(
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/mi-cuenta?bienvenido=1")}`,
       data: {
         alias_publico: alias,
         ano_nacimiento: ano,

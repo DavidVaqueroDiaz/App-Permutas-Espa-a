@@ -14,10 +14,25 @@ export function RegistroForm() {
       <div className="rounded-lg border border-brand-mint/40 bg-brand-bg p-6 text-brand-text">
         <h2 className="text-lg font-semibold">¡Cuenta creada!</h2>
         <p className="mt-2 text-sm">{state.message}</p>
+        <div className="mt-4 rounded-md border border-brand-mint/50 bg-white/60 p-3 text-sm">
+          <p className="font-semibold text-brand">Tus siguientes pasos:</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            <li>
+              Confirma tu email pinchando el enlace que te hemos enviado.
+            </li>
+            <li>
+              Publica tu anuncio con tu plaza actual y los destinos que buscas.
+            </li>
+            <li>
+              Te avisaremos por email en cuanto detectemos una cadena que te
+              incluya.
+            </li>
+          </ol>
+        </div>
         <p className="mt-4 text-sm">
-          Una vez confirmes el email, podrás{" "}
+          ¿Ya confirmaste el email?{" "}
           <a href="/login" className="font-medium underline">
-            iniciar sesión
+            Inicia sesión
           </a>
           .
         </p>

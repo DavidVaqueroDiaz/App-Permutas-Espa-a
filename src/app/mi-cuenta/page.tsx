@@ -21,6 +21,7 @@ type SearchParams = Promise<{
   creado?: string;
   actualizado?: string;
   eliminado?: string;
+  bienvenido?: string;
 }>;
 
 export default async function MiCuentaPage({
@@ -34,7 +35,7 @@ export default async function MiCuentaPage({
     redirect("/login");
   }
 
-  const { creado, actualizado, eliminado } = await searchParams;
+  const { creado, actualizado, eliminado, bienvenido } = await searchParams;
 
   const [perfilRes, anunciosRes, noLeidosRes, conteoCadenas] = await Promise.all([
     supabase
@@ -100,6 +101,22 @@ export default async function MiCuentaPage({
         Datos básicos de tu cuenta y tus anuncios.
       </p>
 
+      {bienvenido === "1" && (
+        <div className="mt-6 rounded-xl2 border-2 border-brand bg-brand-bg p-5 shadow-card-hover">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
+            🎉 Bienvenido a PermutaES
+          </p>
+          <h2 className="mt-1 font-head text-xl font-semibold text-brand">
+            Tu email está confirmado
+          </h2>
+          <p className="mt-2 text-sm text-brand-text">
+            Ya puedes publicar tu primer anuncio. Cuando lo hagas, cruzaremos tu
+            plaza y tus destinos contra el resto de la plataforma para detectar
+            cadenas de permuta a 2, 3 o 4 personas que te incluyan.
+          </p>
+        </div>
+      )}
+
       {creado === "1" && (
         <div className="mt-6 rounded-md border border-brand-mint/40 bg-brand-bg p-4 text-sm text-brand-text">
           ¡Anuncio publicado! Lo tienes abajo en "Mis anuncios".
@@ -124,6 +141,36 @@ export default async function MiCuentaPage({
             recibir mensajes.
           </p>
         </div>
+      )}
+
+      {user.email_confirmed_at && anuncios.length === 0 && (
+        <section className="mt-6 rounded-xl2 border-2 border-brand-mint bg-brand-bg p-5 shadow-card">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
+            👋 Tu siguiente paso
+          </p>
+          <h2 className="mt-1 font-head text-xl font-semibold text-brand">
+            Publica tu primer anuncio
+          </h2>
+          <p className="mt-2 text-sm text-brand-text">
+            Hasta que no publiques un anuncio con tu plaza actual y los destinos
+            que buscas, <strong>no podemos detectar cadenas con tu perfil</strong>.
+            Solo tarda un par de minutos.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href="/anuncios/nuevo"
+              className="inline-flex items-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-dark"
+            >
+              + Publicar mi anuncio
+            </a>
+            <a
+              href="/anuncios"
+              className="inline-flex items-center rounded-md border border-brand-mint bg-white px-4 py-2 text-sm font-medium text-brand-text hover:bg-brand-bg/60"
+            >
+              Ver anuncios de otros
+            </a>
+          </div>
+        </section>
       )}
 
       {user.email_confirmed_at && (
