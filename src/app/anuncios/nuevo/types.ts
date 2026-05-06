@@ -23,6 +23,13 @@ export type EspecialidadRow = {
   denominacion: string;
 };
 
+export type ServicioSaludRow = {
+  codigo: string;
+  nombre_corto: string;
+  nombre_oficial: string;
+  ccaa_codigo: string | null;
+};
+
 export type CcaaRow = {
   codigo_ine: string;
   nombre: string;
@@ -52,6 +59,10 @@ export type WizardState = {
   // Paso 2
   cuerpo_id: string | null;
 
+  // Solo aplica al sector sanitario_sns. Se pide en el paso 2 inline,
+  // tras elegir cuerpo. Para los demas sectores se queda null.
+  servicio_salud_codigo: string | null;
+
   // Paso 3
   especialidad_id: string | null;
 
@@ -80,6 +91,7 @@ export const INITIAL_STATE: WizardState = {
   paso: 1,
   sector_codigo: null,
   cuerpo_id: null,
+  servicio_salud_codigo: null,
   especialidad_id: null,
   municipio_actual_codigo: null,
   municipio_actual_nombre: null,

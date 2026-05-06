@@ -8,6 +8,7 @@ import type {
   EspecialidadRow,
   ProvinciaRow,
   SectorRow,
+  ServicioSaludRow,
 } from "./types";
 
 export const metadata: Metadata = {
@@ -33,36 +34,48 @@ export default async function NuevoAnuncioPage() {
   //   - los cuerpos LOE (12) — solo el sector docente_loe está activo
   //   - las especialidades de esos cuerpos (~318)
   // Es poco volumen, podemos enviarlo todo al cliente sin problema.
-  const [sectoresRes, cuerposRes, especialidadesRes, ccaaRes, provinciasRes] =
-    await Promise.all([
-      supabase
-        .from("sectores")
-        .select("codigo, nombre, descripcion")
-        .order("nombre", { ascending: true }),
-      supabase
-        .from("cuerpos")
-        .select("id, sector_codigo, codigo_oficial, denominacion, subgrupo")
-        .eq("sector_codigo", "docente_loe")
-        .order("codigo_oficial", { ascending: true }),
-      supabase
-        .from("especialidades")
-        .select("id, cuerpo_id, codigo_oficial, denominacion")
-        .order("codigo_oficial", { ascending: true }),
-      supabase
-        .from("ccaa")
-        .select("codigo_ine, nombre")
-        .order("nombre", { ascending: true }),
-      supabase
-        .from("provincias")
-        .select("codigo_ine, nombre, ccaa_codigo")
-        .order("nombre", { ascending: true }),
-    ]);
+  const [
+    sectoresRes,
+    cuerposRes,
+    especialidadesRes,
+    ccaaRes,
+    provinciasRes,
+    serviciosSaludRes,
+  ] = await Promise.all([
+    supabase
+      .from("sectores")
+      .select("codigo, nombre, descripcion")
+      .order("nombre", { ascending: true }),
+    // Cargamos los cuerpos de los sectores ACTIVOS (docente_loe + sanitario_sns).
+    supabase
+      .from("cuerpos")
+      .select("id, sector_codigo, codigo_oficial, denominacion, subgrupo")
+      .in("sector_codigo", ["docente_loe", "sanitario_sns"])
+      .order("codigo_oficial", { ascending: true }),
+    supabase
+      .from("especialidades")
+      .select("id, cuerpo_id, codigo_oficial, denominacion")
+      .order("codigo_oficial", { ascending: true }),
+    supabase
+      .from("ccaa")
+      .select("codigo_ine, nombre")
+      .order("nombre", { ascending: true }),
+    supabase
+      .from("provincias")
+      .select("codigo_ine, nombre, ccaa_codigo")
+      .order("nombre", { ascending: true }),
+    supabase
+      .from("servicios_salud")
+      .select("codigo, nombre_corto, nombre_oficial, ccaa_codigo")
+      .order("nombre_corto", { ascending: true }),
+  ]);
 
   const sectores = (sectoresRes.data ?? []) as SectorRow[];
   const cuerpos = (cuerposRes.data ?? []) as CuerpoRow[];
   const especialidades = (especialidadesRes.data ?? []) as EspecialidadRow[];
   const ccaa = (ccaaRes.data ?? []) as CcaaRow[];
   const provincias = (provinciasRes.data ?? []) as ProvinciaRow[];
+  const serviciosSalud = (serviciosSaludRes.data ?? []) as ServicioSaludRow[];
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-12">
@@ -80,6 +93,7 @@ export default async function NuevoAnuncioPage() {
           especialidades={especialidades}
           ccaa={ccaa}
           provincias={provincias}
+          serviciosSalud={serviciosSalud}
         />
       </div>
     </main>

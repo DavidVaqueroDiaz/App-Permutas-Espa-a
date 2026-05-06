@@ -14,6 +14,7 @@ type AnuncioDetalle = {
   cuerpo: { codigo_oficial: string | null; denominacion: string } | null;
   especialidad: { codigo_oficial: string | null; denominacion: string } | null;
   sector: { nombre: string } | null;
+  servicio_salud: { nombre_corto: string; nombre_oficial: string } | null;
   municipio_nombre: string;
   provincia_nombre: string;
   ccaa_nombre: string;
@@ -36,6 +37,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
        cuerpo:cuerpos(codigo_oficial, denominacion),
        especialidad:especialidades(codigo_oficial, denominacion),
        sector:sectores(nombre),
+       servicio_salud:servicios_salud(nombre_corto, nombre_oficial),
        municipio:municipios!municipio_actual_codigo(
          nombre,
          provincias!inner(nombre, ccaa:ccaa(nombre))
@@ -59,6 +61,10 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
     cuerpo: { codigo_oficial: string | null; denominacion: string } | null;
     especialidad: { codigo_oficial: string | null; denominacion: string } | null;
     sector: { nombre: string } | null;
+    servicio_salud:
+      | { nombre_corto: string; nombre_oficial: string }
+      | { nombre_corto: string; nombre_oficial: string }[]
+      | null;
     municipio: {
       nombre: string;
       provincias: {
@@ -86,6 +92,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
     cuerpo: unwrap(r.cuerpo),
     especialidad: unwrap(r.especialidad),
     sector: unwrap(r.sector),
+    servicio_salud: unwrap(r.servicio_salud),
     municipio_nombre: muni?.nombre ?? "—",
     provincia_nombre: prov?.nombre ?? "",
     ccaa_nombre: ccaa?.nombre ?? "",
@@ -237,6 +244,16 @@ export default async function AnuncioDetallePage({
               ambas partes lo deciden.
             </p>
           </Bloque>
+          {a.servicio_salud && (
+            <Bloque label="Servicio de Salud">
+              <p className="text-base font-medium text-slate-900">
+                {a.servicio_salud.nombre_corto}
+              </p>
+              <p className="text-xs text-slate-500">
+                {a.servicio_salud.nombre_oficial}
+              </p>
+            </Bloque>
+          )}
         </section>
 
         <section className="mt-5">

@@ -112,6 +112,8 @@ export async function expandirAtajos(
 export type CrearAnuncioInput = {
   cuerpo_id: string;
   especialidad_id: string | null;
+  // Solo aplica al sector sanitario_sns. Para otros sectores debe ser null.
+  servicio_salud_codigo: string | null;
   municipio_actual_codigo: string;
   fecha_toma_posesion_definitiva: string; // YYYY-MM-DD
   anyos_servicio_totales: number;
@@ -197,15 +199,32 @@ export async function crearAnuncio(
     .eq("id", input.cuerpo_id)
     .maybeSingle();
   if (!cuerpoRow) return { ok: false, mensaje: "El cuerpo seleccionado no existe." };
+  const sector_codigo = (cuerpoRow as { sector_codigo: string }).sector_codigo;
+
+  // Reglas servicio_salud_codigo: obligatorio si SNS, prohibido si no.
+  if (sector_codigo === "sanitario_sns" && !input.servicio_salud_codigo) {
+    return {
+      ok: false,
+      mensaje:
+        "Los anuncios sanitarios necesitan un Servicio de Salud (SAS, SERGAS, SACYL, etc.).",
+    };
+  }
+  if (sector_codigo !== "sanitario_sns" && input.servicio_salud_codigo) {
+    return {
+      ok: false,
+      mensaje: "El campo Servicio de Salud solo aplica al sector sanitario.",
+    };
+  }
 
   // 1) INSERT anuncio
   const { data: anuncioInsert, error: errAnuncio } = await supabase
     .from("anuncios")
     .insert({
       usuario_id: user.id,
-      sector_codigo: (cuerpoRow as { sector_codigo: string }).sector_codigo,
+      sector_codigo,
       cuerpo_id: input.cuerpo_id,
       especialidad_id: input.especialidad_id,
+      servicio_salud_codigo: input.servicio_salud_codigo,
       municipio_actual_codigo: input.municipio_actual_codigo,
       ccaa_codigo,
       fecha_toma_posesion_definitiva: input.fecha_toma_posesion_definitiva,

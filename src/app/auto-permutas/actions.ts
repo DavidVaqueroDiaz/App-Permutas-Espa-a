@@ -16,6 +16,11 @@ import {
 export type PerfilBusqueda = {
   cuerpo_id: string;
   especialidad_id: string | null;
+  /**
+   * Solo aplica al sector sanitario_sns. Es OBLIGATORIO si el cuerpo
+   * pertenece a sanitario_sns (las permutas SNS son intra-servicio).
+   */
+  servicio_salud_codigo: string | null;
   municipio_actual_codigo: string;
   /**
    * Lista de municipios objetivo. La búsqueda devuelve cualquier
@@ -272,7 +277,17 @@ export async function buscarCadenasDesdePerfil(
     };
   }
 
-  // 3) Cargar anuncios reales compatibles (sector/cuerpo/especialidad).
+  // 3) Validacion: si el sector es SNS, el servicio_salud es obligatorio.
+  if (sector === "sanitario_sns" && !input.servicio_salud_codigo) {
+    return {
+      ok: false,
+      mensaje:
+        "En sanidad necesitamos saber tu Servicio de Salud para cruzar solo anuncios del mismo organismo.",
+    };
+  }
+
+  // 4) Cargar anuncios reales compatibles (sector/cuerpo/especialidad
+  //    y, si SNS, mismo servicio de salud).
   let q = supabase
     .from("anuncios")
     .select(
@@ -284,6 +299,9 @@ export async function buscarCadenasDesdePerfil(
   if (input.especialidad_id) q = q.eq("especialidad_id", input.especialidad_id);
   else q = q.is("especialidad_id", null);
   if (intraCcaa.has(sector)) q = q.eq("ccaa_codigo", ccaaInput);
+  if (sector === "sanitario_sns" && input.servicio_salud_codigo) {
+    q = q.eq("servicio_salud_codigo", input.servicio_salud_codigo);
+  }
 
   const { data: anunciosCompat } = await q;
   const anuncios = (anunciosCompat ?? []) as AnuncioRaw[];
@@ -423,7 +441,9 @@ export async function buscarCadenasDesdePerfil(
     especialidad_id: input.especialidad_id,
     municipio_actual_codigo: input.municipio_actual_codigo,
     ccaa_codigo: ccaaInput,
-    servicio_salud_codigo: null,
+    // Si el sector es SNS, propagamos el servicio de salud al perfil virtual
+    // para que la regla de matching geografica intra-servicio aplique.
+    servicio_salud_codigo: input.servicio_salud_codigo,
     fecha_toma_posesion_definitiva: input.fecha_toma_posesion_definitiva,
     anyos_servicio_totales: input.anyos_servicio_totales,
     permuta_anterior_fecha: input.permuta_anterior_fecha,

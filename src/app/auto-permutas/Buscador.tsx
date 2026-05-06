@@ -12,6 +12,7 @@ import type {
   CuerpoRow,
   EspecialidadRow,
   SectorRow,
+  ServicioSaludRow,
 } from "@/app/anuncios/nuevo/types";
 
 // Carga perezosa del mapa: pesa ~700 KB gzip y solo se necesita cuando
@@ -37,6 +38,7 @@ type Props = {
   sectores: SectorRow[];
   cuerpos: CuerpoRow[];
   especialidades: EspecialidadRow[];
+  serviciosSalud: ServicioSaludRow[];
   municipios: MunicipioLocal[];
   ccaa: CcaaLocal[];
   provincias: ProvinciaLocal[];
@@ -77,6 +79,7 @@ export function Buscador({
   sectores,
   cuerpos,
   especialidades,
+  serviciosSalud,
   municipios,
   ccaa,
   provincias,
@@ -95,13 +98,16 @@ export function Buscador({
     [provincias],
   );
   const sectoresActivos = useMemo(
-    () => sectores.filter((s) => s.codigo === "docente_loe"),
+    () => sectores.filter((s) =>
+      s.codigo === "docente_loe" || s.codigo === "sanitario_sns"
+    ),
     [sectores],
   );
 
   const [sectorCodigo, setSectorCodigo] = useState<string>(
     sectoresActivos[0]?.codigo ?? "",
   );
+  const esSns = sectorCodigo === "sanitario_sns";
   const cuerposDelSector = useMemo(
     () => cuerpos.filter((c) => c.sector_codigo === sectorCodigo),
     [cuerpos, sectorCodigo],
@@ -112,6 +118,9 @@ export function Buscador({
     [especialidades, cuerpoId],
   );
   const [especialidadId, setEspecialidadId] = useState<string>("");
+  // Solo aplica a SNS. La regla SNS exige mismo Servicio de Salud para
+  // que dos anuncios puedan permutar.
+  const [servicioSaludCodigo, setServicioSaludCodigo] = useState<string>("");
 
   // Plaza actual: un solo municipio.
   const [muniActual, setMuniActual] = useState<MunicipioLocal | null>(null);
@@ -200,11 +209,18 @@ export function Buscador({
       );
       return;
     }
+    if (esSns && !servicioSaludCodigo) {
+      setErrorBusqueda(
+        "En sanidad necesitamos saber tu Servicio de Salud (las permutas son intra-servicio).",
+      );
+      return;
+    }
     setErrorBusqueda(null);
     startBuscar(async () => {
       const r = await buscarCadenasDesdePerfil({
         cuerpo_id: cuerpoId,
         especialidad_id: especialidadId || null,
+        servicio_salud_codigo: esSns ? servicioSaludCodigo : null,
         municipio_actual_codigo: muniActual.codigo_ine,
         municipios_objetivo_codigos: munisObjetivo.map((m) => m.codigo_ine),
         radio_km: radio,
@@ -258,6 +274,7 @@ export function Buscador({
                 setSectorCodigo(e.target.value);
                 setCuerpoId("");
                 setEspecialidadId("");
+                setServicioSaludCodigo("");
               }}
               className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
             >
@@ -269,13 +286,34 @@ export function Buscador({
             </select>
             {sectoresActivos.length < sectores.length && (
               <p className="mt-1 text-xs text-slate-500">
-                Versión alfa: empezamos por docencia LOE. Más sectores se
-                irán abriendo en beta.
+                Versión alfa: docencia LOE y sanidad SNS. Más sectores se
+                irán abriendo progresivamente.
               </p>
             )}
           </Field>
 
-          <Field label="Cuerpo">
+          {esSns && (
+            <Field label="Servicio de Salud">
+              <select
+                value={servicioSaludCodigo}
+                onChange={(e) => setServicioSaludCodigo(e.target.value)}
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+              >
+                <option value="">— Selecciona servicio —</option>
+                {serviciosSalud.map((s) => (
+                  <option key={s.codigo} value={s.codigo}>
+                    {s.nombre_corto} · {s.nombre_oficial}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Las permutas SNS son <strong>intra-servicio</strong>: solo
+                cruzamos anuncios del mismo organismo.
+              </p>
+            </Field>
+          )}
+
+          <Field label={esSns ? "Categoría" : "Cuerpo"}>
             <select
               value={cuerpoId}
               onChange={(e) => {

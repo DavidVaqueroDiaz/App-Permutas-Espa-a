@@ -9,6 +9,7 @@ import {
   type EspecialidadRow,
   type ProvinciaRow,
   type SectorRow,
+  type ServicioSaludRow,
   type WizardState,
   INITIAL_STATE,
   TOTAL_PASOS,
@@ -28,8 +29,8 @@ const MapaSelectorMunicipios = dynamic(
   { ssr: false },
 );
 
-/** Sectores REALMENTE activos en Fase 1. */
-const SECTORES_ACTIVOS = new Set<string>(["docente_loe"]);
+/** Sectores REALMENTE activos. */
+const SECTORES_ACTIVOS = new Set<string>(["docente_loe", "sanitario_sns"]);
 const STORAGE_KEY = "permutaes:wizard:nuevo-anuncio";
 const ANO_ACTUAL = new Date().getFullYear();
 
@@ -39,9 +40,17 @@ type Props = {
   especialidades: EspecialidadRow[];
   ccaa: CcaaRow[];
   provincias: ProvinciaRow[];
+  serviciosSalud: ServicioSaludRow[];
 };
 
-export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: Props) {
+export function Wizard({
+  sectores,
+  cuerpos,
+  especialidades,
+  ccaa,
+  provincias,
+  serviciosSalud,
+}: Props) {
   const [state, setState] = useState<WizardState>(INITIAL_STATE);
   const [hidratado, setHidratado] = useState(false);
   const [borradorDetectado, setBorradorDetectado] = useState(false);
@@ -170,6 +179,9 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
             update("sector_codigo", v);
             update("cuerpo_id", null);
             update("especialidad_id", null);
+            // El servicio de salud solo aplica a SNS — al cambiar
+            // de sector lo reseteamos siempre.
+            update("servicio_salud_codigo", null);
           }}
           onSiguiente={() => ir(2)}
         />
@@ -178,8 +190,17 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
         <Paso2Cuerpo
           cuerpos={cuerposDelSector}
           valor={state.cuerpo_id}
+          servicios={serviciosSalud}
+          servicioElegido={state.servicio_salud_codigo}
+          esSns={state.sector_codigo === "sanitario_sns"}
           onChange={(v) => { update("cuerpo_id", v); update("especialidad_id", null); }}
-          onAtras={() => ir(1)}
+          onChangeServicio={(v) => update("servicio_salud_codigo", v)}
+          onAtras={() => {
+            // Al volver al paso 1, limpiamos el servicio de salud para que
+            // no quede colgado si el usuario cambia de sector.
+            update("servicio_salud_codigo", null);
+            ir(1);
+          }}
           onSiguiente={() => ir(cuerpoSinEspecialidades ? 4 : 3)}
         />
       )}
@@ -269,6 +290,7 @@ export function Wizard({ sectores, cuerpos, especialidades, ccaa, provincias }: 
                 const r = await crearAnuncioYRedirigir({
                   cuerpo_id: state.cuerpo_id!,
                   especialidad_id: state.especialidad_id,
+                  servicio_salud_codigo: state.servicio_salud_codigo,
                   municipio_actual_codigo: state.municipio_actual_codigo!,
                   fecha_toma_posesion_definitiva: state.fecha_toma_posesion_definitiva!,
                   anyos_servicio_totales: state.anyos_servicio_totales!,
@@ -354,33 +376,86 @@ function Paso1Sector({
 }
 
 // ----------------------------------------------------------------------
-// Paso 2 — Cuerpo
+// Paso 2 — Cuerpo (+ Servicio de Salud si SNS)
 // ----------------------------------------------------------------------
 function Paso2Cuerpo({
-  cuerpos, valor, onChange, onAtras, onSiguiente,
+  cuerpos,
+  valor,
+  servicios,
+  servicioElegido,
+  esSns,
+  onChange,
+  onChangeServicio,
+  onAtras,
+  onSiguiente,
 }: {
-  cuerpos: CuerpoRow[]; valor: string | null;
-  onChange: (v: string) => void; onAtras: () => void; onSiguiente: () => void;
+  cuerpos: CuerpoRow[];
+  valor: string | null;
+  servicios: ServicioSaludRow[];
+  servicioElegido: string | null;
+  esSns: boolean;
+  onChange: (v: string) => void;
+  onChangeServicio: (v: string | null) => void;
+  onAtras: () => void;
+  onSiguiente: () => void;
 }) {
   const ordenados = useMemo(
     () => [...cuerpos].sort((a, b) => (a.codigo_oficial ?? "").localeCompare(b.codigo_oficial ?? "")),
     [cuerpos],
   );
+  const ordenServicios = useMemo(
+    () => [...servicios].sort((a, b) => a.nombre_corto.localeCompare(b.nombre_corto, "es")),
+    [servicios],
+  );
+
+  const habilitado = !!valor && (!esSns || !!servicioElegido);
+
   return (
-    <PasoLayout titulo="¿A qué cuerpo perteneces?">
+    <PasoLayout titulo={esSns ? "¿En qué categoría y servicio trabajas?" : "¿A qué cuerpo perteneces?"}>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        {esSns ? "Categoría profesional" : "Cuerpo"}
+      </label>
       <select
         value={valor ?? ""}
         onChange={(e) => onChange(e.target.value)}
         className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
       >
-        <option value="">— Selecciona tu cuerpo —</option>
+        <option value="">
+          — Selecciona tu {esSns ? "categoría" : "cuerpo"} —
+        </option>
         {ordenados.map((c) => (
           <option key={c.id} value={c.id}>
             {c.codigo_oficial ? `${c.codigo_oficial} · ` : ""}{c.denominacion}{c.subgrupo ? ` · ${c.subgrupo}` : ""}
           </option>
         ))}
       </select>
-      <NavBotones atras={onAtras} siguienteHabilitado={!!valor} onSiguiente={onSiguiente} />
+
+      {esSns && (
+        <div className="mt-5">
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Servicio de Salud (organismo empleador)
+          </label>
+          <select
+            value={servicioElegido ?? ""}
+            onChange={(e) => onChangeServicio(e.target.value || null)}
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+          >
+            <option value="">— Selecciona tu Servicio de Salud —</option>
+            {ordenServicios.map((s) => (
+              <option key={s.codigo} value={s.codigo}>
+                {s.nombre_corto} · {s.nombre_oficial}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-xs text-slate-500">
+            En sanidad las permutas son siempre <strong>dentro del mismo
+            Servicio de Salud</strong>. Solo cruzaremos tu anuncio con otros
+            del mismo organismo.
+          </p>
+        </div>
+      )}
+
+      <NavBotones atras={onAtras} siguienteHabilitado={habilitado} onSiguiente={onSiguiente} />
     </PasoLayout>
   );
 }

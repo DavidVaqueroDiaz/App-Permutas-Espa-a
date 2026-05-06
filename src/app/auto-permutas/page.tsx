@@ -5,6 +5,7 @@ import type {
   CuerpoRow,
   EspecialidadRow,
   SectorRow,
+  ServicioSaludRow,
 } from "@/app/anuncios/nuevo/types";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default async function AutoPermutasPage() {
     especialidadesRes,
     ccaaRes,
     provinciasRes,
+    serviciosSaludRes,
   ] = await Promise.all([
     supabase
       .from("sectores")
@@ -40,6 +42,10 @@ export default async function AutoPermutasPage() {
     // CCAA y provincias para el desplegable del mapa visual.
     supabase.from("ccaa").select("codigo_ine, nombre").order("nombre"),
     supabase.from("provincias").select("codigo_ine, ccaa_codigo").order("codigo_ine"),
+    supabase
+      .from("servicios_salud")
+      .select("codigo, nombre_corto, nombre_oficial, ccaa_codigo")
+      .order("nombre_corto"),
   ]);
 
   // Municipios CON coordenadas — paginados porque Supabase corta a
@@ -96,6 +102,7 @@ export default async function AutoPermutasPage() {
         sectores={(sectoresRes.data ?? []) as SectorRow[]}
         cuerpos={(cuerposRes.data ?? []) as CuerpoRow[]}
         especialidades={(especialidadesRes.data ?? []) as EspecialidadRow[]}
+        serviciosSalud={(serviciosSaludRes.data ?? []) as ServicioSaludRow[]}
         municipios={municipios}
         ccaa={(ccaaRes.data ?? []) as { codigo_ine: string; nombre: string }[]}
         provincias={
