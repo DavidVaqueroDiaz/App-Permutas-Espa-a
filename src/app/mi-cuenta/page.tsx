@@ -22,6 +22,7 @@ type SearchParams = Promise<{
   actualizado?: string;
   eliminado?: string;
   bienvenido?: string;
+  permutado?: string;
 }>;
 
 export default async function MiCuentaPage({
@@ -35,7 +36,8 @@ export default async function MiCuentaPage({
     redirect("/login");
   }
 
-  const { creado, actualizado, eliminado, bienvenido } = await searchParams;
+  const { creado, actualizado, eliminado, bienvenido, permutado } =
+    await searchParams;
 
   const [perfilRes, anunciosRes, noLeidosRes, conteoCadenas] = await Promise.all([
     supabase
@@ -130,6 +132,26 @@ export default async function MiCuentaPage({
       {eliminado === "1" && (
         <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           Anuncio eliminado.
+        </div>
+      )}
+      {permutado === "1" && (
+        <div className="mt-6 rounded-xl2 border-2 border-brand bg-brand-bg p-5 shadow-card-hover">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
+            🎉 ¡Enhorabuena!
+          </p>
+          <h2 className="mt-1 font-head text-xl font-semibold text-brand">
+            Permuta cerrada
+          </h2>
+          <p className="mt-2 text-sm text-brand-text">
+            Tu anuncio ya no aparece en cadenas ni búsquedas.
+            <strong> Recuérdale a la otra persona</strong> de la cadena que
+            también marque el suyo como cerrado, así nadie verá cadenas
+            falsas.
+          </p>
+          <p className="mt-3 text-xs text-brand-text/80">
+            Gracias por confirmarlo en PermutaES — nos ayuda a mostrar
+            estadísticas reales de éxito a otros funcionarios.
+          </p>
         </div>
       )}
 

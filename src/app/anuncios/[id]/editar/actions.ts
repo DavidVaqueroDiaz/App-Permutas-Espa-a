@@ -138,6 +138,60 @@ export async function eliminarAnuncio(id: string) {
   return { ok: true as const };
 }
 
+/**
+ * Marca el anuncio como "permuta conseguida".
+ *
+ * - Cambia estado a 'permutado' y registra `permutado_el = now()`.
+ * - Solo se permite si el anuncio actual estaba 'activo' (no se puede
+ *   "reabrir" un anuncio ya cerrado o eliminado por esta via).
+ * - Una vez permutado, el matcher (`detectarCadenas`) deja de incluirlo
+ *   en cadenas porque filtra por `estado = 'activo'`.
+ *
+ * Es responsabilidad del usuario marcarlo cuando el trato esta cerrado;
+ * la app no detecta cierres automaticamente.
+ */
+export async function marcarPermutaConseguida(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, mensaje: "No autenticado." };
+
+  // Verifica que es del usuario y esta en estado activo.
+  const { data: existing, error: errFetch } = await supabase
+    .from("anuncios")
+    .select("id, usuario_id, estado")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (errFetch || !existing) {
+    return { ok: false as const, mensaje: "Anuncio no encontrado." };
+  }
+  if (existing.usuario_id !== user.id) {
+    return { ok: false as const, mensaje: "Este anuncio no es tuyo." };
+  }
+  if (existing.estado !== "activo") {
+    return {
+      ok: false as const,
+      mensaje: `El anuncio esta en estado "${existing.estado}", no se puede marcar como permutado.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("anuncios")
+    .update({
+      estado: "permutado",
+      permutado_el: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("usuario_id", user.id);
+
+  if (error) return { ok: false as const, mensaje: error.message };
+
+  revalidatePath("/mi-cuenta");
+  revalidatePath("/anuncios");
+  revalidatePath("/auto-permutas");
+  return { ok: true as const };
+}
+
 // Vuelve a expandir los atajos guardados a la lista plana de municipios.
 // Usado por la página de edición para precargar el estado actual.
 export async function expandirAtajosDeAnuncio(

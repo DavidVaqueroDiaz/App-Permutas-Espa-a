@@ -25,12 +25,29 @@ async function getSectores(): Promise<Sector[]> {
   return data ?? [];
 }
 
+type PermutasContador = { total: number; ultimos_30_dias: number };
+
+async function getPermutasConseguidas(): Promise<PermutasContador> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("contar_permutas_conseguidas")
+    .single();
+  if (error || !data) return { total: 0, ultimos_30_dias: 0 };
+  const row = data as { total: number; ultimos_30_dias: number };
+  return {
+    total: Number(row.total) || 0,
+    ultimos_30_dias: Number(row.ultimos_30_dias) || 0,
+  };
+}
+
 export default async function Home() {
-  const [sectores, conteos, sectoresOpciones] = await Promise.all([
-    getSectores(),
-    obtenerConteosPorCcaa(),
-    obtenerSectoresConAnuncios(),
-  ]);
+  const [sectores, conteos, sectoresOpciones, permutasConseguidas] =
+    await Promise.all([
+      getSectores(),
+      obtenerConteosPorCcaa(),
+      obtenerSectoresConAnuncios(),
+      getPermutasConseguidas(),
+    ]);
 
   const totalAnuncios = Object.values(conteos).reduce((a, b) => a + b, 0);
 
@@ -78,6 +95,28 @@ export default async function Home() {
             o contactar con otros participantes.
           </p>
         </section>
+
+        {/* Prueba social: solo se muestra si ya ha habido permutas reales */}
+        {permutasConseguidas.total > 0 && (
+          <div className="mt-6 flex items-center justify-between gap-4 rounded-xl2 border border-brand-mint/40 bg-white p-4 shadow-card">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
+                🎉 Permutas cerradas en PermutaES
+              </p>
+              <p className="mt-0.5 font-head text-2xl font-semibold text-brand">
+                {permutasConseguidas.total}
+                {permutasConseguidas.ultimos_30_dias > 0 && (
+                  <span className="ml-2 text-sm font-normal text-slate-600">
+                    ({permutasConseguidas.ultimos_30_dias} en los últimos 30 días)
+                  </span>
+                )}
+              </p>
+            </div>
+            <p className="hidden text-xs text-slate-500 sm:block">
+              Funcionarios que ya<br />consiguieron su plaza<br />gracias a la plataforma.
+            </p>
+          </div>
+        )}
 
         {/* Mapa secundario, exploración por CCAA */}
         <h2 className="mt-12 font-head text-xl font-semibold text-brand">

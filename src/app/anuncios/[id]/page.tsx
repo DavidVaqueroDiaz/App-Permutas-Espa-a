@@ -184,21 +184,33 @@ export default async function AnuncioDetallePage({
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span
               className={
-                a.estado === "activo"
-                  ? "rounded-full bg-brand-bg px-2 py-0.5 text-brand-text"
-                  : "rounded-full bg-slate-200 px-2 py-0.5 text-slate-700"
+                a.estado === "permutado"
+                  ? "rounded-full bg-brand px-2 py-0.5 font-medium text-white"
+                  : a.estado === "activo"
+                    ? "rounded-full bg-brand-bg px-2 py-0.5 text-brand-text"
+                    : "rounded-full bg-slate-200 px-2 py-0.5 text-slate-700"
               }
             >
-              {a.estado}
+              {a.estado === "permutado" ? "🎉 permuta cerrada" : a.estado}
             </span>
             <span className="text-slate-500">
               Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
             </span>
-            <span className="text-slate-500">
-              · Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
-            </span>
+            {a.estado === "activo" && (
+              <span className="text-slate-500">
+                · Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
+              </span>
+            )}
           </div>
         </header>
+
+        {a.estado === "permutado" && (
+          <div className="mt-4 rounded-md border border-brand-mint/40 bg-brand-bg p-3 text-sm text-brand-text">
+            <strong>Esta permuta ya está cerrada.</strong>{" "}
+            {a.alias_publico} consiguió la plaza. Este anuncio queda como
+            archivo histórico — no se puede contactar.
+          </div>
+        )}
 
         <section className="mt-5 grid gap-4 md:grid-cols-2">
           <Bloque label="Plaza actual">
@@ -310,12 +322,23 @@ export default async function AnuncioDetallePage({
 
         <footer className="mt-6 border-t border-slate-100 pt-5">
           {esMio ? (
-            <a
-              href={`/anuncios/${a.id}/editar`}
-              className="inline-flex items-center gap-1 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
-            >
-              Editar mi anuncio →
-            </a>
+            a.estado === "permutado" ? (
+              <p className="text-sm text-brand-text">
+                Tu anuncio está cerrado. Si fue un error y quieres volver a
+                publicarlo, créalo de nuevo.
+              </p>
+            ) : (
+              <a
+                href={`/anuncios/${a.id}/editar`}
+                className="inline-flex items-center gap-1 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+              >
+                Editar mi anuncio →
+              </a>
+            )
+          ) : a.estado !== "activo" ? (
+            <p className="text-sm text-slate-600">
+              Este anuncio ya no está activo, no se puede contactar.
+            </p>
           ) : !user ? (
             <div className="space-y-2">
               <p className="text-sm text-slate-700">
