@@ -16,9 +16,14 @@ export async function Header() {
   // Contador de conversaciones con mensajes nuevos para el usuario.
   // Solo lo consultamos si hay sesión iniciada.
   let noLeidos = 0;
+  let esAdmin = false;
   if (user) {
-    const { data } = await supabase.rpc("contar_conversaciones_con_no_leidos");
-    noLeidos = (data as number) ?? 0;
+    const [noLeidosRes, adminRes] = await Promise.all([
+      supabase.rpc("contar_conversaciones_con_no_leidos"),
+      supabase.rpc("es_admin_actual"),
+    ]);
+    noLeidos = (noLeidosRes.data as number) ?? 0;
+    esAdmin = adminRes.data === true;
   }
 
   return (
@@ -88,6 +93,15 @@ export async function Header() {
               >
                 Mi cuenta
               </a>
+              {esAdmin && (
+                <a
+                  href="/admin"
+                  className="rounded-full bg-brand-mint/20 px-3 py-1 text-xs font-medium text-white ring-1 ring-brand-mint/40 hover:bg-brand-mint/30"
+                  title="Panel de administración"
+                >
+                  Admin
+                </a>
+              )}
               <form action="/logout" method="POST">
                 <button
                   type="submit"
