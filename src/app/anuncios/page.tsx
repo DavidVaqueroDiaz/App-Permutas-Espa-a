@@ -15,7 +15,10 @@ type SearchParams = Promise<{
   especialidad?: string;
   municipio?: string;
   q?: string;
+  page?: string;
 }>;
+
+const PAGE_SIZE = 25;
 
 type AtajoLegible =
   | { tipo: "ccaa"; label: string }
@@ -53,6 +56,8 @@ export default async function AnunciosPage({
   const especialidadFiltro = params.especialidad ?? "";
   const municipioFiltro = params.municipio ?? "";
   const qFiltro = (params.q ?? "").trim();
+  const pageActual = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+  const offset = (pageActual - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
 
@@ -111,6 +116,9 @@ export default async function AnunciosPage({
       return q;
     })(),
     (async () => {
+      // count: "exact" devuelve también el total de filas que cumplen
+      // el filtro (no solo las del rango). Lo necesitamos para pintar
+      // los controles de paginación.
       let q = supabase
         .from("anuncios")
         .select(
@@ -120,10 +128,11 @@ export default async function AnunciosPage({
            municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre)),
            anuncio_plazas_deseadas(count),
            anuncio_atajos(tipo, valor)`,
+          { count: "exact" },
         )
         .eq("estado", "activo")
         .order("creado_el", { ascending: false })
-        .limit(50);
+        .range(offset, offset + PAGE_SIZE - 1);
       if (sectorFiltro) q = q.eq("sector_codigo", sectorFiltro);
       if (ccaaFiltro) q = q.eq("ccaa_codigo", ccaaFiltro);
       if (cuerpoFiltro) q = q.eq("cuerpo_id", cuerpoFiltro);
@@ -136,6 +145,9 @@ export default async function AnunciosPage({
       return q;
     })(),
   ]);
+
+  const totalAnunciosFiltrados = anunciosRes.count ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(totalAnunciosFiltrados / PAGE_SIZE));
 
   const sectoresOpciones = (sectoresFiltroRes.data ?? []).map((s) => ({
     value: s.codigo as string,
@@ -296,8 +308,9 @@ export default async function AnunciosPage({
           </p>
         ) : (
           <p>
-            {anuncios.length}{" "}
-            {anuncios.length === 1 ? "anuncio encontrado" : "anuncios encontrados"}
+            <strong>{totalAnunciosFiltrados}</strong>{" "}
+            {totalAnunciosFiltrados === 1 ? "anuncio encontrado" : "anuncios encontrados"}
+            {totalPaginas > 1 && ` · página ${pageActual} de ${totalPaginas}`}
             {qFiltro && ` · texto: "${qFiltro}"`}
             {sectorFiltro && ` · sector: ${sectorPorCodigo.get(sectorFiltro) ?? sectorFiltro}`}
             {ccaaFiltro && ` · ${ccaaPorCodigo.get(ccaaFiltro) ?? ccaaFiltro}`}
@@ -386,11 +399,114 @@ export default async function AnunciosPage({
         ))}
       </ul>
 
-      {anuncios.length === 50 && (
-        <p className="mt-6 text-center text-xs text-slate-500">
-          Mostrando los 50 más recientes. Acota con los filtros para ver el resto.
-        </p>
+      {totalPaginas > 1 && (
+        <Paginacion
+          paginaActual={pageActual}
+          totalPaginas={totalPaginas}
+          searchParams={params}
+        />
       )}
     </main>
   );
+}
+
+function Paginacion({
+  paginaActual,
+  totalPaginas,
+  searchParams,
+}: {
+  paginaActual: number;
+  totalPaginas: number;
+  searchParams: Record<string, string | undefined>;
+}) {
+  function urlPara(p: number): string {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams)) {
+      if (v && k !== "page") qs.set(k, v);
+    }
+    if (p > 1) qs.set("page", String(p));
+    const s = qs.toString();
+    return s ? `/anuncios?${s}` : "/anuncios";
+  }
+
+  // Construye una lista compacta tipo: 1 ... 4 5 [6] 7 8 ... 20
+  const paginas = paginasVisibles(paginaActual, totalPaginas);
+
+  return (
+    <nav className="mt-6 flex items-center justify-center gap-1" aria-label="Paginación">
+      {paginaActual > 1 ? (
+        <a
+          href={urlPara(paginaActual - 1)}
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          ← Anterior
+        </a>
+      ) : (
+        <span className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-300">
+          ← Anterior
+        </span>
+      )}
+
+      <div className="flex items-center gap-1 px-2">
+        {paginas.map((p, i) =>
+          p === "..." ? (
+            <span key={`gap-${i}`} className="px-1 text-xs text-slate-400">
+              …
+            </span>
+          ) : p === paginaActual ? (
+            <span
+              key={p}
+              className="inline-flex h-8 min-w-[32px] items-center justify-center rounded-md bg-brand px-2 text-xs font-semibold text-white"
+              aria-current="page"
+            >
+              {p}
+            </span>
+          ) : (
+            <a
+              key={p}
+              href={urlPara(p)}
+              className="inline-flex h-8 min-w-[32px] items-center justify-center rounded-md border border-slate-200 px-2 text-xs text-slate-700 hover:border-brand-light hover:text-brand"
+            >
+              {p}
+            </a>
+          ),
+        )}
+      </div>
+
+      {paginaActual < totalPaginas ? (
+        <a
+          href={urlPara(paginaActual + 1)}
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Siguiente →
+        </a>
+      ) : (
+        <span className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-300">
+          Siguiente →
+        </span>
+      )}
+    </nav>
+  );
+}
+
+/**
+ * Devuelve la lista de números de página a mostrar, comprimiendo con
+ * "..." los rangos lejanos para no saturar la UI cuando hay muchas
+ * páginas. Patrón típico: 1 ... 4 5 [6] 7 8 ... 20.
+ */
+function paginasVisibles(
+  actual: number,
+  total: number,
+): Array<number | "...">{
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const items: Array<number | "..."> = [1];
+  const desde = Math.max(2, actual - 2);
+  const hasta = Math.min(total - 1, actual + 2);
+  if (desde > 2) items.push("...");
+  for (let i = desde; i <= hasta; i++) items.push(i);
+  if (hasta < total - 1) items.push("...");
+  items.push(total);
+  return items;
 }
