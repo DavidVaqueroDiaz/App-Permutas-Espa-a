@@ -52,7 +52,7 @@ export default async function Home() {
   const totalAnuncios = Object.values(conteos).reduce((a, b) => a + b, 0);
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-6 py-12">
+    <main className="flex min-h-screen flex-col items-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-3xl">
         {/* Hero — la PRIMERA cosa que ve el usuario al entrar.
             Empuja al buscador inteligente (auto-permutas), que es la

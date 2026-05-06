@@ -159,7 +159,7 @@ export default async function AnuncioDetallePage({
   const nombreMuni = new Map((muniRes.data ?? []).map((r) => [r.codigo_ine, r.nombre]));
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
       <a
         href="/anuncios"
         className="mb-4 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-brand"

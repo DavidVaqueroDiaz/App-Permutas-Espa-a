@@ -141,7 +141,7 @@ export default async function AdminPage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-6">
         <p className="text-xs uppercase tracking-wide text-slate-500">
           Solo administradores

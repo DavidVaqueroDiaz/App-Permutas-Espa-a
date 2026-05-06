@@ -212,7 +212,7 @@ const SCHEMA_FAQ = {
 
 export default function PreguntasFrecuentesPage() {
   return (
-    <main className="prose prose-slate mx-auto w-full max-w-3xl flex-1 px-6 py-12">
+    <main className="prose prose-slate mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
       <JsonLd data={SCHEMA_FAQ} />
       <p className="text-xs uppercase tracking-wide text-slate-500">
         Preguntas frecuentes

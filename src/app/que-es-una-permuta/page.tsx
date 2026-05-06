@@ -48,7 +48,7 @@ const SCHEMA_ARTICULO = {
 
 export default function QueEsUnaPermutaPage() {
   return (
-    <main className="prose prose-slate mx-auto w-full max-w-3xl flex-1 px-6 py-12">
+    <main className="prose prose-slate mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
       <JsonLd data={SCHEMA_ARTICULO} />
       <p className="text-xs uppercase tracking-wide text-slate-500">Guía</p>
       <h1>¿Qué es una permuta de plaza entre funcionarios?</h1>

@@ -37,7 +37,7 @@ export default async function MensajesPage() {
   const conversaciones = await listarMisConversaciones();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-6">
         <h1 className="font-head text-3xl font-semibold tracking-tight text-brand">
           Mensajes
