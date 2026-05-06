@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
 
 // ----------------------------------------------------------------------
 // Búsqueda de municipios para autocompletado
@@ -237,6 +238,12 @@ export async function crearAnuncio(
       })),
     );
   }
+
+  // 4) Notificación de cadenas nuevas: lanzamos el matcher con este
+  // anuncio como origen y emitimos email a los otros participantes
+  // de las cadenas detectadas (deduplicado contra cadenas_notificadas).
+  // Best-effort: si falla no rompe la creación.
+  await notificarCadenasNuevas(anuncio_id);
 
   return { ok: true, anuncio_id };
 }

@@ -48,6 +48,93 @@ function envoltura({
 </html>`;
 }
 
+export function plantillaCadenaNueva(opts: {
+  longitud: 2 | 3 | 4;
+  recorrido: string[]; // ["Sevilla", "Madrid", "Vigo", "Sevilla"] (cierra ciclo)
+  aliasOtros: string[]; // alias de los otros participantes
+  cuerpoTexto: string; // "597 — Maestros"
+}): { subject: string; html: string; text: string } {
+  const enlace = `${BASE_URL}/auto-permutas`;
+  const tipoLabel =
+    opts.longitud === 2
+      ? "Permuta directa"
+      : opts.longitud === 3
+        ? "Permuta a 3"
+        : "Permuta a 4";
+
+  const recorridoSeguro = opts.recorrido
+    .map((m) =>
+      m
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;"),
+    )
+    .join(" → ");
+  const aliasSeguro = opts.aliasOtros
+    .map((a) =>
+      a
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;"),
+    )
+    .join(", ");
+  const cuerpoSeguro = opts.cuerpoTexto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const html = envoltura({
+    titulo: tipoLabel + " posible",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        🎉 <strong style="color:#0d4a3a;">¡Hay una cadena posible que te incluye!</strong>
+      </p>
+      <p style="margin:0 0 16px 0;">
+        Acabamos de detectar una <strong>${tipoLabel.toLowerCase()}</strong>
+        entre tu anuncio y ${opts.aliasOtros.length === 1 ? "el de" : "los de"}
+        <strong>${aliasSeguro}</strong>, en
+        <strong>${cuerpoSeguro}</strong>.
+      </p>
+      <div style="margin:0 0 22px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+        <p style="margin:0;font-size:11px;font-weight:600;color:#0f6e56;text-transform:uppercase;letter-spacing:0.5px;">
+          Recorrido propuesto
+        </p>
+        <p style="margin:6px 0 0 0;font-size:15px;color:#0d4a3a;font-weight:600;">
+          ${recorridoSeguro}
+        </p>
+      </div>
+      <p style="margin:0 0 22px 0;">
+        <a href="${enlace}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
+          Ver detalle de la cadena →
+        </a>
+      </p>
+      <p style="margin:0;color:#64748b;font-size:12.5px;">
+        Recuerda que las reglas legales personales (jubilación,
+        antigüedad, carencia entre permutas, ≥2 años en destino) las
+        debes verificar tú con tus datos antes de tramitar. PermutaES
+        cruza únicamente los criterios profesionales y geográficos.
+      </p>
+      <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
+        Si el botón no funciona: <span style="color:#0f6e56;">${enlace}</span>
+      </p>
+    `,
+  });
+
+  const text =
+    `🎉 ¡Hay una ${tipoLabel.toLowerCase()} posible que te incluye!\n\n` +
+    `Recorrido: ${opts.recorrido.join(" → ")}\n` +
+    `Cuerpo: ${opts.cuerpoTexto}\n` +
+    `Otros participantes: ${opts.aliasOtros.join(", ")}\n\n` +
+    `Ver detalle: ${enlace}\n\n` +
+    `Recuerda verificar las reglas legales personales antes de tramitar.\n`;
+
+  return {
+    subject: `🎉 ${tipoLabel} posible para ti en PermutaES`,
+    html,
+    text,
+  };
+}
+
 export function plantillaMensajeNuevo(opts: {
   remitenteAlias: string;
   fragmentoMensaje: string;

@@ -7,6 +7,7 @@ import {
   expandirAtajos,
   type AtajoEntrada,
 } from "@/app/anuncios/nuevo/actions";
+import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
 
 export type ActualizarAnuncioInput = {
   fecha_toma_posesion_definitiva: string;
@@ -99,6 +100,12 @@ export async function actualizarAnuncio(
       })),
     );
   }
+
+  // 4) Notificación de cadenas nuevas (best-effort). Como editar puede
+  // descubrir cadenas distintas a las que había con la versión anterior,
+  // disparamos también aquí. La RPC `tomar_email_para_notificar_cadena`
+  // deduplica por huella, así que cadenas ya notificadas no se reenvían.
+  await notificarCadenasNuevas(id);
 
   revalidatePath("/mi-cuenta");
   revalidatePath("/anuncios");
