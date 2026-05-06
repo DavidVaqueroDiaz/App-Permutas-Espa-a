@@ -7,7 +7,10 @@ import {
   expandirAtajos,
   type AtajoEntrada,
 } from "@/app/anuncios/nuevo/actions";
-import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
+import {
+  notificarCadenasNuevas,
+  notificarCadenaCerradaPorPermuta,
+} from "@/lib/cadenas/notificar";
 
 export type ActualizarAnuncioInput = {
   fecha_toma_posesion_definitiva: string;
@@ -185,6 +188,11 @@ export async function marcarPermutaConseguida(id: string) {
     .eq("usuario_id", user.id);
 
   if (error) return { ok: false as const, mensaje: error.message };
+
+  // Best-effort: avisar a los otros participantes de cadenas que ya
+  // no son viables. Si falla, no rompe la accion (el cierre ya se
+  // ha aplicado en BD).
+  await notificarCadenaCerradaPorPermuta(id);
 
   revalidatePath("/mi-cuenta");
   revalidatePath("/anuncios");

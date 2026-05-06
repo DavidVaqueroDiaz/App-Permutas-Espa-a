@@ -135,6 +135,107 @@ export function plantillaCadenaNueva(opts: {
   };
 }
 
+/**
+ * Email enviado a los OTROS participantes de cadenas en las que estaba
+ * un anuncio que acaba de cerrarse como "permuta conseguida".
+ *
+ * El objetivo es cerrar el loop emocionalmente: si Carlos lleva días
+ * viendo "1 cadena posible incluye tu anuncio" y de pronto desaparece,
+ * sin este email tendría que adivinar por qué. Le decimos:
+ *
+ *   "La persona X cerró su permuta. Esa cadena ya no es viable, pero
+ *    sigues teniendo otras N cadenas activas."
+ */
+export function plantillaCadenaCerradaPorOtro(opts: {
+  aliasQueCerro: string;
+  /** Recorridos (humano-legibles) de las cadenas afectadas. */
+  recorridosAfectados: string[];
+  cuerpoTexto: string;
+  /** Cadenas que el destinatario sigue teniendo abiertas, post cierre. */
+  cadenasRestantes: number;
+}): { subject: string; html: string; text: string } {
+  const enlace = `${BASE_URL}/auto-permutas`;
+  const aliasSeguro = opts.aliasQueCerro
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const cuerpoSeguro = opts.cuerpoTexto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const recorridosLista = opts.recorridosAfectados
+    .map(
+      (r) =>
+        `<li style="margin:0 0 4px 0;">${r
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")}</li>`,
+    )
+    .join("");
+  const numeroAfectadas = opts.recorridosAfectados.length;
+
+  const html = envoltura({
+    titulo: "Cadena cerrada",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        <strong style="color:#0d4a3a;">${aliasSeguro}</strong> ha cerrado su permuta.
+      </p>
+      <p style="margin:0 0 16px 0;">
+        Estabais en
+        <strong>${numeroAfectadas === 1 ? "una cadena posible" : `${numeroAfectadas} cadenas posibles`}</strong>
+        en <strong>${cuerpoSeguro}</strong>. Como ya consiguió su plaza,
+        ${numeroAfectadas === 1 ? "esa cadena ya no es viable" : "esas cadenas ya no son viables"}:
+      </p>
+      <ul style="margin:0 0 18px 18px;padding:0;color:#374151;font-size:13.5px;">
+        ${recorridosLista}
+      </ul>
+      ${
+        opts.cadenasRestantes > 0
+          ? `<div style="margin:0 0 22px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+              <p style="margin:0;color:#0d4a3a;">
+                <strong>Buenas noticias:</strong> sigues teniendo
+                <strong>${opts.cadenasRestantes}</strong>
+                ${opts.cadenasRestantes === 1 ? "cadena posible" : "cadenas posibles"}
+                con tu anuncio.
+              </p>
+            </div>`
+          : `<p style="margin:0 0 22px 0;color:#64748b;">
+              Por ahora no tienes otras cadenas posibles abiertas. En cuanto
+              haya un anuncio compatible nuevo te avisaremos.
+            </p>`
+      }
+      <p style="margin:0 0 22px 0;">
+        <a href="${enlace}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
+          Ver mis cadenas actuales →
+        </a>
+      </p>
+      <p style="margin:0;color:#94a3b8;font-size:12px;">
+        Si el botón no funciona: <span style="color:#0f6e56;">${enlace}</span>
+      </p>
+    `,
+  });
+
+  const text =
+    `${opts.aliasQueCerro} ha cerrado su permuta.\n\n` +
+    `Estabais en ${numeroAfectadas === 1 ? "una cadena posible" : `${numeroAfectadas} cadenas posibles`} en ${opts.cuerpoTexto}, ` +
+    `${numeroAfectadas === 1 ? "ya no es viable" : "ya no son viables"}:\n\n` +
+    opts.recorridosAfectados.map((r) => `  - ${r}`).join("\n") +
+    `\n\n` +
+    (opts.cadenasRestantes > 0
+      ? `Sigues teniendo ${opts.cadenasRestantes} cadena${opts.cadenasRestantes === 1 ? "" : "s"} posible${opts.cadenasRestantes === 1 ? "" : "s"} con tu anuncio.\n\n`
+      : `Por ahora no tienes otras cadenas posibles abiertas.\n\n`) +
+    `Ver mis cadenas: ${enlace}\n`;
+
+  return {
+    subject:
+      numeroAfectadas === 1
+        ? `Una cadena de PermutaES se ha cerrado`
+        : `${numeroAfectadas} cadenas de PermutaES se han cerrado`,
+    html,
+    text,
+  };
+}
+
 export function plantillaMensajeNuevo(opts: {
   remitenteAlias: string;
   fragmentoMensaje: string;
