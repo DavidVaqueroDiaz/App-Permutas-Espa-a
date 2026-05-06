@@ -43,7 +43,7 @@ export default async function Home() {
             alternativa de descubrimiento. */}
         <section className="rounded-xl2 border border-brand-mint/40 bg-brand-bg/50 p-6 shadow-card md:p-8">
           <div className="mb-3 inline-flex items-center rounded-full bg-warn-bg px-3 py-1 text-[11px] font-medium text-warn-text">
-            En construcción · Lanzamiento próximamente
+            Versión alfa · Datos iniciales de Galicia (docencia LOE)
           </div>
 
           <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
@@ -73,8 +73,9 @@ export default async function Home() {
           </div>
 
           <p className="mt-4 text-xs text-slate-500">
-            No necesitas registro para buscar — solo si quieres publicar tu
-            propio anuncio o contactar con otros participantes.
+            <strong>Buscar y ver anuncios</strong> ya funciona sin registro.
+            Solo necesitas crear cuenta para <strong>publicar tu anuncio</strong>{" "}
+            o contactar con otros participantes.
           </p>
         </section>
 
@@ -83,7 +84,14 @@ export default async function Home() {
           O explora los anuncios por comunidad autónoma
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Pulsa una CCAA para ver los anuncios publicados allí. {totalAnuncios > 0 ? `Hay ${totalAnuncios} anuncios activos en total.` : ""}
+          Pulsa una CCAA para ver los anuncios publicados allí.
+          {totalAnuncios > 0 && ` Hay ${totalAnuncios} anuncios activos en total.`}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          ℹ️ Los anuncios actuales vienen de la importación inicial de
+          PermutaDoc (mayoritariamente Galicia, docencia LOE). Cuando se
+          abra el registro a más usuarios, los anuncios crecerán por toda
+          España y todos los sectores cubiertos.
         </p>
         <div className="mt-4">
           <MapaHomeChoropleth

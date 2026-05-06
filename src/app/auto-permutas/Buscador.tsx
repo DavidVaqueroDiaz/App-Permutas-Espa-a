@@ -185,6 +185,14 @@ export function Buscador({
   const [buscando, startBuscar] = useTransition();
   const [tab, setTab] = useState<TipoTab>("todas");
 
+  // Limpiar el aviso "Faltan datos..." en cuanto el usuario cambia
+  // cualquier dato del perfil — así no queda colgado mientras se
+  // rellenan los campos uno a uno tras un primer click fallido.
+  useEffect(() => {
+    if (errorBusqueda) setErrorBusqueda(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cuerpoId, especialidadId, muniActual, munisObjetivo.length]);
+
   function buscar() {
     if (!cuerpoId || !muniActual || munisObjetivo.length === 0) {
       setErrorBusqueda(
@@ -261,7 +269,8 @@ export function Buscador({
             </select>
             {sectoresActivos.length < sectores.length && (
               <p className="mt-1 text-xs text-slate-500">
-                Otros sectores próximamente.
+                Versión alfa: empezamos por docencia LOE. Más sectores se
+                irán abriendo en beta.
               </p>
             )}
           </Field>
@@ -288,33 +297,46 @@ export function Buscador({
             </select>
           </Field>
 
-          {cuerpoId && especialidadesDelCuerpo.length > 0 && (
-            <Field label="Especialidad">
-              <select
-                value={especialidadId}
-                onChange={(e) => setEspecialidadId(e.target.value)}
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
-              >
-                <option value="">— Selecciona especialidad —</option>
-                {especialidadesDelCuerpo
-                  .slice()
-                  .sort((a, b) => (a.codigo_oficial ?? "").localeCompare(b.codigo_oficial ?? ""))
-                  .map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.codigo_oficial ? `${e.codigo_oficial} — ` : ""}
-                      {e.denominacion}
-                    </option>
-                  ))}
-              </select>
-            </Field>
-          )}
+          {/*
+            Especialidad SIEMPRE renderizada para evitar el "layout
+            shift" cuando el usuario elige un cuerpo. Cuando aún no hay
+            cuerpo, queda en disabled con un texto guía. Mismo alto que
+            cualquier otro select.
+          */}
+          <Field label="Especialidad">
+            <select
+              value={especialidadId}
+              onChange={(e) => setEspecialidadId(e.target.value)}
+              disabled={!cuerpoId || especialidadesDelCuerpo.length === 0}
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              {!cuerpoId ? (
+                <option value="">— Primero elige un cuerpo —</option>
+              ) : especialidadesDelCuerpo.length === 0 ? (
+                <option value="">— Este cuerpo no tiene especialidades —</option>
+              ) : (
+                <>
+                  <option value="">— Selecciona especialidad —</option>
+                  {especialidadesDelCuerpo
+                    .slice()
+                    .sort((a, b) => (a.codigo_oficial ?? "").localeCompare(b.codigo_oficial ?? ""))
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.codigo_oficial ? `${e.codigo_oficial} — ` : ""}
+                        {e.denominacion}
+                      </option>
+                    ))}
+                </>
+              )}
+            </select>
+          </Field>
 
           <Field label="Tu plaza actual">
             <Autocomplete
               seleccionado={muniActual}
               onSeleccionar={(m) => setMuniActual(m)}
               onLimpiar={() => setMuniActual(null)}
-              placeholder="Empieza a escribir..."
+              placeholder="Ej: Madrid, Vigo, Sevilla..."
               municipios={municipios}
             />
             <button
@@ -342,7 +364,7 @@ export function Buscador({
               seleccionado={null}
               onSeleccionar={(m) => añadirObjetivo(m)}
               onLimpiar={() => undefined}
-              placeholder="A dónde te gustaría ir..."
+              placeholder="Ej: Zaragoza, Calatayud, Daroca..."
               municipios={municipios}
               autoLimpiar
             />
@@ -446,8 +468,50 @@ export function Buscador({
             </div>
 
             {cadenasFiltradas.length === 0 ? (
-              <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm text-slate-600">
-                No hay cadenas en esta categoría.
+              <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
+                <p className="font-head text-base font-semibold text-slate-900">
+                  Aún no hay cadenas para esta búsqueda
+                </p>
+                <p className="mt-2 text-slate-600">
+                  Hemos analizado{" "}
+                  <strong>{totalAnalizados} anuncios</strong> compatibles con
+                  tu perfil profesional
+                  {munisObjetivo.length > 0 && (
+                    <>
+                      , dentro de{" "}
+                      <strong>{municiposEnRadio} municipios</strong> en {radio}{" "}
+                      km de tus localidades objetivo
+                    </>
+                  )}
+                  . Ninguno encaja en una cadena directa, a 3 o a 4.
+                </p>
+                <ul className="mt-4 space-y-2 text-slate-700">
+                  <li>
+                    💡 <strong>Amplía el radio</strong> a 60-100 km — quizás
+                    haya plazas cerca que no conocías.
+                  </li>
+                  <li>
+                    🗺{" "}
+                    <strong>Añade más localidades objetivo</strong> — cuantas
+                    más, más probabilidad de encajar en una cadena.
+                  </li>
+                  <li>
+                    📝{" "}
+                    <a
+                      href="/registro"
+                      className="font-medium text-brand-text hover:text-brand"
+                    >
+                      Publica tu propio anuncio
+                    </a>{" "}
+                    — te avisaremos por email cuando aparezca una cadena con
+                    tu perfil.
+                  </li>
+                </ul>
+                <p className="mt-4 text-xs text-slate-500">
+                  Estamos en alfa con datos iniciales (importación de
+                  PermutaDoc, principalmente Galicia). El catálogo crecerá
+                  conforme se publiquen anuncios reales.
+                </p>
               </div>
             ) : (
               <ul className="space-y-4">

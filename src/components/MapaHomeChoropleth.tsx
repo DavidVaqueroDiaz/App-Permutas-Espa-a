@@ -177,7 +177,7 @@ export function MapaHomeChoropleth({
     mapMain.addControl(
       new maplibregl.AttributionControl({
         compact: true,
-        customAttribution: "Datos: INE · Geometrías: Code for Germany",
+        customAttribution: "Datos: INE / CNIG · Geometrías: IGN España",
       }),
     );
 
