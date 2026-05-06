@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BotonContactarAnuncio } from "./BotonContactarAnuncio";
+import { BotonReportar } from "./BotonReportar";
 
 type AnuncioDetalle = {
   id: string;
@@ -368,6 +369,14 @@ export default async function AnuncioDetallePage({
             <BotonContactarAnuncio anuncioId={a.id} alias={a.alias_publico} />
           )}
         </footer>
+
+        {/* Reportar: solo visible si esta autenticado y NO es propio.
+            No mostramos el boton si el anuncio ya esta cerrado/inactivo. */}
+        {!esMio && a.estado === "activo" && user && (
+          <div className="mt-6 border-t border-slate-100 pt-4">
+            <BotonReportar anuncioId={a.id} />
+          </div>
+        )}
       </article>
     </main>
   );

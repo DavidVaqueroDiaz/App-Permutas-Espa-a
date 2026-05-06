@@ -36,3 +36,26 @@ export async function eliminarAnuncioAdmin(
   revalidatePath("/");
   return { ok: true };
 }
+
+/**
+ * Resuelve un reporte (admin). accion = 'eliminar' marca el anuncio
+ * como eliminado y cierra TODOS los reportes pendientes de ese anuncio.
+ * accion = 'ignorar' solo cierra este reporte.
+ */
+export async function resolverReporteAdmin(
+  reporteId: string,
+  accion: "eliminar" | "ignorar",
+): Promise<{ ok: true } | { ok: false; mensaje: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("resolver_reporte", {
+    reporte_id: reporteId,
+    accion,
+  });
+  if (error) return { ok: false, mensaje: error.message };
+  if (data !== true) {
+    return { ok: false, mensaje: "Reporte no encontrado o ya resuelto." };
+  }
+  revalidatePath("/admin");
+  revalidatePath("/anuncios");
+  return { ok: true };
+}

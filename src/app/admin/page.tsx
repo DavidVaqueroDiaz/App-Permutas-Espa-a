@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TablaAnuncios, type AnuncioAdminRow } from "./TablaAnuncios";
+import { TablaReportes, type ReporteAdminRow } from "./TablaReportes";
 
 export const metadata: Metadata = {
   title: "Panel de administración",
@@ -32,13 +33,22 @@ export default async function AdminPage({
   const { q = "", sector = "" } = await searchParams;
   const qTrim = q.trim();
 
-  // Estadísticas globales
-  const [totalAnunciosRes, totalUsersRes, totalConvsRes, totalMensajesRes] = await Promise.all([
+  // Estadísticas globales + reportes pendientes (los reportes los traemos
+  // por RPC porque la consulta hace varios JOINs y la RPC ya valida admin).
+  const [
+    totalAnunciosRes,
+    totalUsersRes,
+    totalConvsRes,
+    totalMensajesRes,
+    reportesRes,
+  ] = await Promise.all([
     supabase.from("anuncios").select("id", { count: "exact", head: true }),
     supabase.from("perfiles_usuario").select("id", { count: "exact", head: true }),
     supabase.from("conversaciones").select("id", { count: "exact", head: true }),
     supabase.from("mensajes").select("id", { count: "exact", head: true }),
+    supabase.rpc("listar_reportes_pendientes"),
   ]);
+  const reportes = (reportesRes.data ?? []) as ReporteAdminRow[];
 
   // Catálogo de sectores para el filtro
   const { data: sectoresData } = await supabase
@@ -145,12 +155,26 @@ export default async function AdminPage({
         </p>
       </header>
 
-      <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Anuncios" valor={totalAnunciosRes.count ?? 0} />
         <Stat label="Usuarios" valor={totalUsersRes.count ?? 0} />
         <Stat label="Conversaciones" valor={totalConvsRes.count ?? 0} />
         <Stat label="Mensajes" valor={totalMensajesRes.count ?? 0} />
+        <Stat
+          label="Reportes pendientes"
+          valor={reportes.length}
+          destacado={reportes.length > 0}
+        />
       </section>
+
+      {reportes.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
+            🚩 Reportes pendientes ({reportes.length})
+          </h2>
+          <TablaReportes reportes={reportes} />
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
@@ -170,11 +194,40 @@ export default async function AdminPage({
   );
 }
 
-function Stat({ label, valor }: { label: string; valor: number }) {
+function Stat({
+  label,
+  valor,
+  destacado,
+}: {
+  label: string;
+  valor: number;
+  destacado?: boolean;
+}) {
   return (
-    <div className="rounded-xl2 border border-slate-200 bg-white p-4 shadow-card">
-      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 font-head text-2xl font-semibold text-brand">{valor.toLocaleString("es-ES")}</p>
+    <div
+      className={
+        "rounded-xl2 border p-4 shadow-card " +
+        (destacado
+          ? "border-red-300 bg-red-50"
+          : "border-slate-200 bg-white")
+      }
+    >
+      <p
+        className={
+          "text-[11px] uppercase tracking-wide " +
+          (destacado ? "text-red-700" : "text-slate-500")
+        }
+      >
+        {label}
+      </p>
+      <p
+        className={
+          "mt-1 font-head text-2xl font-semibold " +
+          (destacado ? "text-red-700" : "text-brand")
+        }
+      >
+        {valor.toLocaleString("es-ES")}
+      </p>
     </div>
   );
 }
