@@ -392,9 +392,17 @@ export default async function AnunciosPage({
               </div>
             </div>
 
-            <p className="mt-3 text-xs text-slate-500">
-              Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
-            </p>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-xs text-slate-500">
+                Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
+              </p>
+              <a
+                href={`/anuncios/${a.id}`}
+                className="text-xs font-medium text-brand-text hover:text-brand"
+              >
+                Ver detalle →
+              </a>
+            </div>
           </li>
         ))}
       </ul>
