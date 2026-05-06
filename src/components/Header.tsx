@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { MensajesRealtime } from "./MensajesRealtime";
 
 /**
  * Cabecera global de la aplicación.
@@ -28,6 +29,9 @@ export async function Header() {
 
   return (
     <header className="bg-brand text-white">
+      {/* Listener Realtime global: refresca el badge cuando llega un
+          mensaje, estés donde estés. Solo se monta si hay sesión. */}
+      {user && <MensajesRealtime />}
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-3 py-3 md:gap-4 md:px-8 md:py-4">
         <a href="/" className="flex items-center gap-3 md:gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-mint/15 ring-1 ring-brand-mint/30">
