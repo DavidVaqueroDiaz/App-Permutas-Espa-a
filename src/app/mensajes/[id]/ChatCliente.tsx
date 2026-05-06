@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { enviarMensaje, type Mensaje } from "../actions";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Cliente del chat. Mantiene el listado de mensajes en estado local
- * (con scroll al final tras cada nuevo) y envía mensajes mediante la
- * server action `enviarMensaje`. Después del envío refresca la página
- * para que el server vuelva a leer y se vean los datos consistentes.
- *
- * En una sesión futura podemos engancharlo a Supabase Realtime para
- * recibir mensajes nuevos sin recargar.
+ * y envía mensajes mediante la server action `enviarMensaje` con
+ * optimistic UI. Para los mensajes que llegan del OTRO participante
+ * se suscribe a Supabase Realtime sobre la tabla `mensajes`,
+ * filtrando por `conversacion_id`, así aparecen en directo sin
+ * necesidad de recargar.
  */
 export function ChatCliente({
   conversacionId,
@@ -38,6 +38,54 @@ export function ChatCliente({
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [mensajes.length]);
+
+  // Realtime: suscribirse a inserts en la tabla `mensajes` filtrados
+  // por nuestra conversacion_id. RLS ya garantiza que sólo recibiremos
+  // eventos de mensajes que podemos leer; el filtro extra es una capa
+  // de optimización para no procesar mensajes de otras conversaciones
+  // del propio usuario.
+  useEffect(() => {
+    const supabase = createClient();
+    const canal = supabase
+      .channel(`mensajes:${conversacionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "mensajes",
+          filter: `conversacion_id=eq.${conversacionId}`,
+        },
+        (payload) => {
+          const nuevo = payload.new as Mensaje;
+          setMensajes((prev) => {
+            // Evitamos duplicados: el remitente ya tiene el mensaje
+            // como optimista (id "temp-...") o ya ha llegado por otra
+            // vía. Si el id real ya está, no añadimos. Si hay un
+            // optimista con el mismo contenido y remitente, lo
+            // sustituimos por el real.
+            if (prev.some((m) => m.id === nuevo.id)) return prev;
+            const idxOptimista = prev.findIndex(
+              (m) =>
+                m.id.startsWith("temp-") &&
+                m.remitente_id === nuevo.remitente_id &&
+                m.contenido === nuevo.contenido,
+            );
+            if (idxOptimista >= 0) {
+              const copia = prev.slice();
+              copia[idxOptimista] = nuevo;
+              return copia;
+            }
+            return [...prev, nuevo];
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [conversacionId]);
 
   function enviar() {
     const texto = borrador.trim();
