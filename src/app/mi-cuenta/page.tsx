@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EditarPerfilForm } from "./EditarPerfilForm";
 import { CambiarContrasenaForm } from "./CambiarContrasenaForm";
 import { MiAnuncioCard, type AnuncioCardData } from "./MiAnuncioCard";
+import { PrivacidadSeccion } from "./PrivacidadSeccion";
 import { contarCadenasParaMisAnuncios } from "./actions";
 
 export const metadata: Metadata = {
@@ -345,6 +346,15 @@ export default async function MiCuentaPage({
         </p>
         <div className="mt-4 rounded-xl2 border border-slate-200 bg-white shadow-card p-5">
           <CambiarContrasenaForm />
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Privacidad y mis datos
+        </h2>
+        <div className="mt-4">
+          <PrivacidadSeccion />
         </div>
       </section>
 

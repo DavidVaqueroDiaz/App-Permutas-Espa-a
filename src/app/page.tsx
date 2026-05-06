@@ -40,13 +40,21 @@ async function getPermutasConseguidas(): Promise<PermutasContador> {
   };
 }
 
-export default async function Home() {
-  const [sectores, conteos, sectoresOpciones, permutasConseguidas] =
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ cuenta_eliminada?: string }>;
+}) {
+  const [sectores, conteos, sectoresOpciones, permutasConseguidas, sp] =
     await Promise.all([
       getSectores(),
       obtenerConteosPorCcaa(),
       obtenerSectoresConAnuncios(),
       getPermutasConseguidas(),
+      (searchParams ??
+        Promise.resolve({} as { cuenta_eliminada?: string })) as Promise<{
+        cuenta_eliminada?: string;
+      }>,
     ]);
 
   const totalAnuncios = Object.values(conteos).reduce((a, b) => a + b, 0);
@@ -54,6 +62,16 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-3xl">
+        {sp.cuenta_eliminada === "1" && (
+          <div className="mb-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p className="font-medium">Tu cuenta ha sido eliminada.</p>
+            <p className="mt-1">
+              Hemos borrado tu perfil y todos los datos asociados. Si quieres
+              volver a usar PermutaES algún día, puedes registrarte de nuevo.
+            </p>
+          </div>
+        )}
+
         {/* Hero — la PRIMERA cosa que ve el usuario al entrar.
             Empuja al buscador inteligente (auto-permutas), que es la
             herramienta más potente. El mapa queda más abajo como vía
