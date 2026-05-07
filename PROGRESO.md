@@ -210,6 +210,64 @@ Apuntadas para implementar más adelante. Por orden de prioridad:
 
 ## Histórico
 
+### 2026-05-07 — Sesión — Pre-lanzamiento: dominio propio, SMTP custom, branding final, accesibilidad de Contacto
+
+Sesión larga de cierre antes de enviar invitaciones a alfa-testers. Tras esta sesión, la app está **lista para lanzamiento alfa**.
+
+**1. Dominio propio `permutaes.es` operativo (commits previos en sesión).**
+- DNS configurado y propagado: A/AAAA a Vercel, MX/SPF/DKIM/DMARC a Resend.
+- `NEXT_PUBLIC_SITE_URL` y `RESEND_FROM_EMAIL=noreply@permutaes.es` añadidos a Vercel y desplegados.
+- Supabase Auth → Site URL apuntando a `https://permutaes.es` y redirect URLs con `/**` wildcards. Confirmación de email y recuperación funcionan end-to-end.
+- Centralizado el resolver de URL en `src/lib/site-url.ts`: `NEXT_PUBLIC_SITE_URL` → `VERCEL_URL` → fallback. Sustituidas las 12 ocurrencias hardcoded de `permutaes.vercel.app`.
+
+**2. SMTP custom de Supabase Auth con Resend (commit previo en sesión).**
+- Como el dashboard de Supabase no exponía la opción SMTP, se hizo via **Management API**: script `scripts/aplicar-smtp-auth.ts` que activa `external_email_enabled` y configura `smtp_host=smtp.resend.com`, port 465, user `resend`, sender `noreply@permutaes.es`. Tras ejecutarlo y borrar el token de gestión, los correos de auth ya salen del dominio propio.
+
+**3. Pulido de cierre — paquete de 12 puntos detectados por auditorías Comet/Cowork.**
+- Wizard `/anuncios/nuevo`: ProgressBar arranca en 12 % en lugar de 0; "Guardar y salir" con toast; modal personalizado para "Empezar de cero" en lugar de `confirm()` nativo; edición inline desde el resumen del paso 8.
+- Registro `/registro`: `useActionState` con `defaultValue` desde `valoresEnviados` para preservar inputs en error; `traducirErrorSupabase()` ES; `aria-invalid` en `campoConError`.
+- Páginas globales: `not-found.tsx` y `error.tsx` en castellano con branding y CTAs; el error envía a Sentry.
+- Skip-link "Saltar al contenido principal" añadido al layout (WCAG).
+- JSON-LD `Organization` + `WebSite` en home; `AboutPage` en `/sobre-el-proyecto`; `FAQPage`, `Article` en sus páginas correspondientes.
+- Cabecera: `<span>` en lugar de `<h1>` para no duplicar h1 por página.
+- Aviso destacado en home explicando que los anuncios actuales son la importación inicial de Galicia.
+
+**4. Demo no-contactable para anuncios importados (commit `3e39433`).**
+- 381 anuncios importados de PermutaDoc tienen alias `permutadoc_<n>`. En lugar de borrarlos, se marcan como **demo no-contactables** para que la web siga poblada para visitas pero no se generen conversaciones fantasma.
+- `src/lib/alias.ts`: helpers `esAliasImportado(alias)` (regex `^permutadoc_\d+$`) y `aliasMostrable(alias, contexto)` que humaniza "permutadoc_2622" → "Maestros · Música · en Sobrado" con contexto, "Usuario PermutaDoc #2622" sin él.
+- Server action `iniciarConversacionDesdeAnuncio` rechaza con mensaje claro si el destinatario es demo. Banner amarillo en `/anuncios/[id]` y badge "📦 Demo" en `/anuncios` y `/auto-permutas`. Botón "Contactar" sustituido por texto en cursiva en demos.
+
+**5. JOIN PostgREST roto en `/anuncios/[id]` y `/admin` (mismo commit).**
+- Síntoma: 404 en TODOS los detalles de anuncios; admin mostraba 0/382. Causa: `anuncios.usuario_id` y `perfiles_usuario.id` referencian ambos a `auth.users(id)` por separado, sin FK directa entre ellas → PostgREST no puede inferir la relación.
+- Fix: cargar el alias en una **segunda query** vía la vista `perfiles_publicos`. Mismo patrón aplicado en admin con `aliasPorUsuario` Map para resolver en lote.
+
+**6. Página `/sobre-el-proyecto` con historia personal (commit `a0b8f94`).**
+- Razón humana del proyecto: "Mi pareja es profesora. Aprobó las oposiciones y la destinaron a A Coruña, cuando ella es de Pontevedra…"
+- Secciones: La historia, Quién está detrás, Por qué es gratis, A qué nos comprometemos, Cómo puedes ayudar.
+- Página `/contacto` con form que envía via Resend con `replyTo` del usuario, rate-limit 3/hora por IP, destino vía `CONTACTO_EMAIL_DESTINO`.
+
+**7. Branding final — nuevo logo SVG vectorial + foto real (commit `a0a762d`).**
+- `public/logo.svg`: logo vectorial real (paths con `#061e14` y `#0e5239`), no PNG embebido.
+- `scripts/optimizar-logo.ts` rasteriza desde SVG con `.trim()` para recortar márgenes A4 → genera `public/logo.png/256/512`, `src/app/icon.png` y `apple-icon.png`. Pasaron de 15 KB a 7,2 KB.
+- HeaderClient usa `/logo.svg` directamente (escala perfecta), con fondo blanco redondeado para contraste sobre header verde.
+- `/sobre-el-proyecto`: placeholder "DV" sustituido por foto real `public/sobre/david.jpeg`, 112×112 redonda con anillo sutil.
+
+**8. Botón "Contacto" siempre accesible (commit `d313546`).**
+- Desktop: chip "✉ Contacto" al final del nav, separado por divider sutil. Visible siempre (login o no).
+- Móvil: entrada "✉ Contacto" en el hamburguesa, después de las opciones de cuenta y antes de Cerrar sesión.
+- Antes había que bajar al footer para encontrarlo.
+
+**Verificación pre-lanzamiento (al final de la sesión):**
+- 15/15 páginas clave devuelven 200.
+- DNS, Resend, SMTP, Sentry verificados.
+- `/status` muestra 12 OK.
+- og:image (175 KB), favicon (15 KB), HSTS activo.
+- 11 env vars confirmadas en Vercel; token de Supabase Management borrado.
+
+**Estado al cierre:** la app está lista para enviar invitaciones a alfa-testers. Próximo paso: enviar la primera tanda de invitaciones y observar feedback. Vaquero pendiente de hacer una **revisión estética** y pasar pequeños retoques de textos/formato.
+
+---
+
 ### 2026-05-04 — Sesión — Tema visual PermutaDoc + mensajería + coords España + mapa wizard
 
 Sesión densa con cinco bloques cerrados de un tirón.
