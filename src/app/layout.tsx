@@ -83,8 +83,20 @@ export default function RootLayout({
       className={`${dmSans.variable} ${sora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {/* Skip-link de accesibilidad (WCAG 2.4.1). Invisible hasta que
+            el usuario tabula; aparece flotando arriba a la izquierda y
+            le permite saltar el header e ir al contenido principal sin
+            recorrer todos los enlaces de navegacion. */}
+        <a
+          href="#contenido-principal"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-card focus:outline-none focus:ring-2 focus:ring-brand-light"
+        >
+          Saltar al contenido principal
+        </a>
         <Header />
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div id="contenido-principal" className="flex flex-1 flex-col">
+          {children}
+        </div>
         <Footer />
       </body>
     </html>

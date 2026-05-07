@@ -4,6 +4,44 @@ import {
   obtenerSectoresConAnuncios,
 } from "./actions/conteos";
 import { MapaHomeChoropleth } from "@/components/MapaHomeChoropleth";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL } from "@/lib/site-url";
+
+/**
+ * Schema.org Organization + WebSite para la home. Le dice a Google
+ * (y a los AI Overviews) cual es la entidad detras de la web, donde
+ * encontrar mas info, y como se llama el sitio. Mejora la
+ * presentacion en SERP y la inclusion en respuestas de IA.
+ */
+const SCHEMA_HOME = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "PermutaES",
+    alternateName: "PermutaES — Permutas de plaza para funcionarios",
+    url: SITE_URL,
+    logo: `${SITE_URL}/opengraph-image`,
+    sameAs: ["https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a"],
+    foundingDate: "2026",
+    areaServed: { "@type": "Country", name: "España" },
+    knowsAbout: [
+      "Permutas de plaza entre funcionarios públicos",
+      "Concursos de traslados",
+      "Estatuto Marco del personal estatutario del SNS",
+      "Real Decreto 1834/2008",
+      "Estatuto Básico del Empleado Público (TREBEP)",
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "PermutaES",
+    url: SITE_URL,
+    inLanguage: "es-ES",
+    description:
+      "Plataforma nacional gratuita para detectar cadenas de permuta de plaza entre funcionarios públicos en España.",
+  },
+];
 
 type Sector = {
   codigo: string;
@@ -61,6 +99,9 @@ export default async function Home({
 
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-8 sm:px-6 sm:py-12">
+      {SCHEMA_HOME.map((schema, i) => (
+        <JsonLd key={i} data={schema} />
+      ))}
       <div className="mx-auto w-full max-w-3xl">
         {sp.cuenta_eliminada === "1" && (
           <div className="mb-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -78,7 +119,7 @@ export default async function Home({
             alternativa de descubrimiento. */}
         <section className="rounded-xl2 border border-brand-mint/40 bg-brand-bg/50 p-6 shadow-card md:p-8">
           <div className="mb-3 inline-flex items-center rounded-full bg-brand-mint/30 px-3 py-1 text-[11px] font-medium text-brand-text">
-            🇪🇸 Para funcionarios públicos en toda España · 7 sectores activos
+            Plataforma nacional · Para funcionarios públicos en toda España · 7 sectores activos
           </div>
 
           <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
