@@ -30,6 +30,11 @@ function unwrap<T>(value: T | T[] | null | undefined): T | null {
 
 async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
   const supabase = await createClient();
+  // Cargamos todos los JOINs que SI se infieren por FK directa.
+  // El alias del perfil va aparte: anuncios.usuario_id -> auth.users(id)
+  // y perfiles_usuario.id -> auth.users(id) son dos FK separadas, asi
+  // que PostgREST no puede inferir la relacion. Usamos `perfiles_publicos`
+  // (vista publica con RLS abierta) en una segunda query.
   const { data } = await supabase
     .from("anuncios")
     .select(
@@ -42,7 +47,6 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
          nombre,
          provincias!inner(nombre, ccaa:ccaa(nombre))
        ),
-       perfil:perfiles_usuario!usuario_id(alias_publico),
        anuncio_plazas_deseadas(count),
        anuncio_atajos(tipo, valor)`,
     )
@@ -72,11 +76,19 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
         ccaa: { nombre: string } | { nombre: string }[] | null;
       } | { nombre: string; ccaa: { nombre: string } | { nombre: string }[] | null }[] | null;
     } | null;
-    perfil: { alias_publico: string } | { alias_publico: string }[] | null;
     anuncio_plazas_deseadas: { count: number }[];
     anuncio_atajos: { tipo: string; valor: string }[];
   };
   const r = data as unknown as Row;
+
+  // Segunda query: alias del usuario via perfiles_publicos.
+  const { data: perfilRow } = await supabase
+    .from("perfiles_publicos")
+    .select("alias_publico")
+    .eq("id", r.usuario_id)
+    .maybeSingle();
+  const aliasPublico =
+    (perfilRow as { alias_publico: string } | null)?.alias_publico ?? "—";
 
   const muni = unwrap(r.municipio);
   const prov = muni ? unwrap(muni.provincias) : null;
@@ -96,7 +108,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
     municipio_nombre: muni?.nombre ?? "—",
     provincia_nombre: prov?.nombre ?? "",
     ccaa_nombre: ccaa?.nombre ?? "",
-    alias_publico: unwrap(r.perfil)?.alias_publico ?? "—",
+    alias_publico: aliasPublico,
     plazas_count: r.anuncio_plazas_deseadas?.[0]?.count ?? 0,
     atajos: r.anuncio_atajos ?? [],
   };

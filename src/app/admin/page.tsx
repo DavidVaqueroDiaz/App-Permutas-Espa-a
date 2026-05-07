@@ -56,22 +56,24 @@ export default async function AdminPage({
     .select("codigo, nombre")
     .order("nombre");
 
-  // Listado paginado (50) con joins necesarios para la tabla.
+  // Listado paginado (50) con joins. Igual que en /anuncios/[id]:
+  // anuncios.usuario_id apunta a auth.users(id) y perfiles_usuario.id
+  // tambien apunta a auth.users(id), pero NO hay FK directa entre
+  // anuncios y perfiles_usuario, asi que PostgREST no puede inferir el
+  // JOIN. El alias lo cargamos en una segunda query.
   let q1 = supabase
     .from("anuncios")
     .select(
       `id, sector_codigo, ccaa_codigo, estado, creado_el, observaciones, usuario_id,
        cuerpo:cuerpos(codigo_oficial, denominacion),
        especialidad:especialidades(codigo_oficial, denominacion),
-       municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre)),
-       perfil:perfiles_usuario!usuario_id(alias_publico)`,
+       municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre))`,
     )
     .order("creado_el", { ascending: false })
     .limit(50);
   if (sector) q1 = q1.eq("sector_codigo", sector);
   if (qTrim.length >= 2) {
     // Búsqueda por alias del usuario u observaciones (ilike).
-    // Two pre-queries to find matching anuncio ids by alias.
     const ilike = `%${qTrim}%`;
     const aliasRes = await supabase
       .from("perfiles_usuario")
@@ -106,7 +108,6 @@ export default async function AdminPage({
       | { nombre: string; provincias: { nombre: string } | { nombre: string }[] | null }
       | { nombre: string; provincias: { nombre: string } | { nombre: string }[] | null }[]
       | null;
-    perfil: { alias_publico: string } | { alias_publico: string }[] | null;
   };
 
   function unwrap<T>(value: T | T[] | null | undefined): T | null {
@@ -114,12 +115,27 @@ export default async function AdminPage({
     return value ?? null;
   }
 
-  const anuncios: AnuncioAdminRow[] = ((anunciosData ?? []) as Row[]).map((r) => {
+  const filas = (anunciosData ?? []) as Row[];
+
+  // Segunda query: aliases de los usuarios involucrados (en bloque).
+  const userIds = Array.from(new Set(filas.map((r) => r.usuario_id)));
+  const aliasPorUsuario = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: perfilesData } = await supabase
+      .from("perfiles_usuario")
+      .select("id, alias_publico")
+      .in("id", userIds);
+    for (const p of (perfilesData ?? []) as { id: string; alias_publico: string }[]) {
+      aliasPorUsuario.set(p.id, p.alias_publico);
+    }
+  }
+
+  const anuncios: AnuncioAdminRow[] = filas.map((r) => {
     const cuerpo = unwrap(r.cuerpo);
     const esp = unwrap(r.especialidad);
     const muni = unwrap(r.municipio);
     const prov = muni ? unwrap(muni.provincias) : null;
-    const perfil = unwrap(r.perfil);
+    const alias = aliasPorUsuario.get(r.usuario_id) ?? "—";
     return {
       id: r.id,
       sector_codigo: r.sector_codigo,
@@ -135,8 +151,8 @@ export default async function AdminPage({
       municipio_label: muni
         ? `${muni.nombre}${prov?.nombre ? " (" + prov.nombre + ")" : ""}`
         : "—",
-      alias: perfil?.alias_publico ?? "—",
-      es_test: perfil?.alias_publico?.startsWith("permutadoc_") ?? false,
+      alias,
+      es_test: alias.startsWith("permutadoc_"),
     };
   });
 

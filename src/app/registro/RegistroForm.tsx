@@ -40,6 +40,12 @@ export function RegistroForm() {
     );
   }
 
+  // Si hay error, recuperamos los valores que el usuario habia escrito
+  // para no obligarle a teclearlos de nuevo (NO recuperamos contrasenas
+  // por seguridad — se vacian siempre).
+  const valores = state && !state.ok ? state.valoresEnviados : undefined;
+  const campo = state && !state.ok ? state.campoConError : undefined;
+
   return (
     <form action={formAction} className="space-y-5" noValidate>
       {state && !state.ok && (
@@ -58,7 +64,9 @@ export function RegistroForm() {
           type="email"
           autoComplete="email"
           required
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+          defaultValue={valores?.email ?? ""}
+          aria-invalid={campo === "email" || undefined}
+          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light aria-[invalid=true]:border-red-400"
         />
       </div>
 
@@ -74,7 +82,8 @@ export function RegistroForm() {
             autoComplete="new-password"
             required
             minLength={8}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+            aria-invalid={campo === "password" || undefined}
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light aria-[invalid=true]:border-red-400"
           />
           <p className="mt-1 text-xs text-slate-500">Mínimo 8 caracteres.</p>
         </div>
@@ -89,7 +98,8 @@ export function RegistroForm() {
             autoComplete="new-password"
             required
             minLength={8}
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+            aria-invalid={campo === "password2" || undefined}
+            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light aria-[invalid=true]:border-red-400"
           />
         </div>
       </div>
@@ -106,7 +116,9 @@ export function RegistroForm() {
           minLength={3}
           maxLength={20}
           pattern="[a-zA-Z0-9_-]+"
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+          defaultValue={valores?.alias_publico ?? ""}
+          aria-invalid={campo === "alias_publico" || undefined}
+          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light aria-[invalid=true]:border-red-400"
         />
         <p className="mt-1 text-xs text-slate-500">
           3-20 caracteres. Letras, números, guiones. Es lo que verán otros usuarios.
@@ -125,14 +137,23 @@ export function RegistroForm() {
           min={1940}
           max={new Date().getFullYear() - 18}
           placeholder="Ej: 1985"
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+          defaultValue={valores?.ano_nacimiento ?? ""}
+          aria-invalid={campo === "ano_nacimiento" || undefined}
+          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light aria-[invalid=true]:border-red-400"
         />
         <p className="mt-1 text-xs text-slate-500">
           Solo se usa para validar reglas legales (ej. los 10 años hasta jubilación). No se muestra públicamente.
         </p>
       </div>
 
-      <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+      <div
+        className={
+          "space-y-2 rounded-md border p-3 text-sm " +
+          (campo === "checkboxes"
+            ? "border-red-300 bg-red-50 text-red-900"
+            : "border-slate-200 bg-slate-50 text-slate-700")
+        }
+      >
         <label className="flex items-start gap-2">
           <input type="checkbox" name="acepta_privacidad" required className="mt-1" />
           <span>
