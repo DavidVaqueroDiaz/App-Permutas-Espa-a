@@ -70,18 +70,14 @@ export default function SobreElProyectoPage() {
 
       <h2>Quién está detrás</h2>
       <div className="not-prose flex flex-col gap-4 rounded-xl2 border border-slate-200 bg-white p-5 shadow-card sm:flex-row sm:items-start">
-        {/*
-          Cuando tengas una foto, sustituye este placeholder por:
-            <img
-              src="/sobre/david.jpg"
-              alt="Foto de David Vaquero"
-              className="h-28 w-28 rounded-full object-cover"
-            />
-          y guarda la imagen en public/sobre/david.jpg
-        */}
-        <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-brand-bg text-2xl font-semibold text-brand-text">
-          DV
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/sobre/david.jpeg"
+          alt="Foto de David Vaquero"
+          width={112}
+          height={112}
+          className="h-28 w-28 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+        />
         <div>
           <p className="font-head text-lg font-semibold text-brand">
             David Vaquero

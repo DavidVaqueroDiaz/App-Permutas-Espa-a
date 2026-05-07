@@ -1,6 +1,6 @@
 /**
- * Genera versiones optimizadas del logo a partir del PNG original
- * (que pesa varios MB) para distintos usos:
+ * Genera versiones optimizadas del logo a partir del SVG original
+ * (vectorial, calidad maxima) para distintos usos:
  *
  *   - public/logo.png        -> 256x256 (uso general en la web)
  *   - public/logo-256.png    -> 256x256 (alias para meta tags)
@@ -11,8 +11,9 @@
  * Uso:
  *   npx tsx scripts/optimizar-logo.ts
  *
- * Lee del PNG original en public/logo.png (que ya copiamos del Downloads
- * del usuario). Si le pasamos un argumento, lee de ahi.
+ * Lee del SVG original en public/logo.svg. Si le pasamos un argumento,
+ * lee de ahi. Sharp rasteriza el SVG a alta densidad y luego recorta
+ * los margenes transparentes (.trim()) para obtener un crop ajustado.
  */
 import path from "node:path";
 import sharp from "sharp";
@@ -22,7 +23,7 @@ async function main() {
   const cwd = process.cwd();
   const input = inputArg
     ? path.resolve(cwd, inputArg)
-    : path.join(cwd, "public", "logo.png");
+    : path.join(cwd, "public", "logo.svg");
 
   console.log(`Leyendo: ${input}`);
 
@@ -34,8 +35,14 @@ async function main() {
     { ruta: "src/app/apple-icon.png", lado: 180 },
   ];
 
-  // Leemos el PNG original UNA vez en memoria (es grande, 3+ MB).
-  const orig = await sharp(input).png().toBuffer();
+  // Renderizamos el SVG a alta resolucion (1024x1024) y recortamos
+  // los margenes transparentes para obtener un crop ajustado al logo.
+  // Despues, cada destino redimensiona desde este buffer base.
+  const orig = await sharp(input, { density: 200, limitInputPixels: false })
+    .resize(1024, 1024, { fit: "inside", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .trim() // quita margenes transparentes
+    .png()
+    .toBuffer();
 
   for (const t of targets) {
     const out = path.join(cwd, t.ruta);
