@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Filtros } from "./Filtros";
 import { ChipsAtajos } from "./ChipsAtajos";
+import { esAliasImportado } from "@/lib/alias";
 
 export const metadata: Metadata = {
   title: "Buscar anuncios",
@@ -38,6 +39,9 @@ type AnuncioRow = {
   provincia_nombre: string | null;
   total_plazas: number;
   atajos_legibles: AtajoLegible[];
+  /** True si el alias del dueno empieza por permutadoc_ -> anuncio
+   *  importado de la base de datos historica, sin usuario activo. */
+  es_demo: boolean;
 };
 
 function unwrap<T>(value: T | T[] | null | undefined): T | null {
@@ -123,7 +127,7 @@ export default async function AnunciosPage({
       let q = supabase
         .from("anuncios")
         .select(
-          `id, sector_codigo, ccaa_codigo, creado_el, observaciones,
+          `id, sector_codigo, ccaa_codigo, creado_el, observaciones, usuario_id,
            cuerpo:cuerpos(codigo_oficial, denominacion),
            especialidad:especialidades(codigo_oficial, denominacion),
            municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre)),
@@ -233,6 +237,22 @@ export default async function AnunciosPage({
   const muniPorCodigoNombre = new Map<string, string>();
   for (const r of muniNombresRes.data ?? []) muniPorCodigoNombre.set(r.codigo_ine, r.nombre);
 
+  // Resolvemos los aliases en bloque para detectar cuales son demos
+  // (importados de PermutaDoc, alias `permutadoc_NNNN`).
+  const userIdsAnuncios = Array.from(
+    new Set((anunciosRes.data ?? []).map((a) => a.usuario_id as string)),
+  );
+  const aliasPorUserId = new Map<string, string>();
+  if (userIdsAnuncios.length > 0) {
+    const { data: perfilesRows } = await supabase
+      .from("perfiles_publicos")
+      .select("id, alias_publico")
+      .in("id", userIdsAnuncios);
+    for (const r of (perfilesRows ?? []) as { id: string; alias_publico: string }[]) {
+      aliasPorUserId.set(r.id, r.alias_publico);
+    }
+  }
+
   const anuncios: AnuncioRow[] = (anunciosRes.data ?? []).map((a) => {
     const plazasJoin = a.anuncio_plazas_deseadas as unknown as {
       count: number;
@@ -258,6 +278,8 @@ export default async function AnunciosPage({
       return { tipo: "municipio", label: muniPorCodigoNombre.get(at.valor) ?? at.valor };
     });
 
+    const aliasDelDueno = aliasPorUserId.get(a.usuario_id as string) ?? "";
+
     return {
       id: a.id as string,
       sector_codigo: a.sector_codigo as string,
@@ -272,6 +294,7 @@ export default async function AnunciosPage({
       provincia_nombre: provincia?.nombre ?? null,
       total_plazas: plazasJoin?.[0]?.count ?? 0,
       atajos_legibles: atajosLegibles,
+      es_demo: esAliasImportado(aliasDelDueno),
     };
   });
 
@@ -342,9 +365,19 @@ export default async function AnunciosPage({
                   </p>
                 )}
               </div>
-              <span className="rounded-full bg-brand-bg px-2 py-0.5 text-xs text-brand-text">
-                Activo
-              </span>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className="rounded-full bg-brand-bg px-2 py-0.5 text-xs text-brand-text">
+                  Activo
+                </span>
+                {a.es_demo && (
+                  <span
+                    className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10px] text-warn-text"
+                    title="Anuncio importado de PermutaDoc, sin usuario activo"
+                  >
+                    📦 Demo
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="mt-3 grid gap-2 text-sm text-slate-700">

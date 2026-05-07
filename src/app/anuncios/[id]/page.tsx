@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BotonContactarAnuncio } from "./BotonContactarAnuncio";
 import { BotonReportar } from "./BotonReportar";
+import { esAliasImportado } from "@/lib/alias";
 
 type AnuncioDetalle = {
   id: string;
@@ -232,6 +233,21 @@ export default async function AnuncioDetallePage({
           </div>
         )}
 
+        {esAliasImportado(a.alias_publico) && a.estado === "activo" && (
+          <div className="mt-4 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
+            <p className="font-medium">📦 Anuncio de demostración</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              Este anuncio viene de la importación inicial de PermutaDoc
+              que usamos para arrancar PermutaES. La persona detrás
+              <strong> ya no usa esta plataforma</strong>, así que no es
+              posible contactarla. Lo dejamos visible para que puedas
+              ver cómo se vería la app llena de anuncios reales —
+              cuando entren usuarios actuales con tu mismo perfil,
+              podrás contactarles desde aquí.
+            </p>
+          </div>
+        )}
+
         <section className="mt-5 grid gap-4 md:grid-cols-2">
           <Bloque label="Plaza actual">
             <p className="text-base font-medium text-slate-900">
@@ -368,6 +384,11 @@ export default async function AnuncioDetallePage({
           ) : a.estado !== "activo" ? (
             <p className="text-sm text-slate-600">
               Este anuncio ya no está activo, no se puede contactar.
+            </p>
+          ) : esAliasImportado(a.alias_publico) ? (
+            <p className="text-sm text-slate-600">
+              Este es un anuncio de demostración (importado de PermutaDoc).
+              No se puede contactar — la persona ya no usa la plataforma.
             </p>
           ) : !user ? (
             <div className="space-y-2">

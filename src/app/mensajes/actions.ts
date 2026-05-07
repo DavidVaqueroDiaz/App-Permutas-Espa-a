@@ -116,6 +116,25 @@ export async function iniciarConversacionDesdeAnuncio(
     return { ok: false, mensaje: "No puedes contactar contigo mismo." };
   }
 
+  // Rechazar contacto con anuncios DEMO (importados de PermutaDoc).
+  // Esos perfiles tienen alias `permutadoc_NNNN` y no corresponden a
+  // usuarios reales activos en la plataforma — estan como semilla
+  // para que el matcher genere cadenas de muestra.
+  const { data: perfilOtroRow } = await supabase
+    .from("perfiles_publicos")
+    .select("alias_publico")
+    .eq("id", otro.usuario_id)
+    .maybeSingle();
+  const aliasOtro =
+    (perfilOtroRow as { alias_publico: string } | null)?.alias_publico ?? "";
+  if (/^permutadoc_\d+$/i.test(aliasOtro)) {
+    return {
+      ok: false,
+      mensaje:
+        "Este es un anuncio de demostración importado de PermutaDoc. La persona ya no usa esta plataforma.",
+    };
+  }
+
   // Rate limit: 20 conversaciones nuevas por hora. Una persona normal
   // abre 2-3 al dia; 20/h bloquea bots y abuso sin molestar a nadie.
   const rl = await aplicarRateLimit({

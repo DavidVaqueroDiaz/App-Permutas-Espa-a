@@ -8,6 +8,7 @@ import {
   type ParticipanteCadena,
 } from "./actions";
 import { iniciarConversacionDesdeAnuncio } from "@/app/mensajes/actions";
+import { esAliasImportado } from "@/lib/alias";
 import type {
   CuerpoRow,
   EspecialidadRow,
@@ -930,19 +931,30 @@ function ParticipanteDetalle({
 }) {
   const dias = diasDesde(p.fecha_publicacion);
   const antiguo = dias > 30;
+  const esDemo = esAliasImportado(p.alias_publico);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3.5">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-medium text-slate-800">
           Persona {indice} · {p.municipio_actual_nombre}
           {p.provincia_nombre ? ` · ${p.provincia_nombre}` : ""}
         </div>
-        {antiguo && (
-          <span className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text">
-            ⚠ Anuncio con más de 30 días
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1">
+          {esDemo && (
+            <span
+              className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text"
+              title="Anuncio importado de PermutaDoc, sin usuario activo"
+            >
+              📦 Demo
+            </span>
+          )}
+          {antiguo && (
+            <span className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text">
+              ⚠ Más de 30 días
+            </span>
+          )}
+        </div>
       </div>
       <ul className="space-y-1 text-[12.5px] leading-snug text-slate-700">
         <li>
@@ -989,7 +1001,11 @@ function ParticipanteDetalle({
         </div>
       )}
 
-      {p.contacto_disponible ? (
+      {esDemo ? (
+        <p className="mt-3 text-[12px] italic text-slate-500">
+          Anuncio de demostración (PermutaDoc) — no contactable.
+        </p>
+      ) : p.contacto_disponible ? (
         <BotonContactar anuncioId={p.anuncio_id} />
       ) : (
         <a
