@@ -162,8 +162,15 @@ export function MiAnuncioCard({
         </div>
       )}
 
-      {/* CTA destacado: marcar permuta conseguida (solo si activo) */}
-      {anuncio.estado === "activo" && (
+      {/* CTA destacado: marcar permuta conseguida.
+          Solo se muestra como boton prominente cuando hay al menos 1
+          cadena detectada (es decir, hay un escenario real para que el
+          usuario diga "ya esta cerrado"). Si no hay matches, el boton
+          aparece como link discreto en la fila de acciones para que
+          aun se pueda usar (caso: el usuario llego a un acuerdo fuera
+          de la plataforma) pero sin confundir a quien aun no ha
+          empezado el proceso. */}
+      {anuncio.estado === "activo" && cadenasCount > 0 && (
         <button
           type="button"
           onClick={pedirMarcarPermutado}
@@ -182,6 +189,20 @@ export function MiAnuncioCard({
         </p>
         {!estaPermutado && (
           <div className="flex items-center gap-2">
+            {/* Link discreto para marcar permuta cuando NO hay matches
+                (caso: cierre fuera de la plataforma). Si hay matches,
+                ya esta como boton arriba. */}
+            {anuncio.estado === "activo" && cadenasCount === 0 && (
+              <button
+                type="button"
+                onClick={pedirMarcarPermutado}
+                disabled={permutando}
+                className="text-xs font-medium text-brand-text hover:text-brand disabled:opacity-50"
+                title="Solo si conseguiste la permuta por tu cuenta fuera de PermutaES"
+              >
+                {permutando ? "Cerrando…" : "Marcar permuta cerrada"}
+              </button>
+            )}
             <a
               href={`/anuncios/${anuncio.id}/editar`}
               className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"

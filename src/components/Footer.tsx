@@ -31,6 +31,11 @@ export function Footer() {
                   Preguntas frecuentes
                 </a>
               </li>
+              <li>
+                <a href="/sobre-el-proyecto" className="hover:text-brand">
+                  Sobre el proyecto
+                </a>
+              </li>
             </ul>
           </div>
 

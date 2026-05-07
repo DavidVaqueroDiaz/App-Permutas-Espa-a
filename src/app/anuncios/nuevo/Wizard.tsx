@@ -64,6 +64,12 @@ export function Wizard({
   const [borradorDetectado, setBorradorDetectado] = useState(false);
   const [errorPublicar, setErrorPublicar] = useState<string | null>(null);
   const [publicando, startPublicar] = useTransition();
+  // Modal de confirmacion para "Empezar desde cero" (sustituye al
+  // confirm() nativo del navegador, que se ve mal).
+  const [confirmandoReset, setConfirmandoReset] = useState(false);
+  // Toast tras "Guardar y salir" para que el usuario sepa que el
+  // borrador queda persistido en su navegador.
+  const [toastGuardado, setToastGuardado] = useState(false);
 
   // Cargar de localStorage
   useEffect(() => {
@@ -165,19 +171,82 @@ export function Wizard({
           <ProgressBar paso={state.paso} />
         </div>
         {(state.paso > 1 || state.sector_codigo) && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("¿Seguro que quieres descartar lo que llevas y empezar de cero?")) {
-                reset();
-              }
-            }}
-            className="text-xs text-slate-500 underline hover:text-slate-700"
-          >
-            Empezar desde cero
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/mi-cuenta"
+              onClick={() => {
+                // No hace falta hacer nada: el state ya se guarda en
+                // localStorage automaticamente en cada cambio. Solo
+                // dejamos un toast para el siguiente render por si
+                // vuelve aqui rapido.
+                setToastGuardado(true);
+                setTimeout(() => setToastGuardado(false), 4000);
+              }}
+              className="text-xs text-brand-text hover:text-brand"
+              title="Tu progreso queda guardado en este navegador. Vuelve cuando quieras."
+            >
+              Guardar y salir
+            </a>
+            <button
+              type="button"
+              onClick={() => setConfirmandoReset(true)}
+              className="text-xs text-slate-500 underline hover:text-slate-700"
+            >
+              Empezar desde cero
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Toast: confirma al usuario que su borrador esta guardado. */}
+      {toastGuardado && (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-card-hover">
+          ✓ Borrador guardado en este navegador. Vuelve cuando quieras.
+        </div>
+      )}
+
+      {/* Modal de confirmacion para "Empezar desde cero" — sustituye
+          al confirm() nativo del navegador (feo y no responsive). */}
+      {confirmandoReset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmandoReset(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl2 border border-slate-200 bg-white p-5 shadow-card-hover">
+            <h3 className="font-head text-lg font-semibold text-slate-900">
+              ¿Empezar desde cero?
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Vas a perder todos los datos del borrador actual (paso{" "}
+              {state.paso} de {TOTAL_PASOS}). Esta acción no se puede
+              deshacer.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmandoReset(false)}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  reset();
+                  setConfirmandoReset(false);
+                }}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Sí, empezar de cero
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {state.paso === 1 && (
         <Paso1Sector
@@ -278,6 +347,7 @@ export function Wizard({
           provincias={provincias}
           publicando={publicando}
           error={errorPublicar}
+          onIrAPaso={(p) => ir(p)}
           onAtras={() => ir(7)}
           onPublicar={() => {
             setErrorPublicar(null);
@@ -1004,13 +1074,16 @@ function Paso7Observaciones({
 // ----------------------------------------------------------------------
 function Paso8Confirmacion({
   state, cuerpoElegido, especialidadElegida, ccaa, provincias,
-  publicando, error, onAtras, onPublicar,
+  publicando, error, onIrAPaso, onAtras, onPublicar,
 }: {
   state: WizardState;
   cuerpoElegido: CuerpoRow | null;
   especialidadElegida: EspecialidadRow | null;
   ccaa: CcaaRow[]; provincias: ProvinciaRow[];
   publicando: boolean; error: string | null;
+  /** Salto directo a un paso concreto desde el resumen, para editar
+   *  esa seccion sin tener que ir hacia atras paso por paso. */
+  onIrAPaso: (paso: number) => void;
   onAtras: () => void; onPublicar: () => void;
 }) {
   const atajosCcaa = state.atajos.filter((a) => a.tipo === "ccaa");
@@ -1025,7 +1098,7 @@ function Paso8Confirmacion({
         </div>
       )}
 
-      <Resumen titulo="Sector y cuerpo">
+      <Resumen titulo="Sector y cuerpo" onEditar={() => onIrAPaso(2)}>
         <p>{cuerpoElegido?.codigo_oficial} · {cuerpoElegido?.denominacion}</p>
         {especialidadElegida && (
           <p className="text-sm text-slate-600">
@@ -1034,11 +1107,14 @@ function Paso8Confirmacion({
         )}
       </Resumen>
 
-      <Resumen titulo="Plaza actual">
+      <Resumen titulo="Plaza actual" onEditar={() => onIrAPaso(4)}>
         <p>{state.municipio_actual_nombre ?? state.municipio_actual_codigo}</p>
       </Resumen>
 
-      <Resumen titulo={`Plazas deseadas (${state.plazas_deseadas.length} municipios)`}>
+      <Resumen
+        titulo={`Plazas deseadas (${state.plazas_deseadas.length} municipios)`}
+        onEditar={() => onIrAPaso(5)}
+      >
         {atajosCcaa.length > 0 && (
           <p className="text-sm">
             <span className="font-medium">CCAA enteras: </span>
@@ -1059,7 +1135,7 @@ function Paso8Confirmacion({
         )}
       </Resumen>
 
-      <Resumen titulo="Datos legales">
+      <Resumen titulo="Datos legales" onEditar={() => onIrAPaso(6)}>
         <p className="text-sm">Toma de posesión definitiva: {state.fecha_toma_posesion_definitiva}</p>
         <p className="text-sm">Años de servicio totales: {state.anyos_servicio_totales}</p>
         <p className="text-sm">
@@ -1067,9 +1143,13 @@ function Paso8Confirmacion({
         </p>
       </Resumen>
 
-      {state.observaciones && (
-        <Resumen titulo="Observaciones">
+      {state.observaciones ? (
+        <Resumen titulo="Observaciones" onEditar={() => onIrAPaso(7)}>
           <p className="whitespace-pre-wrap text-sm">{state.observaciones}</p>
+        </Resumen>
+      ) : (
+        <Resumen titulo="Observaciones" onEditar={() => onIrAPaso(7)}>
+          <p className="text-sm italic text-slate-500">(sin observaciones)</p>
         </Resumen>
       )}
 
@@ -1205,17 +1285,41 @@ function Chip({ label, onQuitar }: { label: string; onQuitar: () => void }) {
   );
 }
 
-function Resumen({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Resumen({
+  titulo,
+  children,
+  onEditar,
+}: {
+  titulo: string;
+  children: React.ReactNode;
+  /** Si se pasa, muestra un boton "Editar" en la cabecera que salta
+   *  al paso correspondiente del wizard. */
+  onEditar?: () => void;
+}) {
   return (
     <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3">
-      <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
+        {onEditar && (
+          <button
+            type="button"
+            onClick={onEditar}
+            className="text-xs font-medium text-brand-text hover:text-brand"
+          >
+            Editar
+          </button>
+        )}
+      </div>
       <div className="mt-1 text-slate-700">{children}</div>
     </div>
   );
 }
 
 function ProgressBar({ paso }: { paso: number }) {
-  const pct = Math.round(((paso - 1) / (TOTAL_PASOS - 1)) * 100);
+  // Antes empezaba en 0% en el paso 1, lo que era desmotivador
+  // psicologicamente ("aun no he hecho nada"). Ahora empezamos en
+  // paso/total = 12% para que el primer paso ya muestre progreso.
+  const pct = Math.round((paso / TOTAL_PASOS) * 100);
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs text-slate-500">

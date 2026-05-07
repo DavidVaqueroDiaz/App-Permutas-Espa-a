@@ -35,20 +35,67 @@ export default async function AdminPage({
 
   // Estadísticas globales + reportes pendientes (los reportes los traemos
   // por RPC porque la consulta hace varios JOINs y la RPC ya valida admin).
+  // Tambien cargamos las 20 ultimas conversaciones y los 20 ultimos
+  // usuarios para tener visibilidad operacional sin ir a Supabase.
   const [
     totalAnunciosRes,
     totalUsersRes,
     totalConvsRes,
     totalMensajesRes,
     reportesRes,
+    usuariosRecientesRes,
+    convsRecientesRes,
   ] = await Promise.all([
     supabase.from("anuncios").select("id", { count: "exact", head: true }),
     supabase.from("perfiles_usuario").select("id", { count: "exact", head: true }),
     supabase.from("conversaciones").select("id", { count: "exact", head: true }),
     supabase.from("mensajes").select("id", { count: "exact", head: true }),
     supabase.rpc("listar_reportes_pendientes"),
+    supabase
+      .from("perfiles_usuario")
+      .select("id, alias_publico, ano_nacimiento, creado_el, es_admin")
+      .order("creado_el", { ascending: false })
+      .limit(20),
+    supabase
+      .from("conversaciones")
+      .select("id, creado_el, ultimo_mensaje_el, usuario_a_id, usuario_b_id")
+      .order("ultimo_mensaje_el", { ascending: false, nullsFirst: false })
+      .limit(20),
   ]);
   const reportes = (reportesRes.data ?? []) as ReporteAdminRow[];
+  type UsuarioReciente = {
+    id: string;
+    alias_publico: string;
+    ano_nacimiento: number;
+    creado_el: string;
+    es_admin: boolean;
+  };
+  type ConvReciente = {
+    id: string;
+    creado_el: string;
+    ultimo_mensaje_el: string | null;
+    usuario_a_id: string;
+    usuario_b_id: string;
+  };
+  const usuariosRecientes = (usuariosRecientesRes.data ?? []) as UsuarioReciente[];
+  const convsRecientes = (convsRecientesRes.data ?? []) as ConvReciente[];
+
+  // Mapa id -> alias para resolver los participantes de conversaciones.
+  const idsParaAlias = new Set<string>();
+  for (const c of convsRecientes) {
+    idsParaAlias.add(c.usuario_a_id);
+    idsParaAlias.add(c.usuario_b_id);
+  }
+  const aliasMap = new Map<string, string>();
+  if (idsParaAlias.size > 0) {
+    const { data: aliasRows } = await supabase
+      .from("perfiles_usuario")
+      .select("id, alias_publico")
+      .in("id", Array.from(idsParaAlias));
+    for (const r of (aliasRows ?? []) as { id: string; alias_publico: string }[]) {
+      aliasMap.set(r.id, r.alias_publico);
+    }
+  }
 
   // Catálogo de sectores para el filtro
   const { data: sectoresData } = await supabase
@@ -205,6 +252,109 @@ export default async function AdminPage({
           qInicial={qTrim}
           sectorInicial={sector}
         />
+      </section>
+
+      {/* Usuarios recientes — solo metadatos, no datos sensibles. Para
+          ver el detalle (email, etc.) ve a Supabase. */}
+      <section className="mt-10">
+        <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
+          Usuarios recientes ({usuariosRecientes.length} de {totalUsersRes.count ?? 0})
+        </h2>
+        <div className="overflow-x-auto rounded-xl2 border border-slate-200 bg-white shadow-card">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-left">Alias</th>
+                <th className="px-4 py-2 text-left">Año nac.</th>
+                <th className="px-4 py-2 text-left">Registrado</th>
+                <th className="px-4 py-2 text-left">Tipo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {usuariosRecientes.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-xs text-slate-500">
+                    No hay usuarios todavía.
+                  </td>
+                </tr>
+              ) : (
+                usuariosRecientes.map((u) => {
+                  const esTest = u.alias_publico.startsWith("permutadoc_");
+                  return (
+                    <tr key={u.id}>
+                      <td className="px-4 py-2 font-medium text-slate-900">
+                        {u.alias_publico}
+                      </td>
+                      <td className="px-4 py-2 text-slate-600">{u.ano_nacimiento}</td>
+                      <td className="px-4 py-2 text-xs text-slate-500">
+                        {new Date(u.creado_el).toLocaleDateString("es-ES")}
+                      </td>
+                      <td className="px-4 py-2 text-xs">
+                        {u.es_admin ? (
+                          <span className="rounded-full bg-brand px-2 py-0.5 text-white">admin</span>
+                        ) : esTest ? (
+                          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-700">import</span>
+                        ) : (
+                          <span className="rounded-full bg-brand-bg px-2 py-0.5 text-brand-text">real</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Conversaciones recientes — solo metadatos. NO mostramos
+          contenido de mensajes (RLS y privacidad). */}
+      <section className="mt-10">
+        <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
+          Conversaciones recientes ({convsRecientes.length} de {totalConvsRes.count ?? 0})
+        </h2>
+        <div className="overflow-x-auto rounded-xl2 border border-slate-200 bg-white shadow-card">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-left">Participantes</th>
+                <th className="px-4 py-2 text-left">Creada</th>
+                <th className="px-4 py-2 text-left">Último mensaje</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {convsRecientes.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-xs text-slate-500">
+                    Aún no hay conversaciones.
+                  </td>
+                </tr>
+              ) : (
+                convsRecientes.map((c) => (
+                  <tr key={c.id}>
+                    <td className="px-4 py-2 text-slate-700">
+                      {aliasMap.get(c.usuario_a_id) ?? "—"} ↔{" "}
+                      {aliasMap.get(c.usuario_b_id) ?? "—"}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-slate-500">
+                      {new Date(c.creado_el).toLocaleDateString("es-ES")}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-slate-500">
+                      {c.ultimo_mensaje_el
+                        ? new Date(c.ultimo_mensaje_el).toLocaleString("es-ES")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Solo metadatos. El contenido de los mensajes está protegido por
+          RLS y no es visible desde el panel — si necesitas leerlo, accede
+          directamente a Supabase.
+        </p>
       </section>
     </main>
   );

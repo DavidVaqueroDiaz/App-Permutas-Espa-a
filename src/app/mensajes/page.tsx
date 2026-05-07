@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listarMisConversaciones } from "./actions";
+import { aliasMostrable } from "@/lib/alias";
 
 export const metadata: Metadata = {
   title: "Mensajes",
@@ -61,19 +62,25 @@ export default async function MensajesPage() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {conversaciones.map((c) => (
+          {conversaciones.map((c) => {
+            // Aqui no tenemos contexto del anuncio (solo la lista de
+            // conversaciones), asi que el helper sin contexto convierte
+            // permutadoc_NNNN -> "Usuario PermutaDoc #NNNN". Mejor que
+            // el alias raw.
+            const aliasHumano = aliasMostrable(c.otro_alias);
+            return (
             <li key={c.id}>
               <a
                 href={`/mensajes/${c.id}`}
                 className="flex items-start gap-3 rounded-xl2 border border-slate-200 bg-white p-4 shadow-card transition hover:shadow-card-hover"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg font-semibold text-brand-text">
-                  {c.otro_alias.slice(0, 2).toUpperCase()}
+                  {aliasHumano.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="truncate font-head font-semibold text-slate-900">
-                      {c.otro_alias}
+                      {aliasHumano}
                     </span>
                     <span className="shrink-0 text-[11px] text-slate-500">
                       {formatearFechaCorta(c.ultimo_mensaje_el)}
@@ -94,7 +101,8 @@ export default async function MensajesPage() {
                 )}
               </a>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </main>

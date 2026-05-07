@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { leerConversacion } from "../actions";
 import { ChatCliente } from "./ChatCliente";
+import { aliasMostrable } from "@/lib/alias";
 
 export const metadata: Metadata = {
   title: "Conversación",
@@ -25,6 +26,16 @@ export default async function ConversacionPage({
   const detalle = await leerConversacion(id);
   if (!detalle) notFound();
 
+  // Humanizamos el alias si viene del import de PermutaDoc (formato
+  // permutadoc_NNNN). Si tenemos el contexto del anuncio del otro,
+  // mostramos algo como "Maestros · Música · en Sobrado" en lugar de
+  // "permutadoc_2622". Si el alias ya es humano, se respeta tal cual.
+  const aliasHumano = aliasMostrable(detalle.otro_alias, {
+    cuerpo: detalle.su_anuncio?.cuerpo_texto?.split("·")?.pop()?.trim() ?? null,
+    especialidad: detalle.su_anuncio?.especialidad_texto?.split("·")?.pop()?.trim() ?? null,
+    municipio: detalle.su_anuncio?.municipio ?? null,
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 md:px-6 md:py-10">
       <header className="mb-4 flex items-center gap-3">
@@ -36,11 +47,11 @@ export default async function ConversacionPage({
         </a>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-bg text-sm font-semibold text-brand-text">
-            {detalle.otro_alias.slice(0, 2).toUpperCase()}
+            {aliasHumano.slice(0, 2).toUpperCase()}
           </div>
           <div>
             <p className="font-head text-sm font-semibold text-slate-900">
-              {detalle.otro_alias}
+              {aliasHumano}
             </p>
             <p className="text-[11px] text-slate-500">
               Conversación de PermutaES
@@ -55,7 +66,7 @@ export default async function ConversacionPage({
       {detalle.su_anuncio && (
         <div className="mb-4 rounded-md border border-brand-mint/40 bg-brand-bg/30 p-3 text-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-            💬 Conversación sobre el anuncio de {detalle.otro_alias}
+            💬 Conversación sobre el anuncio de {aliasHumano}
           </p>
           <p className="mt-1 font-medium text-slate-900">
             {detalle.su_anuncio.cuerpo_texto}

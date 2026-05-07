@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Filtros } from "./Filtros";
+import { ChipsAtajos } from "./ChipsAtajos";
 
 export const metadata: Metadata = {
   title: "Buscar anuncios",
@@ -367,28 +368,7 @@ export default async function AnunciosPage({
                   <strong>{a.total_plazas}</strong>{" "}
                   {a.total_plazas === 1 ? "municipio" : "municipios"}
                 </p>
-                {a.atajos_legibles.length > 0 && (
-                  <ul className="mt-1 flex flex-wrap gap-1">
-                    {a.atajos_legibles.map((at, i) => (
-                      <li
-                        key={`${at.tipo}-${i}`}
-                        className={
-                          at.tipo === "ccaa"
-                            ? "rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800"
-                            : at.tipo === "provincia"
-                              ? "rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-800"
-                              : "rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700"
-                        }
-                      >
-                        {at.tipo === "ccaa"
-                          ? `Toda ${at.label}`
-                          : at.tipo === "provincia"
-                            ? `Toda ${at.label}`
-                            : at.label}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <ChipsAtajos atajos={a.atajos_legibles} />
               </div>
             </div>
 

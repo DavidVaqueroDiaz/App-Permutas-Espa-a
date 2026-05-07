@@ -516,51 +516,97 @@ export function Buscador({
             </div>
 
             {cadenasFiltradas.length === 0 ? (
-              <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
-                <p className="font-head text-base font-semibold text-slate-900">
-                  Aún no hay cadenas para esta búsqueda
-                </p>
-                <p className="mt-2 text-slate-600">
-                  Hemos analizado{" "}
-                  <strong>{totalAnalizados} anuncios</strong> compatibles con
-                  tu perfil profesional
-                  {munisObjetivo.length > 0 && (
-                    <>
-                      , dentro de{" "}
-                      <strong>{municiposEnRadio} municipios</strong> en {radio}{" "}
-                      km de tus localidades objetivo
-                    </>
-                  )}
-                  . Ninguno encaja en una cadena directa, a 3 o a 4.
-                </p>
-                <ul className="mt-4 space-y-2 text-slate-700">
-                  <li>
-                    💡 <strong>Amplía el radio</strong> a 60-100 km — quizás
-                    haya plazas cerca que no conocías.
-                  </li>
-                  <li>
-                    🗺{" "}
-                    <strong>Añade más localidades objetivo</strong> — cuantas
-                    más, más probabilidad de encajar en una cadena.
-                  </li>
-                  <li>
-                    📝{" "}
-                    <a
-                      href="/registro"
-                      className="font-medium text-brand-text hover:text-brand"
-                    >
-                      Publica tu propio anuncio
-                    </a>{" "}
-                    — te avisaremos por email cuando aparezca una cadena con
-                    tu perfil.
-                  </li>
-                </ul>
-                <p className="mt-4 text-xs text-slate-500">
-                  Estamos en alfa con datos iniciales (importación de
-                  PermutaDoc, principalmente Galicia). El catálogo crecerá
-                  conforme se publiquen anuncios reales.
-                </p>
-              </div>
+              totalAnalizados === 0 ? (
+                // Caso 1: cero anuncios analizados = no hay nadie en
+                // su combo (sector/cuerpo/especialidad/servicio salud).
+                // Es el caso mas comun en alfa fuera de docencia LOE.
+                <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
+                  <p className="font-head text-base font-semibold text-slate-900">
+                    🌱 Eres el primero en tu perfil
+                  </p>
+                  <p className="mt-2 text-slate-600">
+                    De momento <strong>no hay otros anuncios</strong> con tu
+                    misma combinación de sector, cuerpo y (si aplica)
+                    especialidad o servicio de salud. Esto es lo que pasa en
+                    alfa cuando no se han registrado aún usuarios de tu sector.
+                  </p>
+                  <p className="mt-3 text-slate-700">
+                    <strong>Lo que puedes hacer:</strong>
+                  </p>
+                  <ul className="mt-2 space-y-2 text-slate-700">
+                    <li>
+                      📝{" "}
+                      <a
+                        href="/registro"
+                        className="font-medium text-brand-text hover:text-brand"
+                      >
+                        Publica tu anuncio
+                      </a>{" "}
+                      — quedas guardado y te avisamos por email en cuanto
+                      aparezca alguien compatible.
+                    </li>
+                    <li>
+                      💌{" "}
+                      <a
+                        href="/contacto"
+                        className="font-medium text-brand-text hover:text-brand"
+                      >
+                        Compártela con compañeros
+                      </a>{" "}
+                      del mismo cuerpo. Cuanto antes haya 2-3 anuncios de tu
+                      perfil, antes empezará a haber matches.
+                    </li>
+                  </ul>
+                </div>
+              ) : (
+                // Caso 2: hay anuncios analizados pero ninguno encaja
+                // en cadena (el caso original).
+                <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
+                  <p className="font-head text-base font-semibold text-slate-900">
+                    Aún no hay cadenas para esta búsqueda
+                  </p>
+                  <p className="mt-2 text-slate-600">
+                    Hemos analizado{" "}
+                    <strong>{totalAnalizados} anuncios</strong> compatibles con
+                    tu perfil profesional
+                    {munisObjetivo.length > 0 && (
+                      <>
+                        , dentro de{" "}
+                        <strong>{municiposEnRadio} municipios</strong> en {radio}{" "}
+                        km de tus localidades objetivo
+                      </>
+                    )}
+                    . Ninguno encaja en una cadena directa, a 3 o a 4.
+                  </p>
+                  <ul className="mt-4 space-y-2 text-slate-700">
+                    <li>
+                      💡 <strong>Amplía el radio</strong> a 60-100 km — quizás
+                      haya plazas cerca que no conocías.
+                    </li>
+                    <li>
+                      🗺{" "}
+                      <strong>Añade más localidades objetivo</strong> — cuantas
+                      más, más probabilidad de encajar en una cadena.
+                    </li>
+                    <li>
+                      📝{" "}
+                      <a
+                        href="/registro"
+                        className="font-medium text-brand-text hover:text-brand"
+                      >
+                        Publica tu propio anuncio
+                      </a>{" "}
+                      — te avisaremos por email cuando aparezca una cadena con
+                      tu perfil.
+                    </li>
+                  </ul>
+                  <p className="mt-4 text-xs text-slate-500">
+                    Estamos en alfa con datos iniciales (importación de
+                    PermutaDoc, principalmente Galicia). El catálogo crecerá
+                    conforme se publiquen anuncios reales.
+                  </p>
+                </div>
+              )
             ) : (
               <ul className="space-y-4">
                 {cadenasFiltradas.map((c, i) => (
