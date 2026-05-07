@@ -77,8 +77,8 @@ export default async function Home({
             herramienta más potente. El mapa queda más abajo como vía
             alternativa de descubrimiento. */}
         <section className="rounded-xl2 border border-brand-mint/40 bg-brand-bg/50 p-6 shadow-card md:p-8">
-          <div className="mb-3 inline-flex items-center rounded-full bg-warn-bg px-3 py-1 text-[11px] font-medium text-warn-text">
-            Versión alfa · Datos iniciales de Galicia (docencia LOE)
+          <div className="mb-3 inline-flex items-center rounded-full bg-brand-mint/30 px-3 py-1 text-[11px] font-medium text-brand-text">
+            🇪🇸 Para funcionarios públicos en toda España · 7 sectores activos
           </div>
 
           <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
@@ -86,8 +86,9 @@ export default async function Home({
           </h1>
 
           <p className="mt-4 text-pretty text-lg leading-8 text-slate-700">
-            Plataforma nacional gratuita para funcionarios públicos en España.
-            Cruzamos automáticamente los anuncios y detectamos{" "}
+            Plataforma nacional gratuita para funcionarios públicos: docencia,
+            sanidad SNS, AGE, autonómicos, locales, habilitados nacionales y
+            policía local. Cruzamos automáticamente los anuncios y detectamos{" "}
             <strong>cadenas de permuta directas, a 3 o a 4 personas</strong>{" "}
             que cumplen las reglas legales de tu sector.
           </p>
@@ -145,10 +146,10 @@ export default async function Home({
           {totalAnuncios > 0 && ` Hay ${totalAnuncios} anuncios activos en total.`}
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          ℹ️ Los anuncios actuales vienen de la importación inicial de
-          PermutaDoc (mayoritariamente Galicia, docencia LOE). Cuando se
-          abra el registro a más usuarios, los anuncios crecerán por toda
-          España y todos los sectores cubiertos.
+          ℹ️ Los anuncios actuales son una base inicial mayoritariamente de
+          docencia LOE en Galicia, importados de PermutaDoc. A medida que
+          se registren usuarios irán creciendo por toda España en los 7
+          sectores cubiertos.
         </p>
         <div className="mt-4">
           <MapaHomeChoropleth
@@ -237,10 +238,30 @@ export default async function Home({
           </li>
         </ul>
 
-        <p className="mt-12 text-sm text-slate-500">
-          Estamos terminando de construir la plataforma. Próximamente abriremos
-          registro para los primeros usuarios.
-        </p>
+        <div className="mt-12 rounded-xl2 border border-brand-mint/40 bg-brand-bg/30 p-5">
+          <h3 className="font-head text-base font-semibold text-brand">
+            ¿Empezamos?
+          </h3>
+          <p className="mt-1 text-sm text-slate-700">
+            El registro es gratuito y solo te lleva un par de minutos. Puedes
+            descargar tus datos o eliminar tu cuenta cuando quieras (RGPD
+            completo).
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href="/registro"
+              className="inline-flex items-center rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+            >
+              Crear cuenta
+            </a>
+            <a
+              href="/auto-permutas"
+              className="inline-flex items-center rounded-md border border-brand-mint bg-white px-4 py-2 text-sm font-medium text-brand-text hover:bg-brand-bg/40"
+            >
+              O explorar primero (sin registro)
+            </a>
+          </div>
+        </div>
       </div>
     </main>
   );
