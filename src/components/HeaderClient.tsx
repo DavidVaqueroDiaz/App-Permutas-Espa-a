@@ -137,6 +137,28 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
               </a>
             </>
           )}
+
+          {/* Contacto siempre visible al final del nav, para que cualquiera
+              pueda enviarnos sugerencias o reportar bugs sin tener que
+              bajar al footer. Se separa con un divider sutil. */}
+          <span aria-hidden="true" className="mx-1 h-5 w-px bg-white/15" />
+          <a
+            href="/contacto"
+            title="Enviarnos sugerencias o reportar un problema"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-white/85 ring-1 ring-white/15 hover:bg-white/10 hover:text-white"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                d="M4 6 H20 V18 H4 Z M4 6 L12 13 L20 6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+            Contacto
+          </a>
         </nav>
 
         {/* === Boton hamburguesa MOVIL (<sm) === */}
@@ -218,14 +240,6 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
                     ⚙ Admin
                   </ItemMovil>
                 )}
-                <form action="/logout" method="POST" className="mt-1">
-                  <button
-                    type="submit"
-                    className="block w-full rounded-md px-4 py-3 text-left text-sm text-white/80 ring-1 ring-white/10 hover:bg-white/10"
-                  >
-                    Cerrar sesión
-                  </button>
-                </form>
               </>
             ) : (
               <>
@@ -236,6 +250,24 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
                   Crear cuenta
                 </ItemMovil>
               </>
+            )}
+
+            {/* Separador + Contacto (siempre visible, login o no) */}
+            <div className="my-1 border-t border-white/10" aria-hidden="true" />
+            <ItemMovil href="/contacto" pathname={pathname}>
+              ✉ Contacto
+            </ItemMovil>
+
+            {/* Cerrar sesion al final si esta logueado */}
+            {user && (
+              <form action="/logout" method="POST" className="mt-1">
+                <button
+                  type="submit"
+                  className="block w-full rounded-md px-4 py-3 text-left text-sm text-white/80 ring-1 ring-white/10 hover:bg-white/10"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
             )}
           </nav>
         </div>
