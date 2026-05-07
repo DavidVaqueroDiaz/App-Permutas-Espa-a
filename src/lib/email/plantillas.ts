@@ -136,6 +136,78 @@ export function plantillaCadenaNueva(opts: {
 }
 
 /**
+ * Email de recordatorio cuando el anuncio del usuario va a caducar
+ * en menos de 30 dias. Le invita a entrar y renovarlo (o cerrarlo si
+ * ya consiguio la permuta y se le olvido marcarlo).
+ */
+export function plantillaRecordatorioCaducidad(opts: {
+  alias: string;
+  cuerpoTexto: string;
+  municipio: string;
+  diasRestantes: number;
+  anuncioId: string;
+}): { subject: string; html: string; text: string } {
+  const enlaceEditar = `${BASE_URL}/anuncios/${opts.anuncioId}/editar`;
+  const enlaceMiCuenta = `${BASE_URL}/mi-cuenta`;
+
+  const cuerpoSeguro = opts.cuerpoTexto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const muniSeguro = opts.municipio
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const html = envoltura({
+    titulo: "Tu anuncio caduca pronto",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        Hola <strong style="color:#0d4a3a;">${opts.alias}</strong>,
+      </p>
+      <p style="margin:0 0 16px 0;">
+        Tu anuncio de <strong>${cuerpoSeguro}</strong> en
+        <strong>${muniSeguro}</strong> caduca en
+        <strong>${opts.diasRestantes} ${opts.diasRestantes === 1 ? "día" : "días"}</strong>.
+        Después dejará de aparecer en /auto-permutas y en los buscadores.
+      </p>
+      <div style="margin:0 0 22px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+        <p style="margin:0;color:#0d4a3a;">
+          <strong>¿Sigues queriendo permutar?</strong> Entra y guarda
+          (sin cambiar nada) para renovarlo otros 6 meses.
+        </p>
+      </div>
+      <p style="margin:0 0 22px 0;">
+        <a href="${enlaceEditar}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
+          Renovar mi anuncio →
+        </a>
+      </p>
+      <p style="margin:0 0 8px 0;color:#64748b;font-size:13px;">
+        Si <strong>ya conseguiste tu permuta</strong> y se te olvidó
+        marcarlo, hazlo desde
+        <a href="${enlaceMiCuenta}" style="color:#0f6e56;">tu cuenta</a>
+        para que las otras personas de la cadena no esperen tu respuesta.
+      </p>
+      <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
+        Si el botón no funciona: <span style="color:#0f6e56;">${enlaceEditar}</span>
+      </p>
+    `,
+  });
+
+  const text =
+    `Hola ${opts.alias},\n\n` +
+    `Tu anuncio de ${opts.cuerpoTexto} en ${opts.municipio} caduca en ${opts.diasRestantes} ${opts.diasRestantes === 1 ? "día" : "días"}.\n\n` +
+    `Si sigues queriendo permutar, renuevalo aqui:\n${enlaceEditar}\n\n` +
+    `Si ya conseguiste tu permuta y se te olvido marcarlo, hazlo desde:\n${enlaceMiCuenta}\n`;
+
+  return {
+    subject: `Tu anuncio en PermutaES caduca en ${opts.diasRestantes} ${opts.diasRestantes === 1 ? "día" : "días"}`,
+    html,
+    text,
+  };
+}
+
+/**
  * Email enviado a los OTROS participantes de cadenas en las que estaba
  * un anuncio que acaba de cerrarse como "permuta conseguida".
  *
