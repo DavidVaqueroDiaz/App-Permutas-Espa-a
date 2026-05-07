@@ -25,14 +25,15 @@ export default function AvisoLegalPage() {
           ánimo de lucro).
         </li>
         <li>
-          <strong>Contacto:</strong> el email de contacto se publicará
-          junto al despliegue del dominio definitivo. Mientras tanto,
-          puedes abrir un issue en{" "}
+          <strong>Contacto:</strong> a través del{" "}
+          <a href="/contacto">formulario de contacto</a> o, alternativamente,
+          abriendo un issue en{" "}
           <a href="https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a/issues">
             GitHub
-          </a>{" "}
-          o ejercer tus derechos directamente desde la sección "Privacidad
-          y mis datos" de tu cuenta.
+          </a>
+          . Si tienes una cuenta, puedes ejercer tus derechos RGPD
+          (acceso, supresión) directamente desde la sección "Privacidad y
+          mis datos" de tu cuenta.
         </li>
       </ul>
       <p>

@@ -5,8 +5,9 @@
  * sin tener que tocar la lógica que las dispara.
  */
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL ?? "https://permutaes.vercel.app";
+import { SITE_URL } from "@/lib/site-url";
+
+const BASE_URL = SITE_URL;
 
 function envoltura({
   titulo,

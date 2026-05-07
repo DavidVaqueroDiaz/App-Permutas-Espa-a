@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site-url";
 
 /**
  * sitemap.xml generado dinámicamente por Next.js.
@@ -8,8 +9,7 @@ import type { MetadataRoute } from "next";
  *   - /permutas/sanidad, /permutas/age, etc.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://permutaes.vercel.app";
+  const baseUrl = SITE_URL;
 
   const now = new Date();
   return [

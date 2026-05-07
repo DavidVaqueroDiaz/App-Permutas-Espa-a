@@ -23,6 +23,14 @@ export type Mensaje = {
   creado_el: string;
 };
 
+export type AnuncioContexto = {
+  id: string;
+  estado: string;
+  cuerpo_texto: string;
+  especialidad_texto: string | null;
+  municipio: string;
+};
+
 export type ConversacionDetalle = {
   id: string;
   yo_soy_a: boolean;
@@ -30,6 +38,8 @@ export type ConversacionDetalle = {
   otro_alias: string;
   mi_anuncio_id: string | null;
   su_anuncio_id: string | null;
+  /** Anuncio del otro usuario (el que motivo la conversacion). */
+  su_anuncio: AnuncioContexto | null;
   mensajes: Mensaje[];
 };
 
@@ -400,6 +410,57 @@ export async function leerConversacion(
 
   const mensajes = (mensajesData ?? []) as Mensaje[];
 
+  // Datos del anuncio del OTRO (el que motivo la conversacion). Asi en
+  // la cabecera del chat se ve "sobre Maestros 035 Musica en Sobrado"
+  // en lugar de solo el alias generico.
+  const suAnuncioId = yoSoyA ? c.anuncio_b_id : c.anuncio_a_id;
+  let suAnuncio: AnuncioContexto | null = null;
+  if (suAnuncioId) {
+    const { data: anuncioRow } = await supabase
+      .from("anuncios")
+      .select(
+        `id, estado,
+         cuerpo:cuerpos(codigo_oficial, denominacion),
+         especialidad:especialidades(codigo_oficial, denominacion),
+         municipio:municipios!municipio_actual_codigo(nombre)`,
+      )
+      .eq("id", suAnuncioId)
+      .maybeSingle();
+    if (anuncioRow) {
+      type AnuncioRow = {
+        id: string;
+        estado: string;
+        cuerpo:
+          | { codigo_oficial: string | null; denominacion: string }
+          | { codigo_oficial: string | null; denominacion: string }[]
+          | null;
+        especialidad:
+          | { codigo_oficial: string | null; denominacion: string }
+          | { codigo_oficial: string | null; denominacion: string }[]
+          | null;
+        municipio:
+          | { nombre: string }
+          | { nombre: string }[]
+          | null;
+      };
+      const a = anuncioRow as unknown as AnuncioRow;
+      const c1 = Array.isArray(a.cuerpo) ? a.cuerpo[0] : a.cuerpo;
+      const e1 = Array.isArray(a.especialidad) ? a.especialidad[0] : a.especialidad;
+      const m1 = Array.isArray(a.municipio) ? a.municipio[0] : a.municipio;
+      suAnuncio = {
+        id: a.id,
+        estado: a.estado,
+        cuerpo_texto: c1
+          ? `${c1.codigo_oficial ? c1.codigo_oficial + " · " : ""}${c1.denominacion}`
+          : "Cuerpo desconocido",
+        especialidad_texto: e1
+          ? `${e1.codigo_oficial ? e1.codigo_oficial + " · " : ""}${e1.denominacion}`
+          : null,
+        municipio: m1?.nombre ?? "—",
+      };
+    }
+  }
+
   // Marcar como vista (es server action, no necesita ser síncrona).
   await supabase.rpc("marcar_conversacion_vista", { conv_id: conversacionId });
 
@@ -409,7 +470,8 @@ export async function leerConversacion(
     otro_usuario_id: otroId,
     otro_alias: otroAlias,
     mi_anuncio_id: yoSoyA ? c.anuncio_a_id : c.anuncio_b_id,
-    su_anuncio_id: yoSoyA ? c.anuncio_b_id : c.anuncio_a_id,
+    su_anuncio_id: suAnuncioId,
+    su_anuncio: suAnuncio,
     mensajes,
   };
 }

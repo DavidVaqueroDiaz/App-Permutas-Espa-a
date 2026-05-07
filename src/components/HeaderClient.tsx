@@ -50,9 +50,11 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <h1 className="font-head text-xl font-semibold leading-tight md:text-[22px]">
+            {/* Span en lugar de h1 para evitar dos h1 por pagina (cada
+                ruta debe tener UN h1, el de su contenido principal). */}
+            <span className="block font-head text-xl font-semibold leading-tight md:text-[22px]">
               PermutaES
-            </h1>
+            </span>
             <p className="hidden text-[13px] leading-tight text-brand-mint sm:block md:text-sm">
               Permutas de plaza para funcionarios públicos
             </p>

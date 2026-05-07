@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Sora } from "next/font/google";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 // CSS de MapLibre cargado globalmente. Es pequeño (~40 KB) y así está
 // siempre disponible cuando un componente con dynamic import lo necesita
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "PermutaES" }],
   creator: "PermutaES",
-  metadataBase: new URL("https://permutaes.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: "/",
   },
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
     title: "PermutaES — Permutas de plaza para funcionarios públicos en España",
     description:
       "Plataforma nacional gratuita para que funcionarios públicos españoles encuentren cadenas de permuta compatibles.",
-    url: "https://permutaes.vercel.app",
+    url: SITE_URL,
     siteName: "PermutaES",
     locale: "es_ES",
     type: "website",

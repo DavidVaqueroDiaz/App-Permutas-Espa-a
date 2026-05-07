@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title:
@@ -196,7 +197,7 @@ const SECCIONES: Seccion[] = [
   },
 ];
 
-const URL_CANONICA = "https://permutaes.vercel.app/preguntas-frecuentes";
+const URL_CANONICA = `${SITE_URL}/preguntas-frecuentes`;
 
 const SCHEMA_FAQ = {
   "@context": "https://schema.org",

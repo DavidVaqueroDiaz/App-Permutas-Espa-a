@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title:
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const FECHA_REVISION = "2026-05-05";
-const URL_CANONICA = "https://permutaes.vercel.app/que-es-una-permuta";
+const URL_CANONICA = `${SITE_URL}/que-es-una-permuta`;
 
 const SCHEMA_ARTICULO = {
   "@context": "https://schema.org",
@@ -41,7 +42,7 @@ const SCHEMA_ARTICULO = {
   publisher: {
     "@type": "Organization",
     name: "PermutaES",
-    url: "https://permutaes.vercel.app",
+    url: SITE_URL,
   },
   mainEntityOfPage: { "@type": "WebPage", "@id": URL_CANONICA },
 };

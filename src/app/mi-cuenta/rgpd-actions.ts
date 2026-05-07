@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/site-url";
 
 // ===========================================================================
 // Derecho de acceso (art. 15) + portabilidad (art. 20):
@@ -126,7 +127,7 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
   const exportado = {
     metadata: {
       exportado_el: new Date().toISOString(),
-      politica_privacidad_url: "https://permutaes.vercel.app/politica-privacidad",
+      politica_privacidad_url: `${SITE_URL}/politica-privacidad`,
       formato: "json",
       version: 1,
     },

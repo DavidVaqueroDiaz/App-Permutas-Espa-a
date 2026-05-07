@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { aplicarRateLimit, ipDesdeHeaders } from "@/lib/rate-limit";
+import { SITE_URL } from "@/lib/site-url";
 
 /**
  * Estado del formulario de registro tras una accion.
@@ -150,14 +151,11 @@ export async function registrarUsuario(
 
   const supabase = await createClient();
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://permutaes.vercel.app";
-
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/mi-cuenta?bienvenido=1")}`,
+      emailRedirectTo: `${SITE_URL}/auth/callback?next=${encodeURIComponent("/mi-cuenta?bienvenido=1")}`,
       data: {
         alias_publico: alias,
         ano_nacimiento: ano,

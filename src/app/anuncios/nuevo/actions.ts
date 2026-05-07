@@ -16,6 +16,17 @@ export type MunicipioBusqueda = {
   provincia_nombre: string;
 };
 
+/**
+ * Quita tildes y baja a minusculas para comparar nombres ignorando
+ * acentos. "Coruña" y "coruna" deben matchear igual.
+ */
+function normalizar(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
 export async function buscarMunicipios(
   query: string,
   limit = 20,
@@ -25,27 +36,54 @@ export async function buscarMunicipios(
 
   const supabase = await createClient();
 
-  // ilike '%q%' es suficiente para 8132 municipios. El nombre tiene un
-  // índice GIN (FTS) creado en la migración 0001 que acelera mucho la
-  // búsqueda. Usamos ilike para permitir matches parciales también.
+  // Pedimos hasta 80 candidatos por `ilike` y los reordenamos en
+  // memoria por relevancia: (1) coincidencia exacta, (2) startsWith,
+  // (3) contains. Antes con un simple ilike y orden alfabetico,
+  // buscar "Madrid" devolvia "Valmadrid" antes que "Madrid".
   const { data, error } = await supabase
     .from("municipios")
     .select("codigo_ine, nombre, provincia_codigo, provincias!inner(nombre)")
     .ilike("nombre", `%${q}%`)
-    .limit(limit);
+    .limit(80);
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
-    codigo_ine: row.codigo_ine as string,
-    nombre: row.nombre as string,
-    provincia_codigo: row.provincia_codigo as string,
-    provincia_nombre:
-      (row.provincias as unknown as { nombre: string } | { nombre: string }[])
-        ?.constructor === Array
-        ? (row.provincias as unknown as { nombre: string }[])[0]?.nombre ?? ""
-        : (row.provincias as unknown as { nombre: string })?.nombre ?? "",
-  }));
+  type Row = {
+    codigo_ine: string;
+    nombre: string;
+    provincia_codigo: string;
+    provincias: { nombre: string } | { nombre: string }[];
+  };
+  const filas = data as unknown as Row[];
+
+  const qNorm = normalizar(q);
+
+  // Score: 0 = exacto, 1 = startsWith, 2 = contains. Menor = mas relevante.
+  function score(nombre: string): number {
+    const n = normalizar(nombre);
+    if (n === qNorm) return 0;
+    if (n.startsWith(qNorm)) return 1;
+    return 2;
+  }
+
+  const ordenados = filas
+    .map((r) => ({ row: r, s: score(r.nombre) }))
+    .sort((a, b) => {
+      if (a.s !== b.s) return a.s - b.s;
+      // Dentro del mismo score, alfabetico por nombre.
+      return a.row.nombre.localeCompare(b.row.nombre, "es");
+    })
+    .slice(0, limit);
+
+  return ordenados.map(({ row }) => {
+    const prov = Array.isArray(row.provincias) ? row.provincias[0] : row.provincias;
+    return {
+      codigo_ine: row.codigo_ine,
+      nombre: row.nombre,
+      provincia_codigo: row.provincia_codigo,
+      provincia_nombre: prov?.nombre ?? "",
+    };
+  });
 }
 
 // ----------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site-url";
 
 /**
  * robots.txt generado dinámicamente por Next.js.
@@ -14,8 +15,7 @@ import type { MetadataRoute } from "next";
  *     seguridad y para no perder presupuesto de crawl.
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://permutaes.vercel.app";
+  const baseUrl = SITE_URL;
 
   return {
     rules: [

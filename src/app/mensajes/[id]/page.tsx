@@ -49,6 +49,42 @@ export default async function ConversacionPage({
         </div>
       </header>
 
+      {/* Contexto del anuncio que origino la conversacion. Sin esto,
+          un usuario con varias conversaciones abiertas no sabia a cual
+          pertenecia cada una. */}
+      {detalle.su_anuncio && (
+        <div className="mb-4 rounded-md border border-brand-mint/40 bg-brand-bg/30 p-3 text-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
+            💬 Conversación sobre el anuncio de {detalle.otro_alias}
+          </p>
+          <p className="mt-1 font-medium text-slate-900">
+            {detalle.su_anuncio.cuerpo_texto}
+            {detalle.su_anuncio.especialidad_texto && (
+              <span className="font-normal text-slate-700">
+                {" · "}
+                {detalle.su_anuncio.especialidad_texto}
+              </span>
+            )}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-600">
+            Plaza actual: <strong>{detalle.su_anuncio.municipio}</strong>
+            {" · "}
+            Estado: {detalle.su_anuncio.estado}
+            {detalle.su_anuncio.estado === "activo" && (
+              <>
+                {" · "}
+                <a
+                  href={`/anuncios/${detalle.su_anuncio.id}`}
+                  className="font-medium text-brand-text hover:text-brand"
+                >
+                  Ver anuncio →
+                </a>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       <ChatCliente
         conversacionId={detalle.id}
         miUsuarioId={user.id}

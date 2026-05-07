@@ -30,6 +30,10 @@ export async function enviarEmail(opts: {
   subject: string;
   html: string;
   text?: string;
+  /** Direccion a la que se respondera. Util para el formulario de
+   *  contacto: el From es siempre noreply@permutaes pero la respuesta
+   *  va al usuario. */
+  replyTo?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const c = getCliente();
   if (!c) return { ok: false, error: "Resend no configurado" };
@@ -41,6 +45,7 @@ export async function enviarEmail(opts: {
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
+      replyTo: opts.replyTo,
     });
     if (r.error) {
       // Errores típicos: el dominio remitente no está verificado, el
