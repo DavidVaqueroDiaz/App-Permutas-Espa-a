@@ -10,7 +10,7 @@ export default function CondicionesUsoPage() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12 prose prose-slate">
       <h1>Condiciones de uso</h1>
       <p className="text-sm text-slate-500">
-        Versión v1 — Borrador en desarrollo. Será revisada por asesoría jurídica antes del lanzamiento público.
+        Versión v2 · Última actualización: mayo de 2026.
       </p>
 
       <h2>1. Qué es PermutaES</h2>

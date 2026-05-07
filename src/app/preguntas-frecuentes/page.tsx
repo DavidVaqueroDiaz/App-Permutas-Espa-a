@@ -162,6 +162,11 @@ const SECCIONES: Seccion[] = [
         q: "¿Qué datos míos se ven en el anuncio?",
         a: "En la vista pública (sin login) solo se ve un alias que tú eliges, el cuerpo y la especialidad, el municipio donde tienes plaza, los municipios a los que aceptarías irte y un texto libre de observaciones (si lo añades). Tu nombre, tu email y tu fecha exacta de nacimiento NO se muestran nunca.",
       },
+      {
+        idAncla: "rgpd-derechos",
+        q: "¿Puedo descargar mis datos o eliminar mi cuenta?",
+        a: "Sí, en cualquier momento. Desde tu cuenta → sección \"Privacidad y mis datos\" tienes dos botones: \"Descargar mis datos (JSON)\" para un export completo de todo lo que guardamos sobre ti (perfil, anuncios, mensajes, conversaciones, reportes) y \"Eliminar mi cuenta\" que borra tu cuenta y todos los datos asociados de forma irreversible. Los dos derechos son del RGPD (artículos 15 y 17) y no necesitas escribirnos para ejercerlos.",
+      },
     ],
   },
   {
