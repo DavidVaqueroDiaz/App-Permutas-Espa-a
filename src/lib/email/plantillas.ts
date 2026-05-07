@@ -136,6 +136,111 @@ export function plantillaCadenaNueva(opts: {
 }
 
 /**
+ * Email de bienvenida que enviamos cuando el usuario confirma su email
+ * y entra por primera vez. Es distinto del email tecnico de Supabase
+ * (ese es el que dice "confirma tu cuenta"); este es el "Hola de
+ * verdad, ya estas dentro, esto es lo que viene ahora".
+ */
+export function plantillaEmailBienvenida(opts: {
+  alias: string;
+}): { subject: string; html: string; text: string } {
+  const enlaceNuevoAnuncio = `${BASE_URL}/anuncios/nuevo`;
+  const enlaceAutoPermutas = `${BASE_URL}/auto-permutas`;
+  const enlaceMiCuenta = `${BASE_URL}/mi-cuenta`;
+  const aliasSeguro = opts.alias
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const html = envoltura({
+    titulo: "Bienvenido",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        Hola <strong style="color:#0d4a3a;">${aliasSeguro}</strong>,
+      </p>
+      <p style="margin:0 0 16px 0;">
+        Bienvenido a <strong>PermutaES</strong>, la plataforma para detectar
+        cadenas de permuta entre funcionarios públicos en España. Tu cuenta
+        está confirmada y lista para usar.
+      </p>
+
+      <div style="margin:0 0 22px 0;padding:14px 18px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+        <p style="margin:0 0 8px 0;color:#0d4a3a;font-weight:600;">
+          Tus 3 siguientes pasos:
+        </p>
+        <ol style="margin:0;padding-left:20px;color:#1f2937;">
+          <li style="margin-bottom:6px;">
+            <a href="${enlaceNuevoAnuncio}" style="color:#0f6e56;font-weight:500;">Publica tu anuncio</a>
+            con tu plaza actual y los destinos a los que aceptarías irte.
+          </li>
+          <li style="margin-bottom:6px;">
+            Cuando lo publiques, cruzaremos automáticamente tu perfil con
+            todos los demás. Te avisaremos por email si aparece una cadena
+            que te incluya.
+          </li>
+          <li>
+            Mientras tanto, puedes
+            <a href="${enlaceAutoPermutas}" style="color:#0f6e56;font-weight:500;">explorar el buscador</a>
+            para ver qué otros anuncios hay en tu sector y zona.
+          </li>
+        </ol>
+      </div>
+
+      <p style="margin:0 0 22px 0;">
+        <a href="${enlaceNuevoAnuncio}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:8px;font-size:14px;">
+          Publicar mi anuncio →
+        </a>
+      </p>
+
+      <p style="margin:0 0 8px 0;color:#374151;font-size:13.5px;">
+        <strong>Algunas cosas importantes:</strong>
+      </p>
+      <ul style="margin:0 0 18px 0;padding-left:20px;color:#374151;font-size:13.5px;">
+        <li>El servicio es <strong>gratis</strong>, sin publicidad ni datos
+        a terceros.</li>
+        <li>Tu identidad real solo se comparte cuando tú decides contactar
+        con otra persona dentro de la mensajería.</li>
+        <li>Las reglas legales personales (años hasta jubilación, antigüedad,
+        etc.) las verificamos automáticamente cuando aparecen cadenas, pero
+        siempre debes confirmarlas con tu administración antes de tramitar.</li>
+        <li>Si en algún momento quieres irte, puedes
+        <a href="${enlaceMiCuenta}" style="color:#0f6e56;">descargar todos
+        tus datos o eliminar tu cuenta</a> con un click. RGPD completo.</li>
+      </ul>
+
+      <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
+        Si tienes cualquier duda, responde a este email y lo leeremos.
+      </p>
+    `,
+  });
+
+  const text =
+    `Hola ${opts.alias},\n\n` +
+    `Bienvenido a PermutaES. Tu cuenta esta confirmada y lista para usar.\n\n` +
+    `Tus 3 siguientes pasos:\n` +
+    `  1. Publica tu anuncio con tu plaza actual y los destinos que buscas:\n` +
+    `     ${enlaceNuevoAnuncio}\n` +
+    `  2. Cuando lo publiques, cruzaremos tu perfil con los demas y te\n` +
+    `     avisaremos por email si aparece una cadena.\n` +
+    `  3. Mientras tanto, puedes explorar el buscador:\n` +
+    `     ${enlaceAutoPermutas}\n\n` +
+    `Algunas cosas importantes:\n` +
+    `  - Servicio gratis, sin publicidad ni datos a terceros.\n` +
+    `  - Tu identidad real solo se comparte si tu decides contactar.\n` +
+    `  - Las reglas legales (jubilacion, antiguedad...) las verificamos\n` +
+    `    automaticamente, pero confirmalo siempre con tu administracion.\n` +
+    `  - Si quieres irte, descarga tus datos o elimina tu cuenta desde\n` +
+    `    ${enlaceMiCuenta}\n\n` +
+    `Si tienes cualquier duda, responde a este email.\n`;
+
+  return {
+    subject: `Bienvenido a PermutaES, ${opts.alias}`,
+    html,
+    text,
+  };
+}
+
+/**
  * Email de recordatorio cuando el anuncio del usuario va a caducar
  * en menos de 30 dias. Le invita a entrar y renovarlo (o cerrarlo si
  * ya consiguio la permuta y se le olvido marcarlo).

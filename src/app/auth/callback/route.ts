@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { enviarEmailBienvenidaSiProcede } from "@/lib/email/bienvenida";
 
 /**
  * Callback de Supabase Auth.
@@ -10,8 +11,9 @@ import { createClient } from "@/lib/supabase/server";
  *   - recuperación de contraseña
  *   - cambio de email
  *
- * Intercambia el código por una sesión real y redirige al usuario al
- * destino indicado por el parámetro `next` (o, por defecto, a /mi-cuenta).
+ * Intercambia el código por una sesión real, dispara (best-effort) el
+ * email de bienvenida si es la primera vez del usuario, y redirige al
+ * destino indicado por el parámetro `next` (por defecto `/mi-cuenta`).
  */
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -36,6 +38,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url),
     );
+  }
+
+  // Best-effort: si es la primera vez que entra (email recien confirmado),
+  // disparamos el email de bienvenida nuestro. La funcion deduplica via
+  // `perfiles_usuario.bienvenida_enviada_el`, asi que aunque se llame en
+  // logins posteriores no se repite.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await enviarEmailBienvenidaSiProcede(user.id);
   }
 
   return NextResponse.redirect(new URL(next, request.url));
