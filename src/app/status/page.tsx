@@ -59,9 +59,16 @@ async function chequearSupabase(): Promise<EstadoCheck> {
 }
 
 async function chequearResend(): Promise<EstadoCheck> {
-  // No mandamos email de verdad — solo comprobamos que la API key esta
-  // configurada y que el dominio responde HEAD. Hacer un envio aqui
-  // gastaria cuota.
+  // No mandamos email de verdad para no gastar cuota. Tampoco usamos
+  // GET /domains o /api-keys porque requieren scopes especiales que la
+  // mayoria de API keys de envio NO tienen (Resend separa por scope:
+  // "sending" vs "full access"). En su lugar hacemos una llamada que
+  // SOLO usa el scope de envio: POST /emails con un payload invalido a
+  // proposito (sin destinatario). Resend devolvera:
+  //   - 401 si la API key esta mal -> ERROR
+  //   - 422 (Unprocessable) si la key es valida pero el payload falla
+  //     -> OK (significa que la API responde y autentica nuestra key).
+  //   - 200 ya seria muy raro porque no enviamos a nadie.
   if (!process.env.RESEND_API_KEY) {
     return {
       nombre: "Email (Resend)",
@@ -72,28 +79,49 @@ async function chequearResend(): Promise<EstadoCheck> {
   }
   const t0 = Date.now();
   try {
-    const r = await fetch("https://api.resend.com/domains", {
-      method: "GET",
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({}), // payload vacio a proposito
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
     });
     const latencia = Date.now() - t0;
-    if (!r.ok) {
+    // 401 = API key invalida -> error real.
+    if (r.status === 401) {
       return {
         nombre: "Email (Resend)",
         estado: "error",
         latencia_ms: latencia,
-        detalle: `HTTP ${r.status} desde la API de Resend.`,
+        detalle: "API key rechazada (HTTP 401). Revisar RESEND_API_KEY.",
+      };
+    }
+    // 422 = key OK, payload invalido -> es lo esperado en healthcheck.
+    if (r.status === 422 || r.status === 400) {
+      return {
+        nombre: "Email (Resend)",
+        estado: "ok",
+        latencia_ms: latencia,
+        detalle: `API key valida y endpoint responde (${latencia} ms).`,
+      };
+    }
+    // 200 / 5xx / otros: estado inesperado.
+    if (r.status >= 500) {
+      return {
+        nombre: "Email (Resend)",
+        estado: "error",
+        latencia_ms: latencia,
+        detalle: `Resend devuelve ${r.status} (problema en su lado).`,
       };
     }
     return {
       nombre: "Email (Resend)",
-      estado: "ok",
+      estado: "aviso",
       latencia_ms: latencia,
-      detalle: `API responde OK (${latencia} ms).`,
+      detalle: `Respuesta HTTP ${r.status} (inesperada pero no critica).`,
     };
   } catch (e) {
     return {
