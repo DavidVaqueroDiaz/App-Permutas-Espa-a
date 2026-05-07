@@ -5,6 +5,7 @@ import { EditarPerfilForm } from "./EditarPerfilForm";
 import { CambiarContrasenaForm } from "./CambiarContrasenaForm";
 import { MiAnuncioCard, type AnuncioCardData } from "./MiAnuncioCard";
 import { PrivacidadSeccion } from "./PrivacidadSeccion";
+import { BotonCompartir } from "./BotonCompartir";
 import { contarCadenasParaMisAnuncios } from "./actions";
 
 export const metadata: Metadata = {
@@ -300,6 +301,15 @@ export default async function MiCuentaPage({
               </ul>
             )}
           </section>
+
+          {/* Botón de compartir: se muestra solo si el usuario tiene
+              al menos un anuncio (asi sabe lo que comparte y le tiene
+              sentido recomendar la app). */}
+          {anuncios.length > 0 && (
+            <section className="mt-10">
+              <BotonCompartir />
+            </section>
+          )}
         </>
       )}
 
