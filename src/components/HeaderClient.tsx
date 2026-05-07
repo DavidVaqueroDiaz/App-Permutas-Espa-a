@@ -40,15 +40,15 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
     <header className="bg-brand text-white">
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-3 py-3 md:gap-4 md:px-8 md:py-4">
         <a href="/" className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-mint/15 ring-1 ring-brand-mint/30">
-            <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden="true">
-              <path
-                d="M8 13 L16 6 L24 13 L24 25 L19 25 L19 18 L13 18 L13 25 L8 25 Z"
-                fill="#5dcaa5"
-              />
-              <circle cx="22" cy="9" r="2.2" fill="#5dcaa5" />
-            </svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="PermutaES"
+            width={44}
+            height={44}
+            className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-brand-mint/30"
+          />
+
           <div className="min-w-0">
             {/* Span en lugar de h1 para evitar dos h1 por pagina (cada
                 ruta debe tener UN h1, el de su contenido principal). */}
