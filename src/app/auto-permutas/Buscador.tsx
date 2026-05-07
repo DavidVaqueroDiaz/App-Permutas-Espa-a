@@ -99,7 +99,13 @@ export function Buscador({
   );
   const sectoresActivos = useMemo(
     () => sectores.filter((s) =>
-      s.codigo === "docente_loe" || s.codigo === "sanitario_sns"
+      s.codigo === "docente_loe" ||
+      s.codigo === "sanitario_sns" ||
+      s.codigo === "funcionario_age" ||
+      s.codigo === "funcionario_ccaa" ||
+      s.codigo === "funcionario_local" ||
+      s.codigo === "habilitado_nacional" ||
+      s.codigo === "policia_local"
     ),
     [sectores],
   );
@@ -284,10 +290,14 @@ export function Buscador({
                 </option>
               ))}
             </select>
-            {sectoresActivos.length < sectores.length && (
-              <p className="mt-1 text-xs text-slate-500">
-                Versión alfa: docencia LOE y sanidad SNS. Más sectores se
-                irán abriendo progresivamente.
+            {sectorCodigo === "policia_local" && (
+              <p className="mt-1 text-xs text-warn-text">
+                Solo regulado en Andalucía, Aragón, Baleares, C. Valenciana y Galicia.
+              </p>
+            )}
+            {sectorCodigo === "funcionario_ccaa" && (
+              <p className="mt-1 text-xs text-warn-text">
+                Permuta intra-CCAA: solo cruzamos anuncios de tu propia comunidad.
               </p>
             )}
           </Field>

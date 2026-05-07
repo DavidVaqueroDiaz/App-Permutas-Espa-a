@@ -29,8 +29,16 @@ const MapaSelectorMunicipios = dynamic(
   { ssr: false },
 );
 
-/** Sectores REALMENTE activos. */
-const SECTORES_ACTIVOS = new Set<string>(["docente_loe", "sanitario_sns"]);
+/** Sectores REALMENTE activos (todos los previstos). */
+const SECTORES_ACTIVOS = new Set<string>([
+  "docente_loe",
+  "sanitario_sns",
+  "funcionario_age",
+  "funcionario_ccaa",
+  "funcionario_local",
+  "habilitado_nacional",
+  "policia_local",
+]);
 const STORAGE_KEY = "permutaes:wizard:nuevo-anuncio";
 const ANO_ACTUAL = new Date().getFullYear();
 
@@ -334,7 +342,8 @@ function Paso1Sector({
   return (
     <PasoLayout titulo="¿En qué sector trabajas como funcionario?">
       <p className="mb-4 text-sm text-slate-600">
-        Solo el sector "Profesorado no universitario" está activo en esta versión inicial. El resto se irá activando progresivamente.
+        Elige el sector al que perteneces. Las reglas legales de la
+        permuta (geográficas y de cuerpo) se aplican según el sector.
       </p>
       <ul className="space-y-2">
         {sectores.map((s) => {
@@ -370,6 +379,25 @@ function Paso1Sector({
           );
         })}
       </ul>
+
+      {valor === "policia_local" && (
+        <div className="mt-4 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-xs text-warn-text">
+          <strong>Atención:</strong> la permuta de Policía Local solo está
+          regulada en <strong>Andalucía, Aragón, Illes Balears, Comunitat
+          Valenciana y Galicia</strong>. Si tu plaza actual está fuera de
+          estas CCAA, tu administración no podrá tramitarla aunque encuentres
+          una persona compatible.
+        </div>
+      )}
+      {(valor === "funcionario_ccaa" || valor === "sanitario_sns") && (
+        <div className="mt-4 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-xs text-warn-text">
+          <strong>Atención:</strong>{" "}
+          {valor === "funcionario_ccaa"
+            ? "los funcionarios autonómicos solo permutan dentro de la misma CCAA."
+            : "el personal estatutario del SNS solo permuta dentro del mismo Servicio de Salud (SAS, SERGAS, etc.)."}
+        </div>
+      )}
+
       <NavBotones atras={null} siguienteHabilitado={!!valor} onSiguiente={onSiguiente} />
     </PasoLayout>
   );

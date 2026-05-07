@@ -46,11 +46,11 @@ export default async function NuevoAnuncioPage() {
       .from("sectores")
       .select("codigo, nombre, descripcion")
       .order("nombre", { ascending: true }),
-    // Cargamos los cuerpos de los sectores ACTIVOS (docente_loe + sanitario_sns).
+    // Cargamos los cuerpos de TODOS los sectores activos. Total < 60
+    // filas, podemos enviarlo todo al cliente sin problema.
     supabase
       .from("cuerpos")
       .select("id, sector_codigo, codigo_oficial, denominacion, subgrupo")
-      .in("sector_codigo", ["docente_loe", "sanitario_sns"])
       .order("codigo_oficial", { ascending: true }),
     supabase
       .from("especialidades")
