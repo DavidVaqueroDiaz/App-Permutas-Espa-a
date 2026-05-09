@@ -148,16 +148,36 @@ export async function contarCadenasParaMisAnuncios(): Promise<ConteoCadenas> {
     const ids = anunciosCompat.map((a) => a.id);
     const usuariosUnicos = Array.from(new Set(anunciosCompat.map((a) => a.usuario_id)));
 
-    const [plazasRes, perfilesRes] = await Promise.all([
-      supabase
-        .from("anuncio_plazas_deseadas")
-        .select("anuncio_id, municipio_codigo")
-        .in("anuncio_id", ids),
+    // Paginamos plazas para evitar truncamiento por el limite de 1000
+    // filas de PostgREST. Una CCAA entera = ~700-2200 plazas; con
+    // varios anuncios facilmente pasamos 1000.
+    async function cargarTodasPlazas() {
+      const PAGE = 1000;
+      let offset = 0;
+      const todas: { anuncio_id: string; municipio_codigo: string }[] = [];
+      while (true) {
+        const { data } = await supabase
+          .from("anuncio_plazas_deseadas")
+          .select("anuncio_id, municipio_codigo")
+          .in("anuncio_id", ids)
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        todas.push(...(data as { anuncio_id: string; municipio_codigo: string }[]));
+        if (data.length < PAGE) break;
+        offset += PAGE;
+        if (offset > 100_000) break;
+      }
+      return todas;
+    }
+
+    const [plazasData, perfilesRes] = await Promise.all([
+      cargarTodasPlazas(),
       supabase
         .from("perfiles_publicos")
         .select("id, alias_publico, ano_nacimiento")
         .in("id", usuariosUnicos),
     ]);
+    const plazasRes = { data: plazasData };
 
     const plazasPorAnuncio = new Map<string, Set<string>>();
     for (const p of plazasRes.data ?? []) {

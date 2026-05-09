@@ -18,28 +18,21 @@ export async function obtenerConteosPorCcaa(
   const supabase = await createClient();
   const incluirDemos = await modoDemoActivo();
 
-  let query = supabase
-    .from("anuncios")
-    .select("ccaa_codigo")
-    .eq("estado", "activo");
-
-  if (!incluirDemos) {
-    query = query.eq("es_demo", false);
-  }
-
-  if (sectorCodigo) {
-    query = query.eq("sector_codigo", sectorCodigo);
-  }
-
-  const { data, error } = await query;
+  // Usamos la RPC que agrega en SQL. Antes hacia SELECT + count en JS,
+  // pero con el limite por defecto de 1000 filas de PostgREST, en
+  // cuanto la app pase de 1000 anuncios los conteos se truncaban
+  // silenciosamente. La RPC devuelve solo ~19 filas (una por CCAA).
+  const { data, error } = await supabase.rpc("conteos_anuncios_por_ccaa", {
+    p_incluir_demos: incluirDemos,
+    p_sector_codigo: sectorCodigo ?? null,
+  });
   if (error || !data) {
     return {};
   }
 
   const counts: ConteoPorCcaa = {};
-  for (const row of data) {
-    const codigo = row.ccaa_codigo as string;
-    counts[codigo] = (counts[codigo] ?? 0) + 1;
+  for (const row of data as { ccaa_codigo: string; total: number }[]) {
+    counts[row.ccaa_codigo] = row.total;
   }
   return counts;
 }
@@ -58,25 +51,17 @@ export async function obtenerSectoresConAnuncios(): Promise<SectorOpcion[]> {
   const supabase = await createClient();
   const incluirDemos = await modoDemoActivo();
 
-  let anunciosQuery = supabase
-    .from("anuncios")
-    .select("sector_codigo")
-    .eq("estado", "activo");
-  if (!incluirDemos) anunciosQuery = anunciosQuery.eq("es_demo", false);
-
-  const [sectoresRes, anunciosRes] = await Promise.all([
+  // RPC con agregacion SQL (no sujeta al limite de 1000 filas).
+  const [sectoresRes, conteosRes] = await Promise.all([
     supabase.from("sectores").select("codigo, nombre"),
-    anunciosQuery,
+    supabase.rpc("conteos_anuncios_por_sector", { p_incluir_demos: incluirDemos }),
   ]);
 
   const sectores = sectoresRes.data ?? [];
-  const anuncios = anunciosRes.data ?? [];
+  const conteos = (conteosRes.data ?? []) as { sector_codigo: string; total: number }[];
 
   const totalesPorSector: Record<string, number> = {};
-  for (const a of anuncios) {
-    const c = a.sector_codigo as string;
-    totalesPorSector[c] = (totalesPorSector[c] ?? 0) + 1;
-  }
+  for (const c of conteos) totalesPorSector[c.sector_codigo] = c.total;
 
   const opciones: SectorOpcion[] = sectores
     .filter((s) => (totalesPorSector[s.codigo as string] ?? 0) > 0)

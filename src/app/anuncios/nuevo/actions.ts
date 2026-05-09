@@ -129,12 +129,24 @@ export async function expandirAtajos(
   }
 
   if (provinciaCodes.length > 0) {
-    const { data } = await supabase
-      .from("municipios")
-      .select("codigo_ine")
-      .in("provincia_codigo", provinciaCodes);
-    for (const row of data ?? []) {
-      conjunto.add(row.codigo_ine as string);
+    // CRITICO: una CCAA grande (Castilla y Leon: 2247 munis, Cataluna:
+    // 947, Andalucia: 770) supera el limite de 1000 filas de PostgREST.
+    // Sin paginar, el wizard guardaba SOLO ~1000 munis aunque el usuario
+    // hubiese elegido "toda la CCAA" -> matching no encuentra cadenas en
+    // los munis no guardados. Paginamos por lotes de 1000 hasta agotar.
+    const PAGE = 1000;
+    let offset = 0;
+    while (true) {
+      const { data } = await supabase
+        .from("municipios")
+        .select("codigo_ine")
+        .in("provincia_codigo", provinciaCodes)
+        .range(offset, offset + PAGE - 1);
+      if (!data || data.length === 0) break;
+      for (const row of data) conjunto.add(row.codigo_ine as string);
+      if (data.length < PAGE) break;
+      offset += PAGE;
+      if (offset > 10_000) break; // safety cap (Espana entera = 8132 munis)
     }
   }
 

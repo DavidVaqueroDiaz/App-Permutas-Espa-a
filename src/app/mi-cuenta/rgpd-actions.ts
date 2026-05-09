@@ -87,23 +87,43 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
   ]);
 
   // Vuelta a por las plazas y atajos con los IDs reales.
+  // RGPD: tenemos OBLIGACION LEGAL de devolver todos los datos.
+  // PostgREST trunca a 1000 filas — paginamos para garantizarlo.
   const anuncios = anunciosRes.data ?? [];
   const ids = anuncios.map((a) => (a as { id: string }).id);
   let plazas: unknown[] = [];
   let atajos: unknown[] = [];
   if (ids.length > 0) {
-    const [plRes, atRes] = await Promise.all([
-      supabase
-        .from("anuncio_plazas_deseadas")
-        .select("anuncio_id, municipio_codigo")
-        .in("anuncio_id", ids),
-      supabase
-        .from("anuncio_atajos")
-        .select("anuncio_id, tipo, valor, creado_el")
-        .in("anuncio_id", ids),
+    async function paginarPorAnuncioId<T>(tabla: string, columnas: string): Promise<T[]> {
+      const PAGE = 1000;
+      let offset = 0;
+      const todas: T[] = [];
+      while (true) {
+        const { data } = await supabase
+          .from(tabla)
+          .select(columnas)
+          .in("anuncio_id", ids)
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        todas.push(...(data as T[]));
+        if (data.length < PAGE) break;
+        offset += PAGE;
+        if (offset > 100_000) break;
+      }
+      return todas;
+    }
+    const [plData, atData] = await Promise.all([
+      paginarPorAnuncioId<{ anuncio_id: string; municipio_codigo: string }>(
+        "anuncio_plazas_deseadas",
+        "anuncio_id, municipio_codigo",
+      ),
+      paginarPorAnuncioId<{ anuncio_id: string; tipo: string; valor: string; creado_el: string }>(
+        "anuncio_atajos",
+        "anuncio_id, tipo, valor, creado_el",
+      ),
     ]);
-    plazas = plRes.data ?? [];
-    atajos = atRes.data ?? [];
+    plazas = plData;
+    atajos = atData;
   }
 
   // Mensajes recibidos: aquellos en conversaciones donde participo y NO

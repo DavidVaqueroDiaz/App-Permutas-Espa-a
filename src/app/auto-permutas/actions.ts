@@ -370,13 +370,41 @@ export async function buscarCadenasDesdePerfil(
     ]),
   );
 
+  // CRITICO: anuncio_plazas_deseadas tiene MUCHAS filas (cada anuncio
+  // puede tener cientos de plazas si el usuario eligio "toda una CCAA").
+  // Ej: 50 anuncios x 700 plazas (CCAA) = 35.000 filas. PostgREST corta
+  // a 1000 por defecto -> el matcher veria SOLO una fraccion de las
+  // plazas y se perderia cadenas validas. Paginamos en lotes.
+  async function cargarTodasLasPlazas(
+    anuncioIds: string[],
+  ): Promise<{ anuncio_id: string; municipio_codigo: string }[]> {
+    const PAGE = 1000;
+    const todas: { anuncio_id: string; municipio_codigo: string }[] = [];
+    let offset = 0;
+    while (true) {
+      const { data } = await supabase
+        .from("anuncio_plazas_deseadas")
+        .select("anuncio_id, municipio_codigo")
+        .in("anuncio_id", anuncioIds)
+        .range(offset, offset + PAGE - 1);
+      if (!data || data.length === 0) break;
+      todas.push(
+        ...(data as { anuncio_id: string; municipio_codigo: string }[]),
+      );
+      if (data.length < PAGE) break;
+      offset += PAGE;
+      // Guard: nunca mas de 100k plazas (1000 anuncios x 100 plazas
+      // promedio). Si llegamos aqui con un dataset real, hay que
+      // refactorizar a una RPC con agregacion en SQL.
+      if (offset > 100_000) break;
+    }
+    return todas;
+  }
+
   const [plazasRes, perfilesRes, muniInfoRes, cuerpoInfoRes, espInfoRes] =
     await Promise.all([
       ids.length > 0
-        ? supabase
-            .from("anuncio_plazas_deseadas")
-            .select("anuncio_id, municipio_codigo")
-            .in("anuncio_id", ids)
+        ? cargarTodasLasPlazas(ids).then((data) => ({ data }))
         : Promise.resolve({
             data: [] as { anuncio_id: string; municipio_codigo: string }[],
           }),
