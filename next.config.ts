@@ -1,8 +1,58 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/**
+ * Headers de seguridad globales. Mitigan varias clases de ataque:
+ *   - HSTS: fuerza HTTPS durante 2 anos.
+ *   - X-Frame-Options: previene que la web se embeba en un iframe
+ *     ajeno (clickjacking).
+ *   - X-Content-Type-Options: bloquea MIME sniffing.
+ *   - Referrer-Policy: limita la info que enviamos en el Referer al
+ *     navegar a otro dominio.
+ *   - Permissions-Policy: deniega APIs sensibles que no usamos.
+ *   - X-DNS-Prefetch-Control: deja que el navegador haga DNS prefetch.
+ *
+ * NOTA: NO ponemos Content-Security-Policy aqui porque MapLibre
+ * carga estilos inline + workers, y Next.js usa inline scripts para
+ * hidratar. Una CSP estricta requiere nonces o trabajar con cada
+ * runtime y el riesgo de romper la app es alto. Lo dejamos como
+ * mejora pendiente para una sesion dedicada.
+ */
+const securityHeaders = [
+  {
+    key: "X-Frame-Options",
+    value: "SAMEORIGIN",
+  },
+  {
+    key: "X-Content-Type-Options",
+    value: "nosniff",
+  },
+  {
+    key: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
+  },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  },
+  {
+    key: "X-DNS-Prefetch-Control",
+    value: "on",
+  },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Quita el header X-Powered-By: Next.js (information disclosure).
+  poweredByHeader: false,
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+    ];
+  },
 };
 
 // Solo aplicamos withSentryConfig si hay DSN. En local, sin DSN, el
