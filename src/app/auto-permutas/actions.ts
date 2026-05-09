@@ -235,10 +235,37 @@ export async function buscarCadenasDesdePerfil(
   // sectores intra-CCAA, restringimos a la misma CCAA.
   const intraCcaa = new Set(["funcionario_ccaa", "policia_local"]);
 
+  // OPTIMIZACION + BUGFIX: en lugar de cargar los 8132 municipios y
+  // filtrar en memoria (lo cual ademas chocaba con el limite de 1000
+  // filas por defecto de Supabase, dejando fuera todas las provincias
+  // con codigo INE > ~5 — Madrid, Sevilla, Malaga, etc.), calculamos
+  // un BOUNDING BOX que cubra todos los objetivos del usuario con el
+  // radio elegido y solo cargamos los munis dentro del box. Asi
+  // pasamos de 200KB / 8132 filas a ~5KB / ~100 filas por busqueda.
+  //
+  // Conversion: 1 grado de latitud ≈ 111 km. 1 grado de longitud
+  // varia con la latitud (≈ 111 * cos(lat)), pero como margen
+  // seguro usamos el peor caso (cos(36°) ≈ 0.81, 1° lon ≈ 90 km).
+  // Anadimos un buffer de 5km al radio para tener margen.
+  const margenLat = (input.radio_km + 5) / 111;
+  const margenLon = (input.radio_km + 5) / 90;
+  let minLat = 999, maxLat = -999, minLon = 999, maxLon = -999;
+  for (const obj of objetivos) {
+    if (obj.latitud === null || obj.longitud === null) continue;
+    minLat = Math.min(minLat, obj.latitud - margenLat);
+    maxLat = Math.max(maxLat, obj.latitud + margenLat);
+    minLon = Math.min(minLon, obj.longitud - margenLon);
+    maxLon = Math.max(maxLon, obj.longitud + margenLon);
+  }
+
   let muniQ = supabase
     .from("municipios")
     .select("codigo_ine, latitud, longitud, provincia_codigo")
-    .not("latitud", "is", null);
+    .not("latitud", "is", null)
+    .gte("latitud", minLat)
+    .lte("latitud", maxLat)
+    .gte("longitud", minLon)
+    .lte("longitud", maxLon);
   if (intraCcaa.has(sector)) {
     // Las provincias de esa CCAA.
     const { data: provs } = await supabase
@@ -265,6 +292,12 @@ export async function buscarCadenasDesdePerfil(
         break;
       }
     }
+  }
+  // Nos aseguramos de que los propios objetivos esten en el set: si
+  // por algun motivo (edge case del bbox) no entraron, los anadimos
+  // explicitamente. Sin esto, el sintetizador no tendria destinos.
+  for (const obj of objetivos) {
+    codigosEnRadio.add(obj.codigo_ine);
   }
   // El propio municipio actual nunca puede estar en plazas deseadas.
   const setRadio = codigosEnRadio;
