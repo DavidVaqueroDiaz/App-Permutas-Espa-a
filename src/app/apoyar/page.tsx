@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * URL de Ko-fi configurada por env var. Asi se puede cambiar (o
- * anadir mas plataformas) sin tocar codigo. Si la env var no esta
- * definida, la pagina se muestra igual pero el boton lleva al perfil
- * generico "ko-fi.com" — el usuario debe configurar la env var en
- * Vercel: NEXT_PUBLIC_KOFI_URL=https://ko-fi.com/<tu-usuario>
+ * URL de Ko-fi. Default: el perfil de David Vaquero (creador del
+ * proyecto). Puede sobrescribirse con la env var NEXT_PUBLIC_KOFI_URL
+ * en Vercel sin tocar codigo, util si en el futuro cambia la URL o
+ * se prefiere otra plataforma.
  */
-const KOFI_URL = process.env.NEXT_PUBLIC_KOFI_URL ?? "https://ko-fi.com";
+const KOFI_URL =
+  process.env.NEXT_PUBLIC_KOFI_URL ?? "https://ko-fi.com/davidvaquero";
 
 export default function ApoyarPage() {
   return (
