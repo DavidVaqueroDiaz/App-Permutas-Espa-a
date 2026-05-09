@@ -40,16 +40,17 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
     <header className="bg-brand text-white">
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-3 py-3 md:gap-4 md:px-8 md:py-4">
         <a href="/" className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
-          {/* SVG vectorial: escala perfecta a cualquier tamano. Fondo
-              blanco para que el logo verde oscuro contraste sobre la
-              cabecera marca verde. */}
+          {/* PNG tight (recortado por sharp al contenido del SVG, sin
+              margenes A4). Fondo blanco para que el verde oscuro del
+              logo contraste sobre la cabecera marca. Sin padding para
+              que el logo ocupe todo el cuadrado. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.svg"
+            src="/logo.png"
             alt="PermutaES"
             width={44}
             height={44}
-            className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain p-1 ring-1 ring-brand-mint/30"
+            className="h-11 w-11 shrink-0 rounded-xl bg-white object-cover ring-1 ring-brand-mint/30"
           />
 
           <div className="min-w-0">
