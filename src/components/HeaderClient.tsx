@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { BotonCompartirMenu } from "./BotonCompartirMenu";
 
 export type HeaderUser = {
   emailConfirmed: boolean;
@@ -216,6 +217,10 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
             <ItemMovil href="/contacto" pathname={pathname}>
               Contacto
             </ItemMovil>
+            <BotonCompartirMenu tema="movil" />
+            <ItemMovil href="/apoyar" pathname={pathname}>
+              Apoyar el proyecto
+            </ItemMovil>
 
             {user && (
               <form action="/logout" method="POST" className="mt-1">
@@ -271,6 +276,10 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
             </ItemEscritorio>
             <ItemEscritorio href="/contacto" pathname={pathname}>
               Contacto
+            </ItemEscritorio>
+            <BotonCompartirMenu tema="escritorio" />
+            <ItemEscritorio href="/apoyar" pathname={pathname}>
+              Apoyar el proyecto
             </ItemEscritorio>
 
             {user && (
