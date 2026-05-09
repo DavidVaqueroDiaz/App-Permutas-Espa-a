@@ -311,7 +311,10 @@ export async function buscarCadenasDesdePerfil(
   const { data: anunciosCompat } = await q;
   const anuncios = (anunciosCompat ?? []) as AnuncioRaw[];
 
-  if (anuncios.length === 0) {
+  // Si no hay anuncios reales compatibles Y no estamos en modo demo,
+  // salimos directamente. En modo demo NO retornamos: el sintetizador
+  // de mas abajo creara los demos necesarios para mostrar las cadenas.
+  if (anuncios.length === 0 && !incluirDemos) {
     return {
       ok: true,
       cadenas: [],
@@ -321,32 +324,41 @@ export async function buscarCadenasDesdePerfil(
   }
 
   // 4) Cargar plazas deseadas, perfiles, datos de visualización.
+  // Si anuncios esta vacio (caso modo demo sin reales) saltamos las
+  // queries con IN vacio para evitar 400 de PostgREST.
   const ids = anuncios.map((a) => a.id);
   const usuariosUnicos = Array.from(new Set(anuncios.map((a) => a.usuario_id)));
 
+  const codigosMunicipiosNecesarios = Array.from(
+    new Set([
+      ...anuncios.map((a) => a.municipio_actual_codigo),
+      input.municipio_actual_codigo,
+      ...input.municipios_objetivo_codigos,
+    ]),
+  );
+
   const [plazasRes, perfilesRes, muniInfoRes, cuerpoInfoRes, espInfoRes] =
     await Promise.all([
-      supabase
-        .from("anuncio_plazas_deseadas")
-        .select("anuncio_id, municipio_codigo")
-        .in("anuncio_id", ids),
-      supabase
-        .from("perfiles_publicos")
-        .select("id, alias_publico, ano_nacimiento")
-        .in("id", usuariosUnicos),
+      ids.length > 0
+        ? supabase
+            .from("anuncio_plazas_deseadas")
+            .select("anuncio_id, municipio_codigo")
+            .in("anuncio_id", ids)
+        : Promise.resolve({
+            data: [] as { anuncio_id: string; municipio_codigo: string }[],
+          }),
+      usuariosUnicos.length > 0
+        ? supabase
+            .from("perfiles_publicos")
+            .select("id, alias_publico, ano_nacimiento")
+            .in("id", usuariosUnicos)
+        : Promise.resolve({
+            data: [] as { id: string; alias_publico: string; ano_nacimiento: number }[],
+          }),
       supabase
         .from("municipios")
         .select("codigo_ine, nombre, latitud, longitud, provincias!inner(nombre)")
-        .in(
-          "codigo_ine",
-          Array.from(
-            new Set([
-              ...anuncios.map((a) => a.municipio_actual_codigo),
-              input.municipio_actual_codigo,
-              ...input.municipios_objetivo_codigos,
-            ]),
-          ),
-        ),
+        .in("codigo_ine", codigosMunicipiosNecesarios),
       supabase
         .from("cuerpos")
         .select("id, codigo_oficial, denominacion")
