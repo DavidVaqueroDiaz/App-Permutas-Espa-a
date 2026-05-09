@@ -189,6 +189,34 @@ export default async function AnuncioDetallePage({
   const nombreProv = new Map((provRes.data ?? []).map((r) => [r.codigo_ine, r.nombre]));
   const nombreMuni = new Map((muniRes.data ?? []).map((r) => [r.codigo_ine, r.nombre]));
 
+  // Si el anuncio NO tiene atajos legibles (caso tipico de los demos
+  // sinteticos creados al vuelo, que solo guardan plazas_deseadas
+  // directas sin el atajo semantico), cargamos la lista de plazas
+  // para enumerar al menos los nombres de los municipios.
+  let plazasDirectas: { codigo: string; nombre: string }[] = [];
+  if (a.atajos.length === 0 && a.plazas_count > 0) {
+    const { data: plazasRows } = await supabase
+      .from("anuncio_plazas_deseadas")
+      .select("municipio_codigo")
+      .eq("anuncio_id", a.id)
+      .limit(200);
+    const codigos = (plazasRows ?? []).map(
+      (r) => (r as { municipio_codigo: string }).municipio_codigo,
+    );
+    if (codigos.length > 0) {
+      const { data: muniNombres } = await supabase
+        .from("municipios")
+        .select("codigo_ine, nombre")
+        .in("codigo_ine", codigos);
+      plazasDirectas = (muniNombres ?? [])
+        .map((m) => ({
+          codigo: (m as { codigo_ine: string }).codigo_ine,
+          nombre: (m as { nombre: string }).nombre,
+        }))
+        .sort((x, y) => x.nombre.localeCompare(y.nombre, "es"));
+    }
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
       <a
@@ -303,6 +331,28 @@ export default async function AnuncioDetallePage({
             <strong>{a.plazas_count}</strong>{" "}
             {a.plazas_count === 1 ? "municipio" : "municipios"} en total
           </p>
+          {/* Si no hay atajos pero si hay plazas (caso demos
+              sinteticos), enumeramos los municipios directamente. */}
+          {a.atajos.length === 0 && plazasDirectas.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-slate-600">Municipios:</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {plazasDirectas.map((p) => (
+                  <span
+                    key={`d-${p.codigo}`}
+                    className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
+                  >
+                    {p.nombre}
+                  </span>
+                ))}
+                {a.plazas_count > plazasDirectas.length && (
+                  <span className="text-xs italic text-slate-500">
+                    …y {a.plazas_count - plazasDirectas.length} más
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           {a.atajos.length > 0 && (
             <div className="mt-3 space-y-2 text-sm">
               {a.atajos.filter((x) => x.tipo === "ccaa").length > 0 && (

@@ -183,7 +183,11 @@ export default async function Home() {
         </h2>
         <p className="mt-2 text-sm text-slate-600">
           Pulsa una CCAA para ver los anuncios publicados allí.
-          {totalAnuncios > 0 && ` Hay ${totalAnuncios} anuncios activos en total.`}
+          {totalAnuncios > 0 && (
+            totalAnuncios === 1
+              ? ` Hay 1 anuncio activo en total.`
+              : ` Hay ${totalAnuncios} anuncios activos en total.`
+          )}
         </p>
 
         <div className="mt-4">

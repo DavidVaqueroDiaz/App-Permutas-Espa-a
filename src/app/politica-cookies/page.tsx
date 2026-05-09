@@ -42,9 +42,6 @@ export default function PoliticaCookiesPage() {
         imprescindibles y están exentas del consentimiento previo según
         la Guía sobre el uso de cookies de la AEPD.
       </p>
-      <p>
-        No usamos cookies analíticas, de marketing ni de terceros con fines publicitarios.
-      </p>
 
       <h2>3. Cómo desactivar las cookies</h2>
       <p>

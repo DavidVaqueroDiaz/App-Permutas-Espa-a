@@ -151,6 +151,7 @@ export function ChatCliente({
                     <p className="whitespace-pre-wrap">{m.contenido}</p>
                     <p className="mt-1 text-[10px] text-amber-600">
                       {new Date(m.creado_el).toLocaleTimeString("es-ES", {
+                        timeZone: "Europe/Madrid",
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -180,6 +181,7 @@ export function ChatCliente({
                     }
                   >
                     {new Date(m.creado_el).toLocaleTimeString("es-ES", {
+                      timeZone: "Europe/Madrid",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}

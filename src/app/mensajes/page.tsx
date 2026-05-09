@@ -13,17 +13,28 @@ export const metadata: Metadata = {
 function formatearFechaCorta(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  const ahora = new Date();
-  const mismoDia =
-    d.getDate() === ahora.getDate() &&
-    d.getMonth() === ahora.getMonth() &&
-    d.getFullYear() === ahora.getFullYear();
+  // Esta funcion corre en el servidor (Vercel = UTC). Si dejamos
+  // toLocaleTimeString sin timeZone, los mensajes de la bandeja
+  // saldrian en UTC mientras que el chat (cliente) los formatea en
+  // hora local del navegador → inconsistencia de 2h en CEST.
+  // Forzamos Europe/Madrid en ambas vistas para que coincidan (99%
+  // de usuarios estan en peninsula; Canarias verian 1h mas pero
+  // consistente entre bandeja y chat).
+  const TZ = "Europe/Madrid" as const;
+  const fechaSpainStr = d.toLocaleDateString("es-ES", {
+    timeZone: TZ, year: "numeric", month: "numeric", day: "numeric",
+  });
+  const ahoraSpainStr = new Date().toLocaleDateString("es-ES", {
+    timeZone: TZ, year: "numeric", month: "numeric", day: "numeric",
+  });
+  const mismoDia = fechaSpainStr === ahoraSpainStr;
   if (mismoDia) {
-    return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("es-ES", {
+      timeZone: TZ, hour: "2-digit", minute: "2-digit",
+    });
   }
   return d.toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "short",
+    timeZone: TZ, day: "2-digit", month: "short",
   });
 }
 
