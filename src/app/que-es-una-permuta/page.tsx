@@ -1,3 +1,6 @@
+// ISR: pagina estatica de contenido. Se revalida cada hora.
+export const revalidate = 3600;
+
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL } from "@/lib/site-url";

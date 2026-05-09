@@ -1,11 +1,25 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   obtenerConteosPorCcaa,
   obtenerSectoresConAnuncios,
 } from "./actions/conteos";
 import { MapaHomeChoropleth } from "@/components/MapaHomeChoropleth";
+import { BannerCuentaEliminada } from "@/components/BannerCuentaEliminada";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL } from "@/lib/site-url";
+
+/**
+ * ISR: la home se renderiza estaticamente y se revalida en background
+ * cada 5 minutos. Asi el usuario recibe HTML cacheado en milisegundos
+ * en lugar de esperar a que el servidor consulte Supabase, ejecute las
+ * agregaciones y monte la pagina (lo que estaba dando ~19 s en Sentry).
+ *
+ * El banner "cuenta eliminada" vive en un client component
+ * (BannerCuentaEliminada) que lee `?cuenta_eliminada=1` desde el
+ * navegador, asi no fuerza render dinamico en la home.
+ */
+export const revalidate = 300;
 
 /**
  * Schema.org Organization + WebSite para la home. Le dice a Google
@@ -49,50 +63,53 @@ type Sector = {
   descripcion: string | null;
 };
 
-async function getSectores(): Promise<Sector[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("sectores")
-    .select("codigo, nombre, descripcion")
-    .order("nombre", { ascending: true });
+// Estos dos getters viven detras de unstable_cache (revalidate 5 min)
+// porque son los datos pinta en la home: la lista de sectores y el
+// contador de permutas cerradas. Refrescan en background.
+const getSectores = unstable_cache(
+  async (): Promise<Sector[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("sectores")
+      .select("codigo, nombre, descripcion")
+      .order("nombre", { ascending: true });
 
-  if (error) {
-    console.error("[home] Error leyendo sectores:", error.message);
-    return [];
-  }
-  return data ?? [];
-}
+    if (error) {
+      console.error("[home] Error leyendo sectores:", error.message);
+      return [];
+    }
+    return data ?? [];
+  },
+  ["home-sectores"],
+  { revalidate: 300, tags: ["sectores"] },
+);
 
 type PermutasContador = { total: number; ultimos_30_dias: number };
 
-async function getPermutasConseguidas(): Promise<PermutasContador> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .rpc("contar_permutas_conseguidas")
-    .single();
-  if (error || !data) return { total: 0, ultimos_30_dias: 0 };
-  const row = data as { total: number; ultimos_30_dias: number };
-  return {
-    total: Number(row.total) || 0,
-    ultimos_30_dias: Number(row.ultimos_30_dias) || 0,
-  };
-}
+const getPermutasConseguidas = unstable_cache(
+  async (): Promise<PermutasContador> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .rpc("contar_permutas_conseguidas")
+      .single();
+    if (error || !data) return { total: 0, ultimos_30_dias: 0 };
+    const row = data as { total: number; ultimos_30_dias: number };
+    return {
+      total: Number(row.total) || 0,
+      ultimos_30_dias: Number(row.ultimos_30_dias) || 0,
+    };
+  },
+  ["home-permutas-conseguidas"],
+  { revalidate: 300, tags: ["permutas"] },
+);
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: Promise<{ cuenta_eliminada?: string }>;
-}) {
-  const [sectores, conteos, sectoresOpciones, permutasConseguidas, sp] =
+export default async function Home() {
+  const [sectores, conteos, sectoresOpciones, permutasConseguidas] =
     await Promise.all([
       getSectores(),
       obtenerConteosPorCcaa(),
       obtenerSectoresConAnuncios(),
       getPermutasConseguidas(),
-      (searchParams ??
-        Promise.resolve({} as { cuenta_eliminada?: string })) as Promise<{
-        cuenta_eliminada?: string;
-      }>,
     ]);
 
   const totalAnuncios = Object.values(conteos).reduce((a, b) => a + b, 0);
@@ -103,15 +120,7 @@ export default async function Home({
         <JsonLd key={i} data={schema} />
       ))}
       <div className="mx-auto w-full max-w-3xl">
-        {sp.cuenta_eliminada === "1" && (
-          <div className="mb-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p className="font-medium">Tu cuenta ha sido eliminada.</p>
-            <p className="mt-1">
-              Hemos borrado tu perfil y todos los datos asociados. Si quieres
-              volver a usar PermutaES algún día, puedes registrarte de nuevo.
-            </p>
-          </div>
-        )}
+        <BannerCuentaEliminada />
 
         {/* Hero — la PRIMERA cosa que ve el usuario al entrar.
             Empuja al buscador inteligente (auto-permutas), que es la

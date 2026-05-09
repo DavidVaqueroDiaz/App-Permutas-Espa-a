@@ -9,8 +9,27 @@ import { createServerClient } from "@supabase/ssr";
  *
  * No debe contener lógica de redirección de auth — eso vivirá en cada
  * página o layout según el flujo concreto.
+ *
+ * Optimización: si la request no trae ninguna cookie de Supabase
+ * auth, el usuario es anónimo y no hay sesión que refrescar — saltamos
+ * la llamada a `getUser()` (que hace round-trip a Supabase) y dejamos
+ * pasar la request directamente. Esto ahorra ~50-200 ms en CADA pageview
+ * de visitantes no logueados (la inmensa mayoría del tráfico SEO).
  */
 export async function middleware(request: NextRequest) {
+  // Cookies de auth de Supabase tienen prefijos `sb-` o el legacy
+  // `supabase-auth-token`. Si no hay ninguna, no perdemos tiempo.
+  const tieneCookieAuth = request.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name.startsWith("sb-") || c.name === "supabase-auth-token",
+    );
+
+  if (!tieneCookieAuth) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

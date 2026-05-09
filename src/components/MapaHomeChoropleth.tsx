@@ -155,6 +155,7 @@ export function MapaHomeChoropleth({
     x: number; y: number; nombre: string; count: number;
   } | null>(null);
   const [avisoSector, setAvisoSector] = useState<boolean>(false);
+  const [errorWebGL, setErrorWebGL] = useState<boolean>(false);
   const [, startTransition] = useTransition();
 
   // Inicializa ambos mapas (principal + inset Canarias) UNA VEZ.
@@ -162,37 +163,57 @@ export function MapaHomeChoropleth({
     if (!containerMainRef.current || !containerCanariasRef.current) return;
     if (mapMainRef.current) return;
 
-    const mapMain = new maplibregl.Map({
-      container: containerMainRef.current,
-      style: buildStyle("peninsula"),
-      bounds: BOUNDS_PENINSULA,
-      maxBounds: BOUNDS_PENINSULA,
-      minZoom: 5,
-      maxZoom: 7,
-      attributionControl: false,
-      dragRotate: false,
-      pitchWithRotate: false,
-      touchZoomRotate: false,
-    });
-    mapMain.addControl(
-      new maplibregl.AttributionControl({
-        compact: true,
-        customAttribution: "Datos: INE / CNIG · Geometrías: IGN España",
-      }),
-    );
+    // Algunos navegadores antiguos, dispositivos sin aceleracion por
+    // hardware o entornos con extensiones de seguridad bloquean WebGL.
+    // Detectamos el caso ANTES de crear el mapa para evitar el error
+    // "requestedAttributes: {antialias: false, ...}" que veiamos en
+    // Sentry y mostrar un fallback amable en su lugar.
+    if (!soportaWebGL()) {
+      setErrorWebGL(true);
+      return;
+    }
 
-    const mapCan = new maplibregl.Map({
-      container: containerCanariasRef.current,
-      style: buildStyle("canarias"),
-      bounds: BOUNDS_CANARIAS,
-      maxBounds: BOUNDS_CANARIAS,
-      minZoom: 5,
-      maxZoom: 8,
-      attributionControl: false,
-      dragRotate: false,
-      pitchWithRotate: false,
-      touchZoomRotate: false,
-    });
+    let mapMain: MapLibreMap;
+    let mapCan: MapLibreMap;
+    try {
+      mapMain = new maplibregl.Map({
+        container: containerMainRef.current,
+        style: buildStyle("peninsula"),
+        bounds: BOUNDS_PENINSULA,
+        maxBounds: BOUNDS_PENINSULA,
+        minZoom: 5,
+        maxZoom: 7,
+        attributionControl: false,
+        dragRotate: false,
+        pitchWithRotate: false,
+        touchZoomRotate: false,
+      });
+      mapMain.addControl(
+        new maplibregl.AttributionControl({
+          compact: true,
+          customAttribution: "Datos: INE / CNIG · Geometrías: IGN España",
+        }),
+      );
+
+      mapCan = new maplibregl.Map({
+        container: containerCanariasRef.current,
+        style: buildStyle("canarias"),
+        bounds: BOUNDS_CANARIAS,
+        maxBounds: BOUNDS_CANARIAS,
+        minZoom: 5,
+        maxZoom: 8,
+        attributionControl: false,
+        dragRotate: false,
+        pitchWithRotate: false,
+        touchZoomRotate: false,
+      });
+    } catch (err) {
+      // Si MapLibre fallo a pesar del check (por ejemplo WebGL
+      // disponible pero limitado), tampoco mostramos un mapa roto.
+      console.warn("[MapaHome] MapLibre fallo al inicializar:", err);
+      setErrorWebGL(true);
+      return;
+    }
 
     setupInteractions(mapMain);
     setupInteractions(mapCan);
@@ -339,38 +360,90 @@ export function MapaHomeChoropleth({
         </div>
       )}
 
-      <div className="relative mt-4">
-        <div
-          ref={containerMainRef}
-          className="h-[500px] w-full overflow-hidden rounded-md border border-slate-200"
-        />
-
-        {/* Inset Canarias absoluto en la esquina inferior izquierda */}
-        <div
-          ref={containerCanariasRef}
-          className="absolute bottom-3 left-3 h-[120px] w-[180px] overflow-hidden rounded-md border-2 border-slate-300 bg-white shadow-md"
-          aria-label="Mapa de Canarias"
-        />
-
-        {tooltip && (
+      {errorWebGL ? (
+        // Fallback amable: si el navegador no soporta WebGL, ofrecemos
+        // una via alternativa al mapa (ir al tablon de anuncios) en
+        // lugar de un canvas roto. Captado por aprox. el 1-2% de
+        // visitantes (navegadores antiguos, hardware limitado, VPN o
+        // extensiones que bloquean WebGL).
+        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-6 text-center text-sm">
+          <p className="font-medium text-slate-900">
+            Tu navegador no soporta el mapa interactivo.
+          </p>
+          <p className="mt-1 text-slate-600">
+            Puedes seguir usando la web sin problema. Para ver los
+            anuncios por comunidad o filtrarlos por sector, prueba el{" "}
+            <a
+              href="/anuncios"
+              className="font-medium text-brand-text underline hover:text-brand"
+            >
+              tablón de anuncios
+            </a>{" "}
+            o el{" "}
+            <a
+              href="/auto-permutas"
+              className="font-medium text-brand-text underline hover:text-brand"
+            >
+              buscador automático
+            </a>
+            .
+          </p>
+        </div>
+      ) : (
+        <div className="relative mt-4">
           <div
-            className="pointer-events-none fixed z-20 rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-lg"
-            style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
-          >
-            <div className="font-semibold">{tooltip.nombre}</div>
-            <div>
-              {tooltip.count}{" "}
-              {tooltip.count === 1 ? "anuncio" : "anuncios"}
-            </div>
-          </div>
-        )}
-      </div>
+            ref={containerMainRef}
+            className="h-[500px] w-full overflow-hidden rounded-md border border-slate-200"
+          />
 
-      <p className="mt-3 text-xs text-slate-500">
-        Pasa el ratón por encima de una comunidad para ver el detalle. Pulsa para ver sus anuncios.
-      </p>
+          {/* Inset Canarias absoluto en la esquina inferior izquierda */}
+          <div
+            ref={containerCanariasRef}
+            className="absolute bottom-3 left-3 h-[120px] w-[180px] overflow-hidden rounded-md border-2 border-slate-300 bg-white shadow-md"
+            aria-label="Mapa de Canarias"
+          />
+
+          {tooltip && (
+            <div
+              className="pointer-events-none fixed z-20 rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-lg"
+              style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
+            >
+              <div className="font-semibold">{tooltip.nombre}</div>
+              <div>
+                {tooltip.count}{" "}
+                {tooltip.count === 1 ? "anuncio" : "anuncios"}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!errorWebGL && (
+        <p className="mt-3 text-xs text-slate-500">
+          Pasa el ratón por encima de una comunidad para ver el detalle. Pulsa para ver sus anuncios.
+        </p>
+      )}
     </div>
   );
+}
+
+/**
+ * Detecta si el navegador soporta WebGL. Crea un canvas off-DOM y
+ * pide un contexto WebGL2 (o WebGL1 como fallback). Si ambos fallan,
+ * el dispositivo no puede renderizar MapLibre.
+ */
+function soportaWebGL(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx =
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl");
+    return ctx !== null;
+  } catch {
+    return false;
+  }
 }
 
 // ----------------------------------------------------------------------
