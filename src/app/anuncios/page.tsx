@@ -140,6 +140,7 @@ export default async function AnunciosPage({
           { count: "exact" },
         )
         .eq("estado", "activo")
+        .gt("caduca_el", new Date().toISOString())  // defensivo: por si el cron de caducidad va con retraso
         .order("creado_el", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
       if (!incluirDemos) q = q.eq("es_demo", false);

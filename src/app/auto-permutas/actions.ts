@@ -331,6 +331,7 @@ export async function buscarCadenasDesdePerfil(
       "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el, es_demo",
     )
     .eq("estado", "activo")
+    .gt("caduca_el", new Date().toISOString())  // defensivo por si el cron de caducidad va con retraso
     .eq("sector_codigo", sector)
     .eq("cuerpo_id", input.cuerpo_id);
   if (!incluirDemos) q = q.eq("es_demo", false);
