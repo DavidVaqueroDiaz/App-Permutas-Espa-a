@@ -68,7 +68,7 @@ export default function SobreElProyectoPage() {
         permutas.
       </p>
 
-      <h2>Quién está detrás</h2>
+      <h2>Sobre mí</h2>
       <div className="not-prose flex flex-col gap-4 rounded-xl2 border border-slate-200 bg-white p-5 shadow-card sm:flex-row sm:items-start">
         {/* Marco vertical (relacion 5:7) que respeta la proporcion real
             de la foto (594x842 px). Asi se ve completa, sin recortes. */}
