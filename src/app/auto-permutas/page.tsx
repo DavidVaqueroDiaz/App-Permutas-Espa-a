@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Buscador } from "./Buscador";
+import { modoDemoActivo, modoDemoDisponible } from "@/lib/demo";
 import type {
   CuerpoRow,
   EspecialidadRow,
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
 
 export default async function AutoPermutasPage() {
   const supabase = await createClient();
+  const demoActivo = await modoDemoActivo();
+  const demoDisponible = modoDemoDisponible();
 
   // Pública: NO requiere login. Solo se necesita registro para publicar
   // un anuncio propio o iniciar contacto con otro participante.
@@ -108,6 +111,8 @@ export default async function AutoPermutasPage() {
         provincias={
           (provinciasRes.data ?? []) as { codigo_ine: string; ccaa_codigo: string }[]
         }
+        demoActivo={demoActivo}
+        demoDisponible={demoDisponible}
       />
     </main>
   );

@@ -1,22 +1,31 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { modoDemoActivo } from "@/lib/demo";
 
 export type ConteoPorCcaa = Record<string, number>;
 
 /**
  * Devuelve cuántos anuncios ACTIVOS hay en cada CCAA, opcionalmente
  * filtrados por sector. La clave es el código INE de la CCAA (2 dígitos).
+ *
+ * Si el visitante NO tiene el modo demo activado, los anuncios marcados
+ * como `es_demo=true` se excluyen del conteo.
  */
 export async function obtenerConteosPorCcaa(
   sectorCodigo?: string,
 ): Promise<ConteoPorCcaa> {
   const supabase = await createClient();
+  const incluirDemos = await modoDemoActivo();
 
   let query = supabase
     .from("anuncios")
     .select("ccaa_codigo")
     .eq("estado", "activo");
+
+  if (!incluirDemos) {
+    query = query.eq("es_demo", false);
+  }
 
   if (sectorCodigo) {
     query = query.eq("sector_codigo", sectorCodigo);
@@ -47,10 +56,17 @@ export type SectorOpcion = {
 
 export async function obtenerSectoresConAnuncios(): Promise<SectorOpcion[]> {
   const supabase = await createClient();
+  const incluirDemos = await modoDemoActivo();
+
+  let anunciosQuery = supabase
+    .from("anuncios")
+    .select("sector_codigo")
+    .eq("estado", "activo");
+  if (!incluirDemos) anunciosQuery = anunciosQuery.eq("es_demo", false);
 
   const [sectoresRes, anunciosRes] = await Promise.all([
     supabase.from("sectores").select("codigo, nombre"),
-    supabase.from("anuncios").select("sector_codigo").eq("estado", "activo"),
+    anunciosQuery,
   ]);
 
   const sectores = sectoresRes.data ?? [];

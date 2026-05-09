@@ -21,6 +21,9 @@ export type Mensaje = {
   remitente_id: string;
   contenido: string;
   creado_el: string;
+  /** TRUE si el mensaje lo genero la app (asistente de PermutaES en
+   *  conversaciones demo). FALSE para mensajes de usuarios humanos. */
+  es_sistema: boolean;
 };
 
 export type AnuncioContexto = {
@@ -98,7 +101,7 @@ export async function iniciarConversacionDesdeAnuncio(
   // Resolver el usuario_id (y la taxonomía) del otro anuncio.
   const { data: otroRow } = await supabase
     .from("anuncios")
-    .select("usuario_id, sector_codigo, cuerpo_id, especialidad_id")
+    .select("usuario_id, sector_codigo, cuerpo_id, especialidad_id, es_demo")
     .eq("id", otroAnuncioId)
     .maybeSingle();
   if (!otroRow) {
@@ -109,30 +112,12 @@ export async function iniciarConversacionDesdeAnuncio(
     sector_codigo: string;
     cuerpo_id: string;
     especialidad_id: string | null;
+    es_demo: boolean;
   };
   const otro = otroRow as OtroRow;
 
   if (otro.usuario_id === user.id) {
     return { ok: false, mensaje: "No puedes contactar contigo mismo." };
-  }
-
-  // Rechazar contacto con anuncios DEMO (importados de PermutaDoc).
-  // Esos perfiles tienen alias `permutadoc_NNNN` y no corresponden a
-  // usuarios reales activos en la plataforma — estan como semilla
-  // para que el matcher genere cadenas de muestra.
-  const { data: perfilOtroRow } = await supabase
-    .from("perfiles_publicos")
-    .select("alias_publico")
-    .eq("id", otro.usuario_id)
-    .maybeSingle();
-  const aliasOtro =
-    (perfilOtroRow as { alias_publico: string } | null)?.alias_publico ?? "";
-  if (/^permutadoc_\d+$/i.test(aliasOtro)) {
-    return {
-      ok: false,
-      mensaje:
-        "Este es un anuncio de demostración importado de PermutaDoc. La persona ya no usa esta plataforma.",
-    };
   }
 
   // Rate limit: 20 conversaciones nuevas por hora. Una persona normal
@@ -148,9 +133,10 @@ export async function iniciarConversacionDesdeAnuncio(
 
   // Si no se especificó cuál de mis anuncios usar, busco uno activo
   // con la misma taxonomía. Esto cubre el caso de que el usuario
-  // tenga varios y uno solo encaje.
+  // tenga varios y uno solo encaje. (En conversaciones DEMO no es
+  // requisito, asi que si no hay anuncio mio, sigo igual.)
   let miAnuncioFinal = miAnuncioId;
-  if (!miAnuncioFinal) {
+  if (!miAnuncioFinal && !otro.es_demo) {
     let miQ = supabase
       .from("anuncios")
       .select("id")
@@ -164,7 +150,21 @@ export async function iniciarConversacionDesdeAnuncio(
     if (mio) miAnuncioFinal = (mio as { id: string }).id;
   }
 
-  return iniciarConversacion(otro.usuario_id, miAnuncioFinal, otroAnuncioId);
+  const r = await iniciarConversacion(otro.usuario_id, miAnuncioFinal, otroAnuncioId);
+  if (!r.ok) return r;
+
+  // Si el anuncio destino es DEMO, marcamos la conversacion como demo.
+  // Esto activa el trigger que inserta una respuesta automatica del
+  // sistema cuando el usuario envia su primer mensaje, y bloquea el
+  // envio de email al usuario demo (que no tiene email valido).
+  if (otro.es_demo) {
+    await supabase
+      .from("conversaciones")
+      .update({ es_demo: true })
+      .eq("id", r.conversacion_id);
+  }
+
+  return r;
 }
 
 /**
@@ -210,15 +210,82 @@ export async function enviarMensaje(
     return { ok: false, mensaje: error.message };
   }
 
-  // Aviso por email al destinatario. Best-effort: si falla no
-  // bloqueamos el envío del mensaje, solo lo registramos. Cuando
-  // tengamos cron de reintento, recogerá las notificaciones que
-  // se quedaron sin `enviada_email_el`.
-  await dispararEmailDestinatario(supabase, conversacionId, texto);
+  // Si la conversacion es DEMO, el trigger SQL acaba de insertar una
+  // respuesta automatica del sistema. NO disparamos email al "otro"
+  // (es un usuario demo @permutaes.invalid), pero SI enviamos email
+  // al humano (a su propio email) con el contenido del mensaje del
+  // sistema. Asi el usuario verifica que las notificaciones le llegan
+  // bien (y puede whitelistarlas si caen en spam).
+  const { data: convRow } = await supabase
+    .from("conversaciones")
+    .select("es_demo")
+    .eq("id", conversacionId)
+    .maybeSingle();
+  const esConvDemo = (convRow as { es_demo: boolean } | null)?.es_demo === true;
+
+  if (esConvDemo) {
+    await dispararEmailRespuestaSistemaAlHumano(supabase, conversacionId, user.id);
+  } else {
+    // Aviso por email al destinatario. Best-effort: si falla no
+    // bloqueamos el envío del mensaje, solo lo registramos. Cuando
+    // tengamos cron de reintento, recogerá las notificaciones que
+    // se quedaron sin `enviada_email_el`.
+    await dispararEmailDestinatario(supabase, conversacionId, texto);
+  }
 
   revalidatePath(`/mensajes/${conversacionId}`);
   revalidatePath("/mensajes");
   return { ok: true };
+}
+
+/**
+ * Para conversaciones DEMO: lee el ultimo mensaje del sistema (acabado
+ * de insertar por el trigger SQL) y envia un email al usuario humano
+ * con su contenido. Asi el humano experimenta el flujo de
+ * "envio mensaje -> recibo respuesta por email" identico a una
+ * conversacion real, lo que le permite verificar que las
+ * notificaciones le llegan a la bandeja de entrada.
+ */
+async function dispararEmailRespuestaSistemaAlHumano(
+  supabase: SupabaseServerClient,
+  conversacionId: string,
+  miUsuarioId: string,
+): Promise<void> {
+  try {
+    // Email del usuario humano (yo)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== miUsuarioId || !user.email) return;
+
+    // Ultimo mensaje del sistema en esta conversacion
+    const { data: sysMsg } = await supabase
+      .from("mensajes")
+      .select("contenido")
+      .eq("conversacion_id", conversacionId)
+      .eq("es_sistema", true)
+      .order("creado_el", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!sysMsg) return;
+    const contenido = (sysMsg as { contenido: string }).contenido;
+
+    const fragmento =
+      contenido.length > 220 ? contenido.slice(0, 217) + "…" : contenido;
+
+    const plantilla = plantillaMensajeNuevo({
+      remitenteAlias: "PermutaES (asistente)",
+      fragmentoMensaje: fragmento,
+      conversacionId,
+    });
+
+    await enviarEmail({
+      to: user.email,
+      subject: plantilla.subject,
+      html: plantilla.html,
+      text: plantilla.text,
+    });
+  } catch (e) {
+    console.warn("[mensajeria-demo] error enviando email al humano:", e);
+  }
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -247,10 +314,11 @@ async function dispararEmailDestinatario(
     const f = (Array.isArray(filas) ? filas[0] : filas) as Fila;
 
     if (!f.email) return;
-    // Evitar enviar emails a las cuentas sintéticas de prueba importadas
-    // de PermutaDoc — su TLD .test no se entrega y Resend devolvería
-    // error innecesariamente.
-    if (f.email.endsWith("@permutaes.test")) return;
+    // Evitar enviar emails a las cuentas sinteticas:
+    //   *.test    -> import legacy de PermutaDoc
+    //   *.invalid -> usuarios demo creados por scripts/import-demos.ts
+    // Esos TLD son no-entregables (RFC 2606) y Resend devolveria error.
+    if (f.email.endsWith("@permutaes.test") || f.email.endsWith("@permutaes.invalid")) return;
 
     const fragmento =
       contenidoMensaje.length > 220
@@ -423,7 +491,7 @@ export async function leerConversacion(
 
   const { data: mensajesData } = await supabase
     .from("mensajes")
-    .select("id, remitente_id, contenido, creado_el")
+    .select("id, remitente_id, contenido, creado_el, es_sistema")
     .eq("conversacion_id", conversacionId)
     .order("creado_el", { ascending: true });
 

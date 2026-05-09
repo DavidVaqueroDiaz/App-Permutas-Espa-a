@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { modoDemoActivo } from "@/lib/demo";
 import {
   detectarCadenas,
   type AnuncioMatching,
@@ -287,15 +288,18 @@ export async function buscarCadenasDesdePerfil(
   }
 
   // 4) Cargar anuncios reales compatibles (sector/cuerpo/especialidad
-  //    y, si SNS, mismo servicio de salud).
+  //    y, si SNS, mismo servicio de salud). Si el visitante NO esta en
+  //    modo demo, excluimos los anuncios sinteticos.
+  const incluirDemos = await modoDemoActivo();
   let q = supabase
     .from("anuncios")
     .select(
-      "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el",
+      "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el, es_demo",
     )
     .eq("estado", "activo")
     .eq("sector_codigo", sector)
     .eq("cuerpo_id", input.cuerpo_id);
+  if (!incluirDemos) q = q.eq("es_demo", false);
   if (input.especialidad_id) q = q.eq("especialidad_id", input.especialidad_id);
   else q = q.is("especialidad_id", null);
   if (intraCcaa.has(sector)) q = q.eq("ccaa_codigo", ccaaInput);

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Filtros } from "./Filtros";
 import { ChipsAtajos } from "./ChipsAtajos";
 import { esAliasImportado } from "@/lib/alias";
+import { modoDemoActivo } from "@/lib/demo";
 
 export const metadata: Metadata = {
   title: "Tablón de anuncios",
@@ -65,6 +66,7 @@ export default async function AnunciosPage({
   const offset = (pageActual - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
+  const incluirDemos = await modoDemoActivo();
 
   // Si hay query de texto, primero pre-filtramos los IDs de anuncios cuyo
   // municipio actual, cuerpo o especialidad coinciden.
@@ -89,11 +91,13 @@ export default async function AnunciosPage({
     if (ors.length === 0) {
       anuncioIdsFiltrados = []; // ninguna coincidencia
     } else {
-      const idsRes = await supabase
+      let idsQuery = supabase
         .from("anuncios")
         .select("id")
         .eq("estado", "activo")
         .or(ors.join(","));
+      if (!incluirDemos) idsQuery = idsQuery.eq("es_demo", false);
+      const idsRes = await idsQuery;
       anuncioIdsFiltrados = (idsRes.data ?? []).map((r) => r.id as string);
     }
   }
@@ -127,7 +131,7 @@ export default async function AnunciosPage({
       let q = supabase
         .from("anuncios")
         .select(
-          `id, sector_codigo, ccaa_codigo, creado_el, observaciones, usuario_id,
+          `id, sector_codigo, ccaa_codigo, creado_el, observaciones, usuario_id, es_demo,
            cuerpo:cuerpos(codigo_oficial, denominacion),
            especialidad:especialidades(codigo_oficial, denominacion),
            municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre)),
@@ -138,6 +142,7 @@ export default async function AnunciosPage({
         .eq("estado", "activo")
         .order("creado_el", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
+      if (!incluirDemos) q = q.eq("es_demo", false);
       if (sectorFiltro) q = q.eq("sector_codigo", sectorFiltro);
       if (ccaaFiltro) q = q.eq("ccaa_codigo", ccaaFiltro);
       if (cuerpoFiltro) q = q.eq("cuerpo_id", cuerpoFiltro);
@@ -294,7 +299,10 @@ export default async function AnunciosPage({
       provincia_nombre: provincia?.nombre ?? null,
       total_plazas: plazasJoin?.[0]?.count ?? 0,
       atajos_legibles: atajosLegibles,
-      es_demo: esAliasImportado(aliasDelDueno),
+      // es_demo viene directamente de la columna BD (anuncios.es_demo).
+      // Como fallback para anuncios antiguos sin la columna marcada,
+      // tambien detectamos por prefijo de alias.
+      es_demo: (a.es_demo as boolean) || esAliasImportado(aliasDelDueno),
     };
   });
 
@@ -322,14 +330,23 @@ export default async function AnunciosPage({
 
       <div className="mt-4 text-sm text-slate-600">
         {anuncios.length === 0 ? (
-          <p>
-            No hay anuncios publicados con esos filtros.{" "}
-            {(sectorFiltro || ccaaFiltro || qFiltro) && (
-              <a href="/anuncios" className="font-medium underline">
-                Ver todos
-              </a>
+          <div>
+            <p>
+              No hay anuncios publicados con esos filtros.{" "}
+              {(sectorFiltro || ccaaFiltro || qFiltro) && (
+                <a href="/anuncios" className="font-medium underline">
+                  Ver todos
+                </a>
+              )}
+            </p>
+            {!incluirDemos && (
+              <p className="mt-3 text-xs text-slate-500">
+                Si quieres ver cómo se vería el tablón cuando esté lleno,
+                activa el modo demo desde el banner amarillo (te aparecerá
+                arriba en cuanto lo actives).
+              </p>
             )}
-          </p>
+          </div>
         ) : (
           <p>
             <strong>{totalAnunciosFiltrados}</strong>{" "}

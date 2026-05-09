@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BotonContactarAnuncio } from "./BotonContactarAnuncio";
 import { BotonReportar } from "./BotonReportar";
 import { esAliasImportado } from "@/lib/alias";
+import { modoDemoActivo } from "@/lib/demo";
 
 type AnuncioDetalle = {
   id: string;
@@ -12,6 +13,7 @@ type AnuncioDetalle = {
   caduca_el: string;
   observaciones: string | null;
   usuario_id: string;
+  es_demo: boolean;
   cuerpo: { codigo_oficial: string | null; denominacion: string } | null;
   especialidad: { codigo_oficial: string | null; denominacion: string } | null;
   sector: { nombre: string } | null;
@@ -39,7 +41,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
   const { data } = await supabase
     .from("anuncios")
     .select(
-      `id, estado, creado_el, caduca_el, observaciones, usuario_id,
+      `id, estado, creado_el, caduca_el, observaciones, usuario_id, es_demo,
        cuerpo:cuerpos(codigo_oficial, denominacion),
        especialidad:especialidades(codigo_oficial, denominacion),
        sector:sectores(nombre),
@@ -63,6 +65,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
     caduca_el: string;
     observaciones: string | null;
     usuario_id: string;
+    es_demo: boolean;
     cuerpo: { codigo_oficial: string | null; denominacion: string } | null;
     especialidad: { codigo_oficial: string | null; denominacion: string } | null;
     sector: { nombre: string } | null;
@@ -102,6 +105,7 @@ async function cargarAnuncio(id: string): Promise<AnuncioDetalle | null> {
     caduca_el: r.caduca_el,
     observaciones: r.observaciones,
     usuario_id: r.usuario_id,
+    es_demo: r.es_demo,
     cuerpo: unwrap(r.cuerpo),
     especialidad: unwrap(r.especialidad),
     sector: unwrap(r.sector),
@@ -148,6 +152,13 @@ export default async function AnuncioDetallePage({
   const { id } = await params;
   const a = await cargarAnuncio(id);
   if (!a) notFound();
+
+  // Si el anuncio es demo y el visitante NO tiene el modo demo activo,
+  // hacemos como si no existiera. Asi los demos no se indexan en Google
+  // ni aparecen al compartir el enlace fuera del modo demo.
+  const esDemo = a.es_demo || esAliasImportado(a.alias_publico);
+  const demoActivo = await modoDemoActivo();
+  if (esDemo && !demoActivo) notFound();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -233,17 +244,17 @@ export default async function AnuncioDetallePage({
           </div>
         )}
 
-        {esAliasImportado(a.alias_publico) && a.estado === "activo" && (
-          <div className="mt-4 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
+        {esDemo && a.estado === "activo" && (
+          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             <p className="font-medium">Anuncio de demostración</p>
             <p className="mt-1 text-xs leading-relaxed">
-              Este anuncio viene de la importación inicial de PermutaDoc
-              que usamos para arrancar PermutaES. La persona detrás
-              <strong> ya no usa esta plataforma</strong>, así que no es
-              posible contactarla. Lo dejamos visible para que puedas
-              ver cómo se vería la app llena de anuncios reales —
-              cuando entren usuarios actuales con tu mismo perfil,
-              podrás contactarles desde aquí.
+              Este anuncio es un perfil sintético generado para que
+              puedas ver cómo funcionará PermutaES cuando esté llena.
+              <strong> No hay una persona real detrás</strong>. Si
+              pulsas &ldquo;Contactar&rdquo; podrás abrir el chat y
+              recibirás una respuesta automática del sistema —
+              perfecta para verificar que las notificaciones por email
+              te llegan bien (y no caen en spam).
             </p>
           </div>
         )}
@@ -384,11 +395,6 @@ export default async function AnuncioDetallePage({
           ) : a.estado !== "activo" ? (
             <p className="text-sm text-slate-600">
               Este anuncio ya no está activo, no se puede contactar.
-            </p>
-          ) : esAliasImportado(a.alias_publico) ? (
-            <p className="text-sm text-slate-600">
-              Este es un anuncio de demostración (importado de PermutaDoc).
-              No se puede contactar — la persona ya no usa la plataforma.
             </p>
           ) : !user ? (
             <div className="space-y-2">

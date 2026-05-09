@@ -9,6 +9,7 @@ import {
 } from "./actions";
 import { iniciarConversacionDesdeAnuncio } from "@/app/mensajes/actions";
 import { esAliasImportado } from "@/lib/alias";
+import { ActivarDemoBoton } from "@/components/DemoBanner";
 import type {
   CuerpoRow,
   EspecialidadRow,
@@ -43,6 +44,10 @@ type Props = {
   municipios: MunicipioLocal[];
   ccaa: CcaaLocal[];
   provincias: ProvinciaLocal[];
+  /** Si el visitante actual tiene activado el modo demo. */
+  demoActivo: boolean;
+  /** Si el modo demo esta DISPONIBLE globalmente (kill-switch). */
+  demoDisponible: boolean;
 };
 
 // Normaliza para búsqueda por nombre: lowercase, sin tildes, sin signos.
@@ -84,6 +89,8 @@ export function Buscador({
   municipios,
   ccaa,
   provincias,
+  demoActivo,
+  demoDisponible,
 }: Props) {
   // Índice rápido para reconstruir un MunicipioLocal a partir de un
   // codigo_ine cuando el usuario selecciona uno desde el mapa.
@@ -538,13 +545,27 @@ export function Buscador({
                     🌱 Eres el primero en tu perfil
                   </p>
                   <p className="mt-2 text-slate-600">
-                    De momento <strong>no hay otros anuncios</strong> con tu
-                    misma combinación de sector, cuerpo y (si aplica)
-                    especialidad o servicio de salud. Esto es lo que pasa en
-                    alfa cuando no se han registrado aún usuarios de tu sector.
+                    De momento <strong>no hay otros anuncios reales</strong> con
+                    tu misma combinación de sector, cuerpo y (si aplica)
+                    especialidad o servicio de salud.
                   </p>
-                  <p className="mt-3 text-slate-700">
-                    <strong>Lo que puedes hacer:</strong>
+                  {demoDisponible && !demoActivo && (
+                    <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3">
+                      <p className="text-sm font-medium text-amber-900">
+                        ¿Quieres ver cómo funciona la app cuando esté llena?
+                      </p>
+                      <p className="mt-1 text-xs text-amber-800">
+                        Activa el modo demo y verás cadenas simuladas con
+                        anuncios sintéticos de todos los sectores y CCAA.
+                        Podrás incluso abrir un chat de prueba.
+                      </p>
+                      <div className="mt-3">
+                        <ActivarDemoBoton />
+                      </div>
+                    </div>
+                  )}
+                  <p className="mt-4 text-slate-700">
+                    <strong>Y mientras tanto:</strong>
                   </p>
                   <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
                     <li>
@@ -558,7 +579,6 @@ export function Buscador({
                       aparezca alguien compatible.
                     </li>
                     <li>
-                      💌{" "}
                       <a
                         href="/contacto"
                         className="font-medium text-brand-text hover:text-brand"
@@ -610,11 +630,14 @@ export function Buscador({
                       tu perfil.
                     </li>
                   </ul>
-                  <p className="mt-4 text-xs text-slate-500">
-                    Estamos en alfa con datos iniciales (importación de
-                    PermutaDoc, principalmente Galicia). El catálogo crecerá
-                    conforme se publiquen anuncios reales.
-                  </p>
+                  {demoDisponible && !demoActivo && (
+                    <p className="mt-4 text-xs text-slate-500">
+                      ¿Quieres ver cómo se vería con la plataforma llena?{" "}
+                      <ActivarDemoBoton className="font-medium text-amber-700 underline hover:text-amber-800">
+                        Activar modo demo
+                      </ActivarDemoBoton>
+                    </p>
+                  )}
                 </div>
               )
             ) : (

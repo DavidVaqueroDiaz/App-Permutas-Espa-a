@@ -186,23 +186,6 @@ export default async function Home() {
           {totalAnuncios > 0 && ` Hay ${totalAnuncios} anuncios activos en total.`}
         </p>
 
-        {/* Aviso PROMINENTE antes del mapa: las auditorias detectaron
-            que el mapa con solo Galicia coloreada da impresion de
-            "España vacía" y un usuario fuera de Galicia abandona
-            asumiendo que la app no es para el. */}
-        <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
-          <p className="font-medium">Catálogo inicial concentrado en Galicia.</p>
-          <p className="mt-1 text-xs leading-relaxed">
-            Los {totalAnuncios > 0 ? totalAnuncios : ""} anuncios de
-            partida vienen de la importación inicial de PermutaDoc, que
-            cubría sobre todo docencia LOE gallega. Si tu sector o tu
-            CCAA aparecen vacíos en el mapa, es porque <strong>todavía
-            no se han registrado usuarios de allí</strong>. En cuanto
-            publiques el tuyo, aparecerás en el mapa y serás de los
-            primeros — es alfa.
-          </p>
-        </div>
-
         <div className="mt-4">
           <MapaHomeChoropleth
             sectoresOpciones={sectoresOpciones}

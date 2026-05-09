@@ -98,6 +98,7 @@ export function ChatCliente({
       remitente_id: miUsuarioId,
       contenido: texto,
       creado_el: new Date().toISOString(),
+      es_sistema: false,
     };
     setMensajes((prev) => [...prev, optimista]);
     setBorrador("");
@@ -137,6 +138,27 @@ export function ChatCliente({
         ) : (
           mensajes.map((m) => {
             const mio = m.remitente_id === miUsuarioId;
+            // Mensajes del sistema (asistente PermutaES) se pintan
+            // centrados, en color amber claro y con cabecera explicita
+            // para que no se confundan con un humano respondiendo.
+            if (m.es_sistema) {
+              return (
+                <div key={m.id} className="flex justify-center">
+                  <div className="max-w-[85%] rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-snug text-amber-900 shadow-sm">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                      PermutaES · asistente automático
+                    </p>
+                    <p className="whitespace-pre-wrap">{m.contenido}</p>
+                    <p className="mt-1 text-[10px] text-amber-600">
+                      {new Date(m.creado_el).toLocaleTimeString("es-ES", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div
                 key={m.id}
