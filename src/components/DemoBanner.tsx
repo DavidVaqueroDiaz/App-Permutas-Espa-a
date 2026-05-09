@@ -53,13 +53,20 @@ export function DemoBanner({ activo }: { activo: boolean }) {
  * Boton para ACTIVAR el modo demo. Se renderiza en empty states y
  * lugares clave donde el usuario podria querer ver como funciona la
  * app antes de registrarse.
+ *
+ * Acepta un callback opcional `onActivado` para que el componente
+ * padre (p.ej. el Buscador) pueda re-ejecutar su busqueda en cuanto
+ * el modo demo esta listo. Sin esto, el usuario tendria que volver a
+ * pulsar "Buscar" manualmente para ver los resultados demo.
  */
 export function ActivarDemoBoton({
   className = "",
   children = "Activar modo demo",
+  onActivado,
 }: {
   className?: string;
   children?: React.ReactNode;
+  onActivado?: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -71,7 +78,13 @@ export function ActivarDemoBoton({
     } catch {
       /* localStorage puede estar bloqueado */
     }
-    start(() => router.refresh());
+    start(() => {
+      router.refresh();
+      // Llamamos al callback DESPUES de iniciar el refresh: la cookie
+      // ya esta seteada en document.cookie, asi que cualquier server
+      // action que ejecute el padre vera modoDemoActivo()=true.
+      onActivado?.();
+    });
   }
 
   return (

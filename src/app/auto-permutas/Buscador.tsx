@@ -560,7 +560,7 @@ export function Buscador({
                         Podrás incluso abrir un chat de prueba.
                       </p>
                       <div className="mt-3">
-                        <ActivarDemoBoton />
+                        <ActivarDemoBoton onActivado={buscar} />
                       </div>
                     </div>
                   )}
@@ -633,7 +633,10 @@ export function Buscador({
                   {demoDisponible && !demoActivo && (
                     <p className="mt-4 text-xs text-slate-500">
                       ¿Quieres ver cómo se vería con la plataforma llena?{" "}
-                      <ActivarDemoBoton className="font-medium text-amber-700 underline hover:text-amber-800">
+                      <ActivarDemoBoton
+                        className="font-medium text-amber-700 underline hover:text-amber-800"
+                        onActivado={buscar}
+                      >
                         Activar modo demo
                       </ActivarDemoBoton>
                     </p>
