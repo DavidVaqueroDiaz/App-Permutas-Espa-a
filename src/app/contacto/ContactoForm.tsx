@@ -76,6 +76,26 @@ export function ContactoForm() {
 
       <div>
         <label
+          htmlFor="contacto-asunto"
+          className="block text-sm font-medium text-slate-900"
+        >
+          Asunto
+        </label>
+        <input
+          id="contacto-asunto"
+          name="asunto"
+          type="text"
+          required
+          minLength={3}
+          maxLength={150}
+          defaultValue={valores?.asunto ?? ""}
+          placeholder="Ej: Sugerencia, fallo, duda…"
+          className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-light"
+        />
+      </div>
+
+      <div>
+        <label
           htmlFor="contacto-mensaje"
           className="block text-sm font-medium text-slate-900"
         >

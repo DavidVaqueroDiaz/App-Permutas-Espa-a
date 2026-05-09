@@ -6,7 +6,7 @@ import { aplicarRateLimit, ipDesdeHeaders } from "@/lib/rate-limit";
 
 export type ContactoState =
   | { ok: true }
-  | { ok: false; mensaje: string; valoresEnviados?: { nombre: string; email: string; mensaje: string } }
+  | { ok: false; mensaje: string; valoresEnviados?: { nombre: string; email: string; asunto: string; mensaje: string } }
   | null;
 
 const DESTINO_DEFAULT = process.env.CONTACTO_EMAIL_DESTINO;
@@ -29,9 +29,10 @@ export async function enviarContacto(
 ): Promise<ContactoState> {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const asunto = String(formData.get("asunto") ?? "").trim();
   const mensaje = String(formData.get("mensaje") ?? "").trim();
 
-  const valoresEnviados = { nombre, email, mensaje };
+  const valoresEnviados = { nombre, email, asunto, mensaje };
 
   if (!nombre || nombre.length < 2) {
     return { ok: false, mensaje: "Indica tu nombre.", valoresEnviados };
@@ -40,6 +41,20 @@ export async function enviarContacto(
     return {
       ok: false,
       mensaje: "Email no valido.",
+      valoresEnviados,
+    };
+  }
+  if (!asunto || asunto.length < 3) {
+    return {
+      ok: false,
+      mensaje: "Indica un asunto (al menos 3 caracteres).",
+      valoresEnviados,
+    };
+  }
+  if (asunto.length > 150) {
+    return {
+      ok: false,
+      mensaje: "El asunto no puede pasar de 150 caracteres.",
       valoresEnviados,
     };
   }
@@ -96,6 +111,7 @@ export async function enviarContacto(
     `<p><strong>Nuevo mensaje de contacto</strong></p>` +
     `<p><strong>Nombre:</strong> ${esc(nombre)}</p>` +
     `<p><strong>Email:</strong> ${esc(email)}</p>` +
+    `<p><strong>Asunto:</strong> ${esc(asunto)}</p>` +
     `<p><strong>IP:</strong> ${esc(ip)}</p>` +
     `<hr>` +
     `<p style="white-space:pre-wrap;">${esc(mensaje)}</p>`;
@@ -103,12 +119,13 @@ export async function enviarContacto(
     `Nuevo mensaje de contacto\n\n` +
     `Nombre: ${nombre}\n` +
     `Email: ${email}\n` +
+    `Asunto: ${asunto}\n` +
     `IP: ${ip}\n\n` +
     `--- mensaje ---\n${mensaje}\n`;
 
   const r = await enviarEmail({
     to: DESTINO_DEFAULT,
-    subject: `[PermutaES contacto] ${nombre} – ${email}`,
+    subject: `[PermutaES] ${asunto.slice(0, 100)} — ${nombre}`,
     html,
     text,
     replyTo: email,

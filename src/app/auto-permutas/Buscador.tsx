@@ -1208,7 +1208,28 @@ function Autocomplete({
           if (seleccionado) onLimpiar();
         }}
         onFocus={() => setAbierto(true)}
-        onBlur={() => setTimeout(() => setAbierto(false), 150)}
+        onBlur={() => {
+          // Si el usuario escribio texto pero no pulso una sugerencia,
+          // intentamos auto-confirmar con la primera sugerencia que
+          // matchee. Asi evitamos el error confuso "Faltan datos:
+          // localidad" cuando el usuario claramente ha escrito una
+          // localidad pero no la ha "fijado". Solo auto-confirmamos
+          // si NO hay seleccion previa (para no machacar lo que ya
+          // habia) y si la primera sugerencia es un match razonable.
+          setTimeout(() => {
+            setAbierto(false);
+            if (!seleccionado && query.trim().length >= 3 && sugerencias.length > 0) {
+              const primera = sugerencias[0];
+              const queryNorm = clave(query);
+              const candidata = clave(primera.nombre);
+              // Match si el query esta contenido en la sugerencia o
+              // viceversa (asi "sevill" matchea "Sevilla" y al reves).
+              if (candidata.includes(queryNorm) || queryNorm.includes(candidata)) {
+                seleccionar(primera);
+              }
+            }
+          }, 150);
+        }}
         onKeyDown={onKeyDown}
         className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
       />
