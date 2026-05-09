@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { modoDemoActivo } from "@/lib/demo";
+import { sintetizarYpersistirDemos } from "@/lib/cadenas/sintetizar-demo";
 import {
   detectarCadenas,
   type AnuncioMatching,
@@ -457,8 +458,52 @@ export async function buscarCadenasDesdePerfil(
   };
 
   // 7) Detectar cadenas que pasan por el virtual.
-  const todos = [...reales, virtual];
-  const cadenas: Cadena[] = detectarCadenas(todos, [virtual]);
+  let pool: AnuncioMatching[] = [...reales, virtual];
+  let cadenas: Cadena[] = detectarCadenas(pool, [virtual]);
+
+  // 7.bis) Si el visitante esta en MODO DEMO y faltan cadenas tipo
+  // (directa, a 3, a 4), sintetizamos demos al vuelo que las completen.
+  // Asi el usuario, sea cual sea su perfil, siempre ve un ejemplo de
+  // cada tipo de cadena. Los demos sinteticos quedan persistidos en
+  // BD (alias `demosyn_*`) y un cron diario los limpia.
+  if (incluirDemos) {
+    const cuentaPorLongitud = { 2: 0, 3: 0, 4: 0 };
+    for (const c of cadenas) cuentaPorLongitud[c.longitud as 2 | 3 | 4]++;
+    const necesarias = {
+      directa: cuentaPorLongitud[2] === 0,
+      tres: cuentaPorLongitud[3] === 0,
+      cuatro: cuentaPorLongitud[4] === 0,
+    };
+    if (necesarias.directa || necesarias.tres || necesarias.cuatro) {
+      const sint = await sintetizarYpersistirDemos(supabase, virtual, necesarias);
+      if (sint.nuevos.length > 0) {
+        // Cargar los nombres de municipios de los demos recien creados
+        const codigosNuevos = Array.from(
+          new Set(sint.nuevos.map((a) => a.municipio_actual_codigo)),
+        ).filter((c) => !muniInfo.has(c));
+        if (codigosNuevos.length > 0) {
+          const { data: extraMuniRows } = await supabase
+            .from("municipios")
+            .select("codigo_ine, nombre, latitud, longitud, provincias!inner(nombre)")
+            .in("codigo_ine", codigosNuevos);
+          for (const m of (extraMuniRows ?? []) as MuniRow[]) {
+            const ps = Array.isArray(m.provincias)
+              ? m.provincias[0]?.nombre ?? ""
+              : m.provincias?.nombre ?? "";
+            muniInfo.set(m.codigo_ine, {
+              nombre: m.nombre,
+              provincia_nombre: ps,
+              lat: m.latitud,
+              lon: m.longitud,
+            });
+          }
+        }
+        // Anadimos los sinteticos al pool y volvemos a detectar
+        pool = [...reales, ...sint.nuevos, virtual];
+        cadenas = detectarCadenas(pool, [virtual]);
+      }
+    }
+  }
 
   // 8) ¿Hay sesión activa?
   const { data: { user } } = await supabase.auth.getUser();
@@ -467,7 +512,7 @@ export async function buscarCadenasDesdePerfil(
   // 9) Enriquecer cada cadena con datos visuales y distancias.
   const detalle: DetalleCadena[] = cadenas.map((c) => {
     const participantes: ParticipanteCadena[] = c.anuncios.map((id, i) => {
-      const a = todos.find((x) => x.id === id)!;
+      const a = pool.find((x) => x.id === id)!;
       const esVirtual = a.id === virtualId;
       const muni = muniInfo.get(a.municipio_actual_codigo);
 
@@ -475,7 +520,7 @@ export async function buscarCadenasDesdePerfil(
       // actual será la mía). Para el usuario virtual, su destino es el
       // municipio objetivo declarado.
       const siguienteIdx = (i + 1) % c.anuncios.length;
-      const siguiente = todos.find((x) => x.id === c.anuncios[siguienteIdx])!;
+      const siguiente = pool.find((x) => x.id === c.anuncios[siguienteIdx])!;
       const muniSig = muniInfo.get(siguiente.municipio_actual_codigo);
 
       // Distancia en línea recta entre mi plaza actual y la plaza a la

@@ -131,12 +131,25 @@ export async function iniciarConversacionDesdeAnuncio(
   });
   if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
 
-  // Si no se especificó cuál de mis anuncios usar, busco uno activo
-  // con la misma taxonomía. Esto cubre el caso de que el usuario
-  // tenga varios y uno solo encaje. (En conversaciones DEMO no es
-  // requisito, asi que si no hay anuncio mio, sigo igual.)
+  // CASO DEMO: el otro anuncio es sintetico/demo. Usamos la RPC
+  // dedicada que NO exige que ambos tengan taxonomia compartida (el
+  // visitante podria estar explorando sin haber publicado todavia).
+  if (otro.es_demo) {
+    const { data, error } = await supabase.rpc("iniciar_conversacion_con_demo", {
+      otro_usuario: otro.usuario_id,
+      su_anuncio_id: otroAnuncioId,
+    });
+    if (error) return { ok: false, mensaje: error.message };
+    if (!data) return { ok: false, mensaje: "No se pudo iniciar la conversación demo." };
+    revalidatePath("/mensajes");
+    return { ok: true, conversacion_id: data as string };
+  }
+
+  // CASO REAL: si no se especificó cuál de mis anuncios usar, busco
+  // uno activo con la misma taxonomía. Esto cubre el caso de que el
+  // usuario tenga varios y uno solo encaje.
   let miAnuncioFinal = miAnuncioId;
-  if (!miAnuncioFinal && !otro.es_demo) {
+  if (!miAnuncioFinal) {
     let miQ = supabase
       .from("anuncios")
       .select("id")
@@ -150,21 +163,7 @@ export async function iniciarConversacionDesdeAnuncio(
     if (mio) miAnuncioFinal = (mio as { id: string }).id;
   }
 
-  const r = await iniciarConversacion(otro.usuario_id, miAnuncioFinal, otroAnuncioId);
-  if (!r.ok) return r;
-
-  // Si el anuncio destino es DEMO, marcamos la conversacion como demo.
-  // Esto activa el trigger que inserta una respuesta automatica del
-  // sistema cuando el usuario envia su primer mensaje, y bloquea el
-  // envio de email al usuario demo (que no tiene email valido).
-  if (otro.es_demo) {
-    await supabase
-      .from("conversaciones")
-      .update({ es_demo: true })
-      .eq("id", r.conversacion_id);
-  }
-
-  return r;
+  return iniciarConversacion(otro.usuario_id, miAnuncioFinal, otroAnuncioId);
 }
 
 /**
