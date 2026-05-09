@@ -31,7 +31,10 @@ create or replace function public.crear_demo_sintetico(
 ) returns uuid
 language plpgsql
 security definer
-set search_path = public, pg_temp
+-- IMPORTANTE: incluimos `extensions` en el search_path porque pgcrypto
+-- (gen_salt, crypt) vive en ese schema en Supabase. Sin esto, las
+-- llamadas a gen_salt fallan con "function does not exist".
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_user_id uuid := gen_random_uuid();
