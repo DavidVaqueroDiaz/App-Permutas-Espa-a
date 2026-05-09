@@ -988,6 +988,12 @@ function Paso6DatosLegales({
   onAtras: () => void; onSiguiente: () => void;
 }) {
   const yanoActual = new Date().getFullYear();
+  // Lista de anos disponibles: del actual hacia atras hasta 1970.
+  // Orden DESCENDENTE para que los anos recientes (los mas comunes)
+  // queden arriba del desplegable.
+  const anosDisponibles: number[] = [];
+  for (let y = yanoActual; y >= 1970; y--) anosDisponibles.push(y);
+
   const valido =
     !!fecha
     && typeof anyos === "number" && anyos >= 0 && anyos <= 50
@@ -1016,13 +1022,7 @@ function Paso6DatosLegales({
           <label className="block text-sm font-medium text-slate-900">
             Año de toma de posesión definitiva en tu plaza actual
           </label>
-          <input
-            type="number"
-            min={1970}
-            max={yanoActual}
-            step={1}
-            placeholder="Ej: 2018"
-            inputMode="numeric"
+          <select
             value={fechaAYano(fecha) ?? ""}
             onChange={(e) => {
               const v = e.target.value;
@@ -1036,7 +1036,12 @@ function Paso6DatosLegales({
               }
             }}
             className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
-          />
+          >
+            <option value="">Selecciona un año…</option>
+            {anosDisponibles.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -1073,13 +1078,7 @@ function Paso6DatosLegales({
               <label className="block text-xs text-slate-700">
                 Año de la última permuta
               </label>
-              <input
-                type="number"
-                min={1970}
-                max={yanoActual}
-                step={1}
-                placeholder="Ej: 2015"
-                inputMode="numeric"
+              <select
                 value={fechaAYano(fechaPermuta) ?? ""}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -1093,7 +1092,12 @@ function Paso6DatosLegales({
                   }
                 }}
                 className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
-              />
+              >
+                <option value="">Selecciona un año…</option>
+                {anosDisponibles.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
           )}
         </div>

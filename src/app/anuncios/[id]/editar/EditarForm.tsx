@@ -320,13 +320,7 @@ export function EditarForm({
         </div>
         <div className="space-y-4">
           <Field label="Año de toma de posesión definitiva">
-            <input
-              type="number"
-              min={1970}
-              max={new Date().getFullYear()}
-              step={1}
-              placeholder="Ej: 2018"
-              inputMode="numeric"
+            <select
               value={fechaAYanoEdit(fecha)}
               onChange={(e) => {
                 const v = e.target.value;
@@ -338,7 +332,12 @@ export function EditarForm({
                 }
               }}
               className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            />
+            >
+              <option value="">Selecciona un año…</option>
+              {anosDescendentes().map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </Field>
           <Field label="Años totales de servicio">
             <input
@@ -364,13 +363,7 @@ export function EditarForm({
             </label>
             {haPermutado && (
               <Field label="Año de la última permuta">
-                <input
-                  type="number"
-                  min={1970}
-                  max={new Date().getFullYear()}
-                  step={1}
-                  placeholder="Ej: 2015"
-                  inputMode="numeric"
+                <select
                   value={fechaAYanoEdit(fechaPermuta)}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -382,7 +375,12 @@ export function EditarForm({
                     }
                   }}
                   className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-                />
+                >
+                  <option value="">Selecciona un año…</option>
+                  {anosDescendentes().map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
               </Field>
             )}
           </div>
@@ -439,6 +437,15 @@ function fechaAYanoEdit(s: string | null | undefined): string {
   if (!s) return "";
   const m = /^(\d{4})/.exec(s);
   return m ? m[1] : "";
+}
+
+// Lista de anos disponibles para los desplegables, en orden descendente
+// (recientes arriba). Empieza en el ano actual y baja hasta 1970.
+function anosDescendentes(): number[] {
+  const actual = new Date().getFullYear();
+  const result: number[] = [];
+  for (let y = actual; y >= 1970; y--) result.push(y);
+  return result;
 }
 
 function Card({ titulo, children }: { titulo: string; children: React.ReactNode }) {
