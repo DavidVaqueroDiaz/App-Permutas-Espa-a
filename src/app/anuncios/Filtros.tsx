@@ -217,7 +217,7 @@ export function Filtros({
                     onClick={() => aplicarSugerenciaMunicipio(m)}
                     className="flex w-full justify-between px-3 py-1.5 text-left text-xs hover:bg-brand-bg"
                   >
-                    <span>📍 {m.nombre}</span>
+                    <span>{m.nombre}</span>
                     <span className="text-slate-500">{m.provincia_nombre}</span>
                   </button>
                 ))}
@@ -236,7 +236,7 @@ export function Filtros({
                     onClick={() => aplicarSugerenciaCuerpo(c)}
                     className="flex w-full px-3 py-1.5 text-left text-xs hover:bg-brand-bg"
                   >
-                    <span>👥 {c.codigo_oficial ? `${c.codigo_oficial} — ` : ""}{c.denominacion}</span>
+                    <span>{c.codigo_oficial ? `${c.codigo_oficial} — ` : ""}{c.denominacion}</span>
                   </button>
                 ))}
               </div>
@@ -254,7 +254,7 @@ export function Filtros({
                     onClick={() => aplicarSugerenciaEspecialidad(e)}
                     className="flex w-full px-3 py-1.5 text-left text-xs hover:bg-brand-bg"
                   >
-                    <span>🎯 {e.codigo_oficial ? `${e.codigo_oficial} — ` : ""}{e.denominacion}</span>
+                    <span>{e.codigo_oficial ? `${e.codigo_oficial} — ` : ""}{e.denominacion}</span>
                   </button>
                 ))}
               </div>
@@ -315,7 +315,7 @@ export function Filtros({
           {municipioActual && municipioFiltroNombre ? (
             <div className="mt-1 flex items-center justify-between rounded-md border border-brand-mint bg-brand-bg px-3 py-1.5">
               <span className="text-xs font-medium text-brand-text">
-                📍 {municipioFiltroNombre}
+                {municipioFiltroNombre}
               </span>
               <button
                 type="button"

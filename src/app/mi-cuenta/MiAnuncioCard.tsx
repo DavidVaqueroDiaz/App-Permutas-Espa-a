@@ -64,7 +64,7 @@ export function MiAnuncioCard({
   function pedirMarcarPermutado() {
     if (
       !confirm(
-        "🎉 ¿Confirmas que has conseguido la permuta?\n\n" +
+        "¿Confirmas que has conseguido la permuta?\n\n" +
           "Tu anuncio se marcará como cerrado y dejará de aparecer en " +
           "cadenas y búsquedas.\n\n" +
           "IMPORTANTE: avisa también a la(s) otra(s) persona(s) de la " +
@@ -121,7 +121,7 @@ export function MiAnuncioCard({
                 : "rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700"
           }
         >
-          {estaPermutado ? "🎉 permuta cerrada" : anuncio.estado}
+          {estaPermutado ? "permuta cerrada" : anuncio.estado}
         </span>
       </div>
 
@@ -139,7 +139,7 @@ export function MiAnuncioCard({
           href="/auto-permutas"
           className="mt-3 block rounded-md border border-brand bg-brand-bg p-2 text-xs text-brand-text hover:bg-brand-bg/70"
         >
-          🎉 <strong>{cadenasCount}</strong>{" "}
+          <strong>{cadenasCount}</strong>{" "}
           {cadenasCount === 1 ? "cadena posible incluye" : "cadenas posibles incluyen"}{" "}
           este anuncio. Pulsa para verlas →
         </a>
@@ -150,12 +150,12 @@ export function MiAnuncioCard({
         <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-2 text-xs text-warn-text">
           {yaCaducado ? (
             <>
-              ⏰ Tu anuncio <strong>caducó hace {Math.abs(diasACaducar)} días</strong>.
+              Tu anuncio <strong>caducó hace {Math.abs(diasACaducar)} días</strong>.
               Edítalo para renovarlo.
             </>
           ) : (
             <>
-              ⏰ Tu anuncio caduca en <strong>{diasACaducar} días</strong>.
+              Tu anuncio caduca en <strong>{diasACaducar} días</strong>.
               Edítalo y guarda para renovarlo otros 6 meses.
             </>
           )}
@@ -177,7 +177,7 @@ export function MiAnuncioCard({
           disabled={permutando}
           className="mt-3 w-full rounded-md border border-brand bg-brand-bg px-3 py-2 text-sm font-medium text-brand-text transition hover:bg-brand-bg/70 disabled:opacity-50"
         >
-          {permutando ? "Cerrando…" : "🎉 He conseguido la permuta"}
+          {permutando ? "Cerrando…" : "He conseguido la permuta"}
         </button>
       )}
 

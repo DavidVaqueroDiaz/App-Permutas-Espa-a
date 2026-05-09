@@ -35,37 +35,41 @@ export default function SobreElProyectoPage() {
 
       <h2>La historia</h2>
       <p>
-        Mi pareja es profesora. Aprobó las oposiciones y la destinaron a
-        <strong> A Coruña</strong>, cuando ella es de
-        <strong> Pontevedra</strong>. Hablando una noche me explicó qué
-        era una permuta de plaza, y lo difícil que era encontrar a la
-        persona exacta — mismo cuerpo, misma especialidad, en la
-        ciudad correcta, con los años de servicio compatibles…
+        Mi pareja es profesora. Aprobó las oposiciones y la destinaron
+        a <strong>A Coruña</strong>, una provincia lejos de su casa.
+        Intentando cambiar de centro para estar más cerca de su
+        familia, me explicó de qué se trataban las permutas y lo
+        difícil que era encontrar a la persona y centro correcto:
+        mismo cuerpo, misma especialidad, lugar concreto o con los
+        mismos años de servicio compatibles.
       </p>
       <p>
-        Me contó también que existían las <strong>permutas a 3 o más
-        personas</strong>: A se va a la plaza de B, B a la de C, y C a
-        la de A. Permitían encajar casos imposibles para una directa.
-        Pero coordinarlas a mano por grupos de WhatsApp y foros era
-        prácticamente inviable — había que cruzar mentalmente decenas
-        o centenas de anuncios.
+        También me contó que otra de las soluciones eran las{" "}
+        <strong>permutas a tres o cuatro personas</strong>, pues
+        permitían encajar casos imposibles ante una adjudicación de
+        permuta directa; sin embargo, había un inconveniente:
+        coordinarlas a mano por grupos de WhatsApp, chats o foros era
+        prácticamente inviable, ya que había que cruzar mentalmente
+        decenas y decenas de anuncios.
       </p>
       <p>
-        Soy programador, así que un fin de semana monté una primera
-        versión solo para ella. Le encontró una permuta ideal en
-        segundos. Cuando vi su cara me di cuenta de que esto no era
-        solo un problema suyo: investigando descubrí que les pasa a{" "}
-        <strong>miles de personas</strong> — profesorado, sanitarios,
-        policías, funcionarios de la AGE, autonómicos, locales,
-        habilitados nacionales… A muchos los destinan a cientos de
-        kilómetros de su casa y la mayoría no llega nunca a poder
-        volver.
+        Para poder ayudarla, puse en marcha mis conocimientos en
+        programación y diseñé una primera versión solo para ella. Una
+        vez terminada la web y tras la sorpresa de ambos, Carlota
+        encontró una permuta ideal en segundos.
       </p>
       <p>
-        PermutaES nace para ayudar a toda esa gente a encontrarse.
-        Gratis, sin publicidad, sin vender datos. Como me hubiera
-        gustado encontrarlo el primer día que mi pareja me habló de
-        permutas.
+        Investigando descubrí que esta problemática no solo pasa con
+        los docentes de la educación pública de la Xunta de Galicia,
+        sino que también ocurre con la mayoría del personal público a
+        nivel estatal en el resto de Comunidades Autónomas:
+        sanitarios, policías, funcionarios de la AGE, secretarios,
+        interventores, tesoreros, funcionarios autonómicos, de
+        ayuntamientos o de diputaciones, entre otros.
+      </p>
+      <p>
+        Tras esta historia nace <strong>PermutaES</strong> para ayudar
+        al personal público a encontrar su lugar de trabajo deseado.
       </p>
 
       <h2>Sobre mí</h2>

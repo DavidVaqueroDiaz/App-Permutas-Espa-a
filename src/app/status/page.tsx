@@ -221,10 +221,10 @@ export default async function StatusPage() {
       >
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
           {estadoGlobal === "ok"
-            ? "✅ Operativo"
+            ? "Operativo"
             : estadoGlobal === "aviso"
-              ? "⚠ Avisos"
-              : "🔴 Caída"}
+              ? "Avisos"
+              : "Caída"}
         </p>
         <h2
           className={

@@ -31,7 +31,7 @@ export function TablaReportes({ reportes }: { reportes: ReporteAdminRow[] }) {
   if (reportes.length === 0) {
     return (
       <p className="rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
-        No hay reportes pendientes. 👌
+        No hay reportes pendientes.
       </p>
     );
   }
@@ -72,7 +72,7 @@ function ReporteCard({ reporte }: { reporte: ReporteAdminRow }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wide text-red-700">
-            🚩 {MOTIVO_LABEL[reporte.motivo] ?? reporte.motivo}
+            {MOTIVO_LABEL[reporte.motivo] ?? reporte.motivo}
           </p>
           <p className="mt-0.5 text-sm font-medium text-slate-900">
             <a

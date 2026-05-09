@@ -108,7 +108,7 @@ export default async function MiCuentaPage({
       {bienvenido === "1" && (
         <div className="mt-6 rounded-xl2 border-2 border-brand bg-brand-bg p-5 shadow-card-hover">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-            🎉 Bienvenido a PermutaES
+            Bienvenido a PermutaES
           </p>
           <h2 className="mt-1 font-head text-xl font-semibold text-brand">
             Tu email está confirmado
@@ -139,7 +139,7 @@ export default async function MiCuentaPage({
       {permutado === "1" && (
         <div className="mt-6 rounded-xl2 border-2 border-brand bg-brand-bg p-5 shadow-card-hover">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-            🎉 ¡Enhorabuena!
+            ¡Enhorabuena!
           </p>
           <h2 className="mt-1 font-head text-xl font-semibold text-brand">
             Permuta cerrada
@@ -170,7 +170,7 @@ export default async function MiCuentaPage({
       {user.email_confirmed_at && anuncios.length === 0 && (
         <section className="mt-6 rounded-xl2 border-2 border-brand-mint bg-brand-bg p-5 shadow-card">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-            👋 Tu siguiente paso
+            Tu siguiente paso
           </p>
           <h2 className="mt-1 font-head text-xl font-semibold text-brand">
             Publica tu primer anuncio
@@ -218,7 +218,7 @@ export default async function MiCuentaPage({
               </p>
               {conteoCadenas.total > 0 ? (
                 <p className="mt-1 text-[11px] text-brand-text">
-                  🎉 {conteoCadenas.porLongitud.directas} directas
+                  {conteoCadenas.porLongitud.directas} directas
                   {conteoCadenas.porLongitud.tres > 0 &&
                     ` · ${conteoCadenas.porLongitud.tres} a 3`}
                   {conteoCadenas.porLongitud.cuatro > 0 &&

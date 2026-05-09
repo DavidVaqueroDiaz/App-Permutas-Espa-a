@@ -5,7 +5,7 @@ import { ChipsAtajos } from "./ChipsAtajos";
 import { esAliasImportado } from "@/lib/alias";
 
 export const metadata: Metadata = {
-  title: "Buscar anuncios",
+  title: "Tablón de anuncios",
   description:
     "Explora todos los anuncios de permuta de plaza publicados en PermutaES. Filtra por sector, comunidad autónoma o palabras clave.",
 };
@@ -304,7 +304,7 @@ export default async function AnunciosPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-12">
       <h1 className="font-head text-3xl font-semibold tracking-tight text-brand">
-        Buscar anuncios
+        Tablón de anuncios
       </h1>
       <p className="mt-2 text-sm text-slate-600">
         Explora los anuncios de permuta publicados. Filtra por sector, CCAA o por palabra clave.
@@ -374,7 +374,7 @@ export default async function AnunciosPage({
                     className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10px] text-warn-text"
                     title="Anuncio importado de PermutaDoc, sin usuario activo"
                   >
-                    📦 Demo
+                    Demo
                   </span>
                 )}
               </div>

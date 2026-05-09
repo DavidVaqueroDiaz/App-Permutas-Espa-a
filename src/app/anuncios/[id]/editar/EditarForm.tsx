@@ -305,7 +305,7 @@ export function EditarForm({
       <Card titulo="Datos legales">
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <p>
-            <strong>⚠ Importante:</strong> las reglas legales de la
+            <strong>Importante:</strong> las reglas legales de la
             permuta dependen de la <strong>comunidad autónoma</strong> y
             del <strong>servicio o función</strong> que desempeñas.
             Infórmate bien de cuáles son las que se aplican en tu caso

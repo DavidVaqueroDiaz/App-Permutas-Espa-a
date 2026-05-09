@@ -32,7 +32,7 @@ export default function NotFound() {
               href="/auto-permutas"
               className="font-medium text-brand-text hover:text-brand"
             >
-              🔍 Buscador de cadenas de permuta
+              Buscador de cadenas de permuta
             </Link>{" "}
             <span className="text-slate-500">— el corazón de PermutaES.</span>
           </li>
@@ -41,7 +41,7 @@ export default function NotFound() {
               href="/anuncios"
               className="font-medium text-brand-text hover:text-brand"
             >
-              📋 Listado de anuncios
+              Tablón de anuncios
             </Link>{" "}
             <span className="text-slate-500">— ver qué hay publicado.</span>
           </li>
@@ -50,7 +50,7 @@ export default function NotFound() {
               href="/preguntas-frecuentes"
               className="font-medium text-brand-text hover:text-brand"
             >
-              ❓ Preguntas frecuentes
+              Preguntas frecuentes
             </Link>{" "}
             <span className="text-slate-500">— las dudas habituales.</span>
           </li>
@@ -59,7 +59,7 @@ export default function NotFound() {
               href="/"
               className="font-medium text-brand-text hover:text-brand"
             >
-              🏠 Volver a la home
+              Volver a la home
             </Link>
           </li>
         </ul>

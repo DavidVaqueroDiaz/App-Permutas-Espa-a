@@ -82,7 +82,7 @@ export function BotonReportar({ anuncioId }: { anuncioId: string }) {
         onClick={() => setAbierto(true)}
         className="text-xs font-medium text-slate-500 hover:text-red-700"
       >
-        🚩 Reportar este anuncio
+        Reportar este anuncio
       </button>
     );
   }

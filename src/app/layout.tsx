@@ -25,7 +25,7 @@ const sora = Sora({
 
 export const metadata: Metadata = {
   title: {
-    default: "PermutaES — Permutas de plaza para funcionarios públicos en España",
+    default: "PermutaES — Bolsa de permutas para funcionarios públicos en España",
     template: "%s | PermutaES",
   },
   description:
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "PermutaES — Permutas de plaza para funcionarios públicos en España",
+    title: "PermutaES — Bolsa de permutas para funcionarios públicos en España",
     description:
       "Plataforma nacional gratuita para que funcionarios públicos españoles encuentren cadenas de permuta compatibles.",
     url: SITE_URL,
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PermutaES — Permutas de plaza para funcionarios públicos en España",
+    title: "PermutaES — Bolsa de permutas para funcionarios públicos en España",
     description:
       "Plataforma nacional gratuita para que funcionarios públicos españoles encuentren cadenas de permuta compatibles.",
   },

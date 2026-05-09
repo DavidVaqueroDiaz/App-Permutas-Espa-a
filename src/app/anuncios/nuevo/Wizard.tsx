@@ -201,7 +201,7 @@ export function Wizard({
       {/* Toast: confirma al usuario que su borrador esta guardado. */}
       {toastGuardado && (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-card-hover">
-          ✓ Borrador guardado en este navegador. Vuelve cuando quieras.
+          Borrador guardado en este navegador. Vuelve cuando quieras.
         </div>
       )}
 
@@ -798,7 +798,9 @@ function Paso5PlazasDeseadas({
   return (
     <PasoLayout titulo="¿A qué municipios aceptarías irte?">
       <p className="mb-4 text-sm text-slate-600">
-        Puedes combinar tres formas: añadir toda una CCAA, toda una provincia o municipios sueltos.
+        La forma más sencilla es seleccionar los municipios directamente
+        en el mapa. También puedes añadir CCAA o provincias enteras, o
+        municipios sueltos por nombre.
       </p>
 
       {error && (
@@ -806,6 +808,22 @@ function Paso5PlazasDeseadas({
           {error}
         </div>
       )}
+
+      {/* Boton MAPA prominente arriba: es la opcion mas visual y la que
+          mejor funciona para indicar comarcas o zonas concretas. Lo
+          ponemos primero para que no se pierda. */}
+      <button
+        type="button"
+        onClick={() => setMapaAbierto(true)}
+        className="mb-4 flex w-full items-center justify-center gap-2 rounded-md bg-brand px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+      >
+        <BotonMapaIconoWizard />
+        Seleccionar en el mapa
+      </button>
+
+      <div className="mb-3 text-center text-[11px] uppercase tracking-wide text-slate-400">
+        — o añadir por listas —
+      </div>
 
       {/* Selector CCAA completa */}
       <div className="mb-3 flex gap-2">
@@ -853,7 +871,7 @@ function Paso5PlazasDeseadas({
         </button>
       </div>
 
-      {/* Buscador de municipios sueltos + selector visual */}
+      {/* Buscador de municipios sueltos */}
       <div className="mb-4">
         <p className="mb-1 text-xs font-medium text-slate-700">O añade municipios sueltos</p>
         <MunicipioAutocomplete
@@ -863,13 +881,6 @@ function Paso5PlazasDeseadas({
           placeholder="Escribe un municipio…"
           autoLimpiar
         />
-        <button
-          type="button"
-          onClick={() => setMapaAbierto(true)}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-brand-light hover:text-brand"
-        >
-          🗺 Seleccionar en el mapa
-        </button>
       </div>
 
       {/* Resumen de seleccionados */}
@@ -986,7 +997,7 @@ function Paso6DatosLegales({
     <PasoLayout titulo="Datos para validar reglas legales">
       <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>
-          <strong>⚠ Importante:</strong> las reglas legales de la permuta
+          <strong>Importante:</strong> las reglas legales de la permuta
           dependen de la <strong>comunidad autónoma</strong> y del{" "}
           <strong>servicio o función</strong> que desempeñas. Infórmate
           bien de cuáles son las que se aplican en tu caso (sindicato,
@@ -1385,6 +1396,29 @@ function ProgressBar({ paso }: { paso: number }) {
         <div className="h-1.5 rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Icono de mapa SVG inline (estilo bandera plegada). Se usa en los
+ * botones "Seleccionar en el mapa" para sustituir el emoji 🗺.
+ */
+function BotonMapaIconoWizard() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 4 L4 6 V20 L9 18 L15 20 L20 18 V4 L15 6 Z" />
+      <path d="M9 4 V18" />
+      <path d="M15 6 V20" />
+    </svg>
   );
 }
 

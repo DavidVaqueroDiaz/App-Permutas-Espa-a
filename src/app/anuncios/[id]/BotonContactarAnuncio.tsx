@@ -39,7 +39,7 @@ export function BotonContactarAnuncio({
         disabled={pending}
         className="inline-flex items-center gap-1 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
       >
-        {pending ? "Abriendo…" : `💬 Contactar con ${alias} →`}
+        {pending ? "Abriendo…" : `Contactar con ${alias} →`}
       </button>
       {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
       <p className="mt-2 text-xs text-slate-500">

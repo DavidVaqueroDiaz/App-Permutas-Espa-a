@@ -381,6 +381,21 @@ export function Buscador({
           </Field>
 
           <Field label="Tu plaza actual">
+            {/* Boton del mapa PROMINENTE arriba: es la forma mas comoda
+                de seleccionar el municipio (no hay que adivinar el
+                nombre exacto). El input de texto queda como alternativa
+                rapida si ya sabes el nombre. */}
+            <button
+              type="button"
+              onClick={() => setMapaPara("actual")}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+            >
+              <BotonMapaIcono />
+              Seleccionar en el mapa
+            </button>
+            <p className="mb-1.5 text-center text-[11px] text-slate-500">
+              o escríbelo directamente
+            </p>
             <Autocomplete
               seleccionado={muniActual}
               onSeleccionar={(m) => setMuniActual(m)}
@@ -388,13 +403,6 @@ export function Buscador({
               placeholder="Ej: Madrid, Vigo, Sevilla..."
               municipios={municipios}
             />
-            <button
-              type="button"
-              onClick={() => setMapaPara("actual")}
-              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-text hover:text-brand"
-            >
-              🗺 Seleccionar en el mapa
-            </button>
             {muniActual && (
               <p className="mt-1 text-xs text-slate-500">
                 Provincia: {muniActual.provincia_nombre}
@@ -409,6 +417,17 @@ export function Buscador({
 
         <div className="mt-3 space-y-3">
           <Field label="Localidades objetivo (puedes añadir varias)">
+            <button
+              type="button"
+              onClick={() => setMapaPara("objetivo")}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+            >
+              <BotonMapaIcono />
+              Seleccionar en el mapa
+            </button>
+            <p className="mb-1.5 text-center text-[11px] text-slate-500">
+              o escríbelas directamente
+            </p>
             <Autocomplete
               seleccionado={null}
               onSeleccionar={(m) => añadirObjetivo(m)}
@@ -417,13 +436,6 @@ export function Buscador({
               municipios={municipios}
               autoLimpiar
             />
-            <button
-              type="button"
-              onClick={() => setMapaPara("objetivo")}
-              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-text hover:text-brand"
-            >
-              🗺 Seleccionar en el mapa
-            </button>
             {munisObjetivo.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {munisObjetivo.map((m) => (
@@ -534,9 +546,8 @@ export function Buscador({
                   <p className="mt-3 text-slate-700">
                     <strong>Lo que puedes hacer:</strong>
                   </p>
-                  <ul className="mt-2 space-y-2 text-slate-700">
+                  <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
                     <li>
-                      📝{" "}
                       <a
                         href="/registro"
                         className="font-medium text-brand-text hover:text-brand"
@@ -579,18 +590,16 @@ export function Buscador({
                     )}
                     . Ninguno encaja en una cadena directa, a 3 o a 4.
                   </p>
-                  <ul className="mt-4 space-y-2 text-slate-700">
+                  <ul className="mt-4 list-disc space-y-2 pl-5 text-slate-700">
                     <li>
-                      💡 <strong>Amplía el radio</strong> a 60-100 km — quizás
+                      <strong>Amplía el radio</strong> a 60-100 km — quizás
                       haya plazas cerca que no conocías.
                     </li>
                     <li>
-                      🗺{" "}
                       <strong>Añade más localidades objetivo</strong> — cuantas
                       más, más probabilidad de encajar en una cadena.
                     </li>
                     <li>
-                      📝{" "}
                       <a
                         href="/registro"
                         className="font-medium text-brand-text hover:text-brand"
@@ -653,6 +662,29 @@ export function Buscador({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Icono de mapa SVG inline para el boton "Seleccionar en el mapa".
+ * Se prefiere icono vectorial nitido a un emoji.
+ */
+function BotonMapaIcono() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 4 L4 6 V20 L9 18 L15 20 L20 18 V4 L15 6 Z" />
+      <path d="M9 4 V18" />
+      <path d="M15 6 V20" />
+    </svg>
   );
 }
 
@@ -752,7 +784,7 @@ function CadenaCard({ cadena, mejor }: { cadena: DetalleCadena; mejor: boolean }
       {mejor && (
         <div className="-ml-1 -mt-1">
           <span className="inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[11px] font-medium text-white">
-            ★ Mejor coincidencia
+            Mejor coincidencia
           </span>
         </div>
       )}
@@ -946,34 +978,34 @@ function ParticipanteDetalle({
               className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text"
               title="Anuncio importado de PermutaDoc, sin usuario activo"
             >
-              📦 Demo
+              Demo
             </span>
           )}
           {antiguo && (
             <span className="whitespace-nowrap rounded-full bg-warn-bg px-2 py-0.5 text-[10.5px] text-warn-text">
-              ⚠ Más de 30 días
+              Más de 30 días
             </span>
           )}
         </div>
       </div>
       <ul className="space-y-1 text-[12.5px] leading-snug text-slate-700">
         <li>
-          🏫 <span className="text-slate-500">Centro:</span> {p.centro_origen ?? "—"}
+          <span className="text-slate-500">Centro:</span> {p.centro_origen ?? "—"}
         </li>
         <li>
-          📋 <span className="text-slate-500">Tipo:</span> {etiquetaTipo(p.tipo)}
+          <span className="text-slate-500">Tipo:</span> {etiquetaTipo(p.tipo)}
         </li>
         <li>
-          🎯 <span className="text-slate-500">Busca:</span>{" "}
+          <span className="text-slate-500">Busca:</span>{" "}
           {p.zona_deseada ?? "—"}
         </li>
         {p.observaciones && (
           <li>
-            📝 <span className="text-slate-500">Obs.:</span> {p.observaciones}
+            <span className="text-slate-500">Obs.:</span> {p.observaciones}
           </li>
         )}
         <li>
-          📅 <span className="text-slate-500">Anuncio del:</span>{" "}
+          <span className="text-slate-500">Anuncio del:</span>{" "}
           {p.fecha_publicacion ?? "—"}
         </li>
         {p.km_recta !== null && (
@@ -988,7 +1020,7 @@ function ParticipanteDetalle({
       {p.avisos_legales.length > 0 && (
         <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-warn-text">
-            ⚠ Verificar antes de tramitar
+            Verificar antes de tramitar
           </p>
           <ul className="mt-1.5 space-y-1 text-[11.5px] leading-snug text-warn-text">
             {p.avisos_legales.map((av, i) => (

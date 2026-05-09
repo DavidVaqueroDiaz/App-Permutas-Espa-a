@@ -123,7 +123,7 @@ export default async function Home({
           </div>
 
           <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
-            Encuentra tu permuta de plaza
+            Encuentra tu permuta
           </h1>
 
           <p className="mt-4 text-pretty text-lg leading-8 text-slate-700">
@@ -139,7 +139,7 @@ export default async function Home({
               href="/auto-permutas"
               className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-brand-dark"
             >
-              🔍 Buscar permutas posibles →
+              Buscar permutas posibles →
             </a>
             <a
               href="/registro"
@@ -161,7 +161,7 @@ export default async function Home({
           <div className="mt-6 flex items-center justify-between gap-4 rounded-xl2 border border-brand-mint/40 bg-white p-4 shadow-card">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-                🎉 Permutas cerradas en PermutaES
+                Permutas cerradas en PermutaES
               </p>
               <p className="mt-0.5 font-head text-2xl font-semibold text-brand">
                 {permutasConseguidas.total}
@@ -191,20 +191,17 @@ export default async function Home({
             que el mapa con solo Galicia coloreada da impresion de
             "España vacía" y un usuario fuera de Galicia abandona
             asumiendo que la app no es para el. */}
-        <div className="mt-3 flex items-start gap-3 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
-          <span className="text-base">⚠️</span>
-          <div>
-            <p className="font-medium">Catálogo inicial concentrado en Galicia.</p>
-            <p className="mt-1 text-xs leading-relaxed">
-              Los {totalAnuncios > 0 ? totalAnuncios : ""} anuncios de
-              partida vienen de la importación inicial de PermutaDoc, que
-              cubría sobre todo docencia LOE gallega. Si tu sector o tu
-              CCAA aparecen vacíos en el mapa, es porque <strong>todavía
-              no se han registrado usuarios de allí</strong>. En cuanto
-              publiques el tuyo, aparecerás en el mapa y serás de los
-              primeros — es alfa.
-            </p>
-          </div>
+        <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
+          <p className="font-medium">Catálogo inicial concentrado en Galicia.</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Los {totalAnuncios > 0 ? totalAnuncios : ""} anuncios de
+            partida vienen de la importación inicial de PermutaDoc, que
+            cubría sobre todo docencia LOE gallega. Si tu sector o tu
+            CCAA aparecen vacíos en el mapa, es porque <strong>todavía
+            no se han registrado usuarios de allí</strong>. En cuanto
+            publiques el tuyo, aparecerás en el mapa y serás de los
+            primeros — es alfa.
+          </p>
         </div>
 
         <div className="mt-4">

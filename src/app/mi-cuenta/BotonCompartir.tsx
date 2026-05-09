@@ -83,17 +83,17 @@ export function BotonCompartir() {
           onClick={compartir}
           className="inline-flex items-center gap-1.5 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark"
         >
-          📢 Compartir
+          Compartir
         </button>
 
         {estado === "copiado" && (
           <span className="rounded-md bg-brand-mint/30 px-2.5 py-1 text-xs font-medium text-brand-text">
-            ✓ Mensaje copiado al portapapeles
+            Mensaje copiado al portapapeles
           </span>
         )}
         {estado === "compartido" && (
           <span className="rounded-md bg-brand-mint/30 px-2.5 py-1 text-xs font-medium text-brand-text">
-            ✓ Compartido, gracias
+            Compartido, gracias
           </span>
         )}
         {estado === "error" && (

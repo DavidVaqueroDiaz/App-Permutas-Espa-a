@@ -15,7 +15,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "PermutaES — Permutas de plaza para funcionarios públicos en España";
+export const alt = "PermutaES — Bolsa de permutas para funcionarios públicos en España";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -51,7 +51,7 @@ export default async function OpenGraphImage() {
             alignSelf: "flex-start",
           }}
         >
-          🇪🇸 Para funcionarios públicos en toda España
+          Para funcionarios públicos en toda España
         </div>
 
         {/* Logo + nombre */}
@@ -106,7 +106,7 @@ export default async function OpenGraphImage() {
             display: "flex",
           }}
         >
-          Encuentra tu permuta de plaza
+          Encuentra tu permuta
         </div>
 
         {/* Subtitulo */}

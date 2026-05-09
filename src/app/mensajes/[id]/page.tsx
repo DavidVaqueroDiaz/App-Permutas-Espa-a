@@ -66,7 +66,7 @@ export default async function ConversacionPage({
       {detalle.su_anuncio && (
         <div className="mb-4 rounded-md border border-brand-mint/40 bg-brand-bg/30 p-3 text-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-text">
-            💬 Conversación sobre el anuncio de {aliasHumano}
+            Conversación sobre el anuncio de {aliasHumano}
           </p>
           <p className="mt-1 font-medium text-slate-900">
             {detalle.su_anuncio.cuerpo_texto}

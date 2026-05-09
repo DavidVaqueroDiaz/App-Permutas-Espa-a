@@ -233,7 +233,7 @@ export default async function AdminPage({
       {reportes.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
-            🚩 Reportes pendientes ({reportes.length})
+            Reportes pendientes ({reportes.length})
           </h2>
           <TablaReportes reportes={reportes} />
         </section>

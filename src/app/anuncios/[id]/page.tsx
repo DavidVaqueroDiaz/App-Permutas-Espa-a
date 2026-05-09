@@ -212,7 +212,7 @@ export default async function AnuncioDetallePage({
                     : "rounded-full bg-slate-200 px-2 py-0.5 text-slate-700"
               }
             >
-              {a.estado === "permutado" ? "🎉 permuta cerrada" : a.estado}
+              {a.estado === "permutado" ? "permuta cerrada" : a.estado}
             </span>
             <span className="text-slate-500">
               Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
@@ -235,7 +235,7 @@ export default async function AnuncioDetallePage({
 
         {esAliasImportado(a.alias_publico) && a.estado === "activo" && (
           <div className="mt-4 rounded-md border border-warn-text/30 bg-warn-bg p-3 text-sm text-warn-text">
-            <p className="font-medium">📦 Anuncio de demostración</p>
+            <p className="font-medium">Anuncio de demostración</p>
             <p className="mt-1 text-xs leading-relaxed">
               Este anuncio viene de la importación inicial de PermutaDoc
               que usamos para arrancar PermutaES. La persona detrás
