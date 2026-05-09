@@ -951,6 +951,23 @@ function Paso5PlazasDeseadas({
 // ----------------------------------------------------------------------
 // Paso 6 — Datos legales personales
 // ----------------------------------------------------------------------
+//
+// Helpers de conversion ano <-> fecha. El esquema de la BD guarda los
+// campos como DATE (YYYY-MM-DD) por compatibilidad, pero la UI solo
+// pide el ano. Convertimos ano -> "YYYY-01-01" al guardar y extraemos
+// el ano al cargar.
+function fechaAYano(s: string | null): number | null {
+  if (!s) return null;
+  const m = /^(\d{4})/.exec(s);
+  return m ? Number.parseInt(m[1], 10) : null;
+}
+
+function yanoAFecha(y: number | null): string | null {
+  if (y === null) return null;
+  if (y < 1900 || y > 2100) return null;
+  return `${y}-01-01`;
+}
+
 function Paso6DatosLegales({
   fecha, anyos, haPermutado, fechaPermuta, onChange, onAtras, onSiguiente,
 }: {
@@ -959,6 +976,7 @@ function Paso6DatosLegales({
   onChange: (parche: Partial<WizardState>) => void;
   onAtras: () => void; onSiguiente: () => void;
 }) {
+  const yanoActual = new Date().getFullYear();
   const valido =
     !!fecha
     && typeof anyos === "number" && anyos >= 0 && anyos <= 50
@@ -966,20 +984,46 @@ function Paso6DatosLegales({
 
   return (
     <PasoLayout titulo="Datos para validar reglas legales">
-      <p className="mb-4 text-sm text-slate-600">
-        Esta información NO se muestra públicamente. Solo se usa para que la app respete las reglas legales de las permutas (≥2 años en destino, diferencia máxima de antigüedad, ≥10 años hasta jubilación, carencia de 10 años desde la última permuta).
-      </p>
+      <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <p>
+          <strong>⚠ Importante:</strong> las reglas legales de la permuta
+          dependen de la <strong>comunidad autónoma</strong> y del{" "}
+          <strong>servicio o función</strong> que desempeñas. Infórmate
+          bien de cuáles son las que se aplican en tu caso (sindicato,
+          BOE/DOG/BOJA correspondiente, recursos humanos de tu
+          administración).
+        </p>
+        <p className="mt-2">
+          Esta información <strong>NO se muestra públicamente</strong>.
+          Solo se usa internamente para emparejarte con personas con las
+          que la permuta es viable.
+        </p>
+      </div>
 
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-900">
-            Fecha de toma de posesión definitiva en tu plaza actual
+            Año de toma de posesión definitiva en tu plaza actual
           </label>
           <input
-            type="date"
-            max={new Date().toISOString().slice(0, 10)}
-            value={fecha ?? ""}
-            onChange={(e) => onChange({ fecha_toma_posesion_definitiva: e.target.value || null })}
+            type="number"
+            min={1970}
+            max={yanoActual}
+            step={1}
+            placeholder="Ej: 2018"
+            inputMode="numeric"
+            value={fechaAYano(fecha) ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") {
+                onChange({ fecha_toma_posesion_definitiva: null });
+              } else {
+                const y = Number.parseInt(v, 10);
+                onChange({
+                  fecha_toma_posesion_definitiva: Number.isNaN(y) ? null : yanoAFecha(y),
+                });
+              }
+            }}
             className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm"
           />
         </div>
@@ -1016,18 +1060,29 @@ function Paso6DatosLegales({
           {haPermutado && (
             <div className="mt-3">
               <label className="block text-xs text-slate-700">
-                Fecha de la última permuta
+                Año de la última permuta
               </label>
               <input
-                type="date"
-                max={new Date().toISOString().slice(0, 10)}
-                value={fechaPermuta ?? ""}
-                onChange={(e) => onChange({ permuta_anterior_fecha: e.target.value || null })}
+                type="number"
+                min={1970}
+                max={yanoActual}
+                step={1}
+                placeholder="Ej: 2015"
+                inputMode="numeric"
+                value={fechaAYano(fechaPermuta) ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    onChange({ permuta_anterior_fecha: null });
+                  } else {
+                    const y = Number.parseInt(v, 10);
+                    onChange({
+                      permuta_anterior_fecha: Number.isNaN(y) ? null : yanoAFecha(y),
+                    });
+                  }
+                }}
                 className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
               />
-              <p className="mt-1 text-xs text-slate-500">
-                La regla legal exige al menos 10 años desde la permuta anterior.
-              </p>
             </div>
           )}
         </div>
@@ -1136,10 +1191,10 @@ function Paso8Confirmacion({
       </Resumen>
 
       <Resumen titulo="Datos legales" onEditar={() => onIrAPaso(6)}>
-        <p className="text-sm">Toma de posesión definitiva: {state.fecha_toma_posesion_definitiva}</p>
+        <p className="text-sm">Año de toma de posesión definitiva: {fechaAYano(state.fecha_toma_posesion_definitiva)}</p>
         <p className="text-sm">Años de servicio totales: {state.anyos_servicio_totales}</p>
         <p className="text-sm">
-          Permuta anterior: {state.ha_permutado_antes ? `Sí (${state.permuta_anterior_fecha})` : "No"}
+          Permuta anterior: {state.ha_permutado_antes ? `Sí (${fechaAYano(state.permuta_anterior_fecha)})` : "No"}
         </p>
       </Resumen>
 

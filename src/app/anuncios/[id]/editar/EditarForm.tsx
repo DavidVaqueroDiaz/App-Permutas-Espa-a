@@ -303,13 +303,40 @@ export function EditarForm({
       </Card>
 
       <Card titulo="Datos legales">
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p>
+            <strong>⚠ Importante:</strong> las reglas legales de la
+            permuta dependen de la <strong>comunidad autónoma</strong> y
+            del <strong>servicio o función</strong> que desempeñas.
+            Infórmate bien de cuáles son las que se aplican en tu caso
+            (sindicato, BOE/DOG/BOJA correspondiente, recursos humanos
+            de tu administración).
+          </p>
+          <p className="mt-2">
+            Esta información <strong>NO se muestra públicamente</strong>.
+            Solo se usa internamente para emparejarte con personas con
+            las que la permuta es viable.
+          </p>
+        </div>
         <div className="space-y-4">
-          <Field label="Fecha de toma de posesión definitiva">
+          <Field label="Año de toma de posesión definitiva">
             <input
-              type="date"
-              max={new Date().toISOString().slice(0, 10)}
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              type="number"
+              min={1970}
+              max={new Date().getFullYear()}
+              step={1}
+              placeholder="Ej: 2018"
+              inputMode="numeric"
+              value={fechaAYanoEdit(fecha)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") {
+                  setFecha("");
+                } else {
+                  const y = Number.parseInt(v, 10);
+                  if (!Number.isNaN(y)) setFecha(`${y}-01-01`);
+                }
+              }}
               className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
             />
           </Field>
@@ -336,12 +363,24 @@ export function EditarForm({
               <span>Ya he permutado antes</span>
             </label>
             {haPermutado && (
-              <Field label="Fecha de la última permuta">
+              <Field label="Año de la última permuta">
                 <input
-                  type="date"
-                  max={new Date().toISOString().slice(0, 10)}
-                  value={fechaPermuta}
-                  onChange={(e) => setFechaPermuta(e.target.value)}
+                  type="number"
+                  min={1970}
+                  max={new Date().getFullYear()}
+                  step={1}
+                  placeholder="Ej: 2015"
+                  inputMode="numeric"
+                  value={fechaAYanoEdit(fechaPermuta)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setFechaPermuta("");
+                    } else {
+                      const y = Number.parseInt(v, 10);
+                      if (!Number.isNaN(y)) setFechaPermuta(`${y}-01-01`);
+                    }
+                  }}
                   className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
                 />
               </Field>
@@ -393,6 +432,14 @@ export function EditarForm({
 // ----------------------------------------------------------------------
 // Helpers UI
 // ----------------------------------------------------------------------
+
+// Helper local: extrae el ano de una fecha "YYYY-MM-DD" (o "" si no hay).
+// La BD guarda fecha completa por compatibilidad pero la UI solo edita ano.
+function fechaAYanoEdit(s: string | null | undefined): string {
+  if (!s) return "";
+  const m = /^(\d{4})/.exec(s);
+  return m ? m[1] : "";
+}
 
 function Card({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
