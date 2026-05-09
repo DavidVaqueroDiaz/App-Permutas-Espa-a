@@ -211,10 +211,19 @@ export function Buscador({
   // Limpiar el aviso "Faltan datos..." en cuanto el usuario cambia
   // cualquier dato del perfil — así no queda colgado mientras se
   // rellenan los campos uno a uno tras un primer click fallido.
+  // TAMBIEN limpiamos los resultados anteriores: si cambias de
+  // perfil pero los resultados antiguos siguen visibles, parece que
+  // las cadenas que ves son para el perfil nuevo (confunde). Mejor
+  // forzar a re-buscar cuando se cambien campos clave.
   useEffect(() => {
     if (errorBusqueda) setErrorBusqueda(null);
+    if (resultados !== null) {
+      setResultados(null);
+      setTotalAnalizados(0);
+      setMunicipiosEnRadio(0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cuerpoId, especialidadId, muniActual, munisObjetivo.length]);
+  }, [cuerpoId, especialidadId, muniActual, munisObjetivo.length, radio]);
 
   function buscar() {
     if (!cuerpoId || !muniActual || munisObjetivo.length === 0) {
@@ -517,9 +526,12 @@ export function Buscador({
                   {resultados.length === 1 ? "cadena detectada" : "cadenas detectadas"}
                 </h2>
                 <p className="text-sm text-slate-600">
-                  {totalAnalizados} anuncios analizados
+                  {totalAnalizados}{" "}
+                  {totalAnalizados === 1 ? "anuncio analizado" : "anuncios analizados"}
                   {munisObjetivo.length > 0 &&
-                    ` · ${municiposEnRadio} municipios en ${radio} km de ${
+                    ` · ${municiposEnRadio} ${
+                      municiposEnRadio === 1 ? "municipio" : "municipios"
+                    } en ${radio} km de ${
                       munisObjetivo.length === 1
                         ? munisObjetivo[0].nombre
                         : `${munisObjetivo.length} localidades objetivo`
@@ -536,113 +548,100 @@ export function Buscador({
             </div>
 
             {cadenasFiltradas.length === 0 ? (
-              totalAnalizados === 0 ? (
-                // Caso 1: cero anuncios analizados = no hay nadie en
-                // su combo (sector/cuerpo/especialidad/servicio salud).
-                // Es el caso mas comun en alfa fuera de docencia LOE.
-                <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
-                  <p className="font-head text-base font-semibold text-slate-900">
-                    🌱 Eres el primero en tu perfil
-                  </p>
-                  <p className="mt-2 text-slate-600">
-                    De momento <strong>no hay otros anuncios reales</strong> con
-                    tu misma combinación de sector, cuerpo y (si aplica)
-                    especialidad o servicio de salud.
-                  </p>
-                  {demoDisponible && !demoActivo && (
-                    <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3">
-                      <p className="text-sm font-medium text-amber-900">
-                        ¿Quieres ver cómo funciona la app cuando esté llena?
-                      </p>
-                      <p className="mt-1 text-xs text-amber-800">
-                        Activa el modo demo y verás cadenas simuladas con
-                        anuncios sintéticos de todos los sectores y CCAA.
-                        Podrás incluso abrir un chat de prueba.
-                      </p>
-                      <div className="mt-3">
-                        <ActivarDemoBoton onActivado={buscar} />
-                      </div>
-                    </div>
+              // Empty state UNIFICADO. La caja prominente de "Activar
+              // demo" se muestra siempre (cuando demo no esta activo y
+              // esta disponible) — antes habia dos variantes distintas
+              // segun hubiese o no anuncios reales analizados, y la
+              // experiencia visual era inconsistente.
+              <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
+                <p className="font-head text-base font-semibold text-slate-900">
+                  {totalAnalizados === 0
+                    ? "Eres el primero en tu perfil"
+                    : "Aún no hay cadenas para esta búsqueda"}
+                </p>
+                <p className="mt-2 text-slate-600">
+                  {totalAnalizados === 0 ? (
+                    <>
+                      De momento <strong>no hay otros anuncios reales</strong>{" "}
+                      con tu misma combinación de sector, cuerpo y (si aplica)
+                      especialidad o servicio de salud.
+                    </>
+                  ) : (
+                    <>
+                      Hemos analizado{" "}
+                      <strong>
+                        {totalAnalizados}{" "}
+                        {totalAnalizados === 1 ? "anuncio compatible" : "anuncios compatibles"}
+                      </strong>{" "}
+                      con tu perfil profesional
+                      {munisObjetivo.length > 0 && (
+                        <>
+                          , dentro de{" "}
+                          <strong>
+                            {municiposEnRadio}{" "}
+                            {municiposEnRadio === 1 ? "municipio" : "municipios"}
+                          </strong>{" "}
+                          en {radio} km de tus localidades objetivo
+                        </>
+                      )}
+                      . Ninguno encaja en una cadena directa, a 3 o a 4.
+                    </>
                   )}
-                  <p className="mt-4 text-slate-700">
-                    <strong>Y mientras tanto:</strong>
-                  </p>
-                  <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
-                    <li>
-                      <a
-                        href="/registro"
-                        className="font-medium text-brand-text hover:text-brand"
-                      >
-                        Publica tu anuncio
-                      </a>{" "}
-                      — quedas guardado y te avisamos por email en cuanto
-                      aparezca alguien compatible.
-                    </li>
-                    <li>
-                      <a
-                        href="/contacto"
-                        className="font-medium text-brand-text hover:text-brand"
-                      >
-                        Compártela con compañeros
-                      </a>{" "}
-                      del mismo cuerpo. Cuanto antes haya 2-3 anuncios de tu
-                      perfil, antes empezará a haber matches.
-                    </li>
-                  </ul>
-                </div>
-              ) : (
-                // Caso 2: hay anuncios analizados pero ninguno encaja
-                // en cadena (el caso original).
-                <div className="rounded-xl2 border border-slate-200 bg-white shadow-card p-6 text-sm">
-                  <p className="font-head text-base font-semibold text-slate-900">
-                    Aún no hay cadenas para esta búsqueda
-                  </p>
-                  <p className="mt-2 text-slate-600">
-                    Hemos analizado{" "}
-                    <strong>{totalAnalizados} anuncios</strong> compatibles con
-                    tu perfil profesional
-                    {munisObjetivo.length > 0 && (
-                      <>
-                        , dentro de{" "}
-                        <strong>{municiposEnRadio} municipios</strong> en {radio}{" "}
-                        km de tus localidades objetivo
-                      </>
-                    )}
-                    . Ninguno encaja en una cadena directa, a 3 o a 4.
-                  </p>
-                  <ul className="mt-4 list-disc space-y-2 pl-5 text-slate-700">
-                    <li>
-                      <strong>Amplía el radio</strong> a 60-100 km — quizás
-                      haya plazas cerca que no conocías.
-                    </li>
-                    <li>
-                      <strong>Añade más localidades objetivo</strong> — cuantas
-                      más, más probabilidad de encajar en una cadena.
-                    </li>
-                    <li>
-                      <a
-                        href="/registro"
-                        className="font-medium text-brand-text hover:text-brand"
-                      >
-                        Publica tu propio anuncio
-                      </a>{" "}
-                      — te avisaremos por email cuando aparezca una cadena con
-                      tu perfil.
-                    </li>
-                  </ul>
-                  {demoDisponible && !demoActivo && (
-                    <p className="mt-4 text-xs text-slate-500">
-                      ¿Quieres ver cómo se vería con la plataforma llena?{" "}
-                      <ActivarDemoBoton
-                        className="font-medium text-amber-700 underline hover:text-amber-800"
-                        onActivado={buscar}
-                      >
-                        Activar modo demo
-                      </ActivarDemoBoton>
+                </p>
+
+                {demoDisponible && !demoActivo && (
+                  <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3">
+                    <p className="text-sm font-medium text-amber-900">
+                      ¿Quieres ver cómo funciona la app cuando esté llena?
                     </p>
+                    <p className="mt-1 text-xs text-amber-800">
+                      Activa el modo demo y verás cadenas simuladas con
+                      anuncios sintéticos compatibles con tu perfil.
+                      Podrás incluso abrir un chat de prueba.
+                    </p>
+                    <div className="mt-3">
+                      <ActivarDemoBoton onActivado={buscar} />
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-4 text-slate-700">
+                  <strong>Y mientras tanto:</strong>
+                </p>
+                <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
+                  {totalAnalizados > 0 && (
+                    <>
+                      <li>
+                        <strong>Amplía el radio</strong> a 60-100 km — quizás
+                        haya plazas cerca que no conocías.
+                      </li>
+                      <li>
+                        <strong>Añade más localidades objetivo</strong> —
+                        cuantas más, más probabilidad de encajar en una cadena.
+                      </li>
+                    </>
                   )}
-                </div>
-              )
+                  <li>
+                    <a
+                      href="/registro"
+                      className="font-medium text-brand-text hover:text-brand"
+                    >
+                      Publica tu propio anuncio
+                    </a>{" "}
+                    — te avisaremos por email cuando aparezca una cadena con
+                    tu perfil.
+                  </li>
+                  <li>
+                    <a
+                      href="/contacto"
+                      className="font-medium text-brand-text hover:text-brand"
+                    >
+                      Compártela con compañeros
+                    </a>{" "}
+                    del mismo cuerpo. Cuantos más, más cadenas se detectan.
+                  </li>
+                </ul>
+              </div>
             ) : (
               <ul className="space-y-4">
                 {cadenasFiltradas.map((c, i) => (
@@ -1157,9 +1156,29 @@ function Autocomplete({
     if (!q) return municipios.slice(0, 8);
     // Comparamos sin artículo, así "a coru" encuentra "Coruña, A"
     // y "coru" también encuentra "A Coruña" o "Coruña, A".
+    //
+    // Ordenamos por relevancia para que "Madrid" no resuelva a
+    // "Humanes de Madrid" sino a "Madrid":
+    //   score 0 = match exacto (clave coincide)
+    //   score 1 = empieza por el query
+    //   score 2 = contiene el query (resto)
+    // Dentro de cada nivel, alfabetico.
     return municipios
       .filter((m) => clave(m.nombre).includes(q))
-      .slice(0, 12);
+      .map((m) => {
+        const c = clave(m.nombre);
+        let score = 2;
+        if (c === q) score = 0;
+        else if (c.startsWith(q)) score = 1;
+        return { m, score, nombre: m.nombre };
+      })
+      .sort((a, b) =>
+        a.score !== b.score
+          ? a.score - b.score
+          : a.nombre.localeCompare(b.nombre, "es"),
+      )
+      .slice(0, 12)
+      .map((x) => x.m);
   }, [query, municipios]);
 
   function seleccionar(m: MunicipioLocal) {
