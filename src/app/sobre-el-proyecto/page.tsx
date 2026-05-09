@@ -70,16 +70,15 @@ export default function SobreElProyectoPage() {
 
       <h2>Quién está detrás</h2>
       <div className="not-prose flex flex-col gap-4 rounded-xl2 border border-slate-200 bg-white p-5 shadow-card sm:flex-row sm:items-start">
-        {/* Marco cuadrado con esquinas redondeadas: la imagen ya es
-            cuadrada, asi que se ve completa sin recorte circular que
-            corte la cabeza. */}
+        {/* Marco vertical (relacion 5:7) que respeta la proporcion real
+            de la foto (594x842 px). Asi se ve completa, sin recortes. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/sobre/david.jpeg"
           alt="Foto de David Vaquero"
-          width={128}
-          height={128}
-          className="h-32 w-32 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200"
+          width={120}
+          height={170}
+          className="h-[170px] w-[120px] shrink-0 rounded-2xl object-cover ring-1 ring-slate-200"
         />
         <div>
           <p className="font-head text-lg font-semibold text-brand">
