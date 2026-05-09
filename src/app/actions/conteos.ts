@@ -1,15 +1,14 @@
 "use server";
 
-import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type ConteoPorCcaa = Record<string, number>;
 
 /**
- * Implementacion REAL (sin cache) — se llama desde el wrapper cacheado
- * de mas abajo y desde el cliente del mapa cuando filtra por sector.
+ * Devuelve cuántos anuncios ACTIVOS hay en cada CCAA, opcionalmente
+ * filtrados por sector. La clave es el código INE de la CCAA (2 dígitos).
  */
-async function _obtenerConteosPorCcaaImpl(
+export async function obtenerConteosPorCcaa(
   sectorCodigo?: string,
 ): Promise<ConteoPorCcaa> {
   const supabase = await createClient();
@@ -36,32 +35,6 @@ async function _obtenerConteosPorCcaaImpl(
   return counts;
 }
 
-// Cacheamos el conteo "todos los sectores" durante 5 minutos. Es el
-// valor que se renderiza en la home; los filtros por sector no se
-// cachean (se calculan al vuelo cuando el usuario cambia el select).
-const _conteosCacheado = unstable_cache(
-  () => _obtenerConteosPorCcaaImpl(undefined),
-  ["conteos-por-ccaa-global"],
-  { revalidate: 300, tags: ["conteos"] },
-);
-
-/**
- * Devuelve cuántos anuncios ACTIVOS hay en cada CCAA, opcionalmente
- * filtrados por sector. La clave es el código INE de la CCAA (2 dígitos).
- *
- * Si NO se pasa sector, usa cache de 5 min (es la version que pinta
- * la home en cada request). Si se pasa sector, va directo a Supabase
- * porque es una interaccion del cliente (cambio de filtro).
- */
-export async function obtenerConteosPorCcaa(
-  sectorCodigo?: string,
-): Promise<ConteoPorCcaa> {
-  if (sectorCodigo) {
-    return _obtenerConteosPorCcaaImpl(sectorCodigo);
-  }
-  return _conteosCacheado();
-}
-
 /**
  * Lista de sectores que tienen al menos un anuncio activo (para llenar
  * el desplegable solo con sectores reales).
@@ -72,7 +45,7 @@ export type SectorOpcion = {
   total: number;
 };
 
-async function _obtenerSectoresConAnunciosImpl(): Promise<SectorOpcion[]> {
+export async function obtenerSectoresConAnuncios(): Promise<SectorOpcion[]> {
   const supabase = await createClient();
 
   const [sectoresRes, anunciosRes] = await Promise.all([
@@ -99,14 +72,4 @@ async function _obtenerSectoresConAnunciosImpl(): Promise<SectorOpcion[]> {
     .sort((a, b) => b.total - a.total);
 
   return opciones;
-}
-
-const _sectoresCacheado = unstable_cache(
-  _obtenerSectoresConAnunciosImpl,
-  ["sectores-con-anuncios"],
-  { revalidate: 300, tags: ["conteos"] },
-);
-
-export async function obtenerSectoresConAnuncios(): Promise<SectorOpcion[]> {
-  return _sectoresCacheado();
 }

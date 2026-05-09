@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   obtenerConteosPorCcaa,
@@ -10,16 +9,18 @@ import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL } from "@/lib/site-url";
 
 /**
- * ISR: la home se renderiza estaticamente y se revalida en background
- * cada 5 minutos. Asi el usuario recibe HTML cacheado en milisegundos
- * en lugar de esperar a que el servidor consulte Supabase, ejecute las
- * agregaciones y monte la pagina (lo que estaba dando ~19 s en Sentry).
+ * Nota sobre rendimiento: la home consulta Supabase en cada request
+ * para los conteos de anuncios y permutas cerradas. La cache real
+ * deberia hacerse con un cliente anonimo (sin cookies) envuelto en
+ * `unstable_cache`, pero `createClient()` lee cookies internamente y
+ * eso no es compatible con `unstable_cache`. Como mejora futura, crear
+ * un cliente publico aparte para datos no-personales y cachearlo.
  *
  * El banner "cuenta eliminada" vive en un client component
  * (BannerCuentaEliminada) que lee `?cuenta_eliminada=1` desde el
- * navegador, asi no fuerza render dinamico en la home.
+ * navegador. Asi la pagina no recibe `searchParams` y queda lista
+ * para optimizaciones futuras de cache.
  */
-export const revalidate = 300;
 
 /**
  * Schema.org Organization + WebSite para la home. Le dice a Google
@@ -63,45 +64,34 @@ type Sector = {
   descripcion: string | null;
 };
 
-// Estos dos getters viven detras de unstable_cache (revalidate 5 min)
-// porque son los datos pinta en la home: la lista de sectores y el
-// contador de permutas cerradas. Refrescan en background.
-const getSectores = unstable_cache(
-  async (): Promise<Sector[]> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("sectores")
-      .select("codigo, nombre, descripcion")
-      .order("nombre", { ascending: true });
+async function getSectores(): Promise<Sector[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("sectores")
+    .select("codigo, nombre, descripcion")
+    .order("nombre", { ascending: true });
 
-    if (error) {
-      console.error("[home] Error leyendo sectores:", error.message);
-      return [];
-    }
-    return data ?? [];
-  },
-  ["home-sectores"],
-  { revalidate: 300, tags: ["sectores"] },
-);
+  if (error) {
+    console.error("[home] Error leyendo sectores:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
 
 type PermutasContador = { total: number; ultimos_30_dias: number };
 
-const getPermutasConseguidas = unstable_cache(
-  async (): Promise<PermutasContador> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .rpc("contar_permutas_conseguidas")
-      .single();
-    if (error || !data) return { total: 0, ultimos_30_dias: 0 };
-    const row = data as { total: number; ultimos_30_dias: number };
-    return {
-      total: Number(row.total) || 0,
-      ultimos_30_dias: Number(row.ultimos_30_dias) || 0,
-    };
-  },
-  ["home-permutas-conseguidas"],
-  { revalidate: 300, tags: ["permutas"] },
-);
+async function getPermutasConseguidas(): Promise<PermutasContador> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("contar_permutas_conseguidas")
+    .single();
+  if (error || !data) return { total: 0, ultimos_30_dias: 0 };
+  const row = data as { total: number; ultimos_30_dias: number };
+  return {
+    total: Number(row.total) || 0,
+    ultimos_30_dias: Number(row.ultimos_30_dias) || 0,
+  };
+}
 
 export default async function Home() {
   const [sectores, conteos, sectoresOpciones, permutasConseguidas] =
