@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Sora } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DemoBanner } from "@/components/DemoBanner";
@@ -103,6 +104,11 @@ export default async function RootLayout({
           {children}
         </div>
         <Footer />
+        {/* Vercel Web Analytics. Sin cookies, RGPD-friendly. Solo
+            cuenta visitas, paginas mas vistas y referrers (de donde
+            llega la gente). Util para medir la efectividad de la
+            difusion en foros / sindicatos / redes. */}
+        <Analytics />
       </body>
     </html>
   );
