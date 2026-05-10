@@ -145,6 +145,23 @@ export async function iniciarConversacionDesdeAnuncio(
     return { ok: true, conversacion_id: data as string };
   }
 
+  // CASO ADMIN: si el visitante es admin, usa la RPC que salta la
+  // restriccion de taxonomia compartida. Util para soporte y
+  // moderacion: el admin puede contactar a cualquier usuario.
+  // La RPC valida internamente es_admin_actual(), asi que no se
+  // puede usar sin permisos.
+  const { data: esAdminData } = await supabase.rpc("es_admin_actual");
+  if (esAdminData === true) {
+    const { data, error } = await supabase.rpc("iniciar_conversacion_admin", {
+      otro_usuario: otro.usuario_id,
+      su_anuncio_id: otroAnuncioId,
+    });
+    if (error) return { ok: false, mensaje: error.message };
+    if (!data) return { ok: false, mensaje: "No se pudo iniciar la conversación." };
+    revalidatePath("/mensajes");
+    return { ok: true, conversacion_id: data as string };
+  }
+
   // CASO REAL: si no se especificó cuál de mis anuncios usar, busco
   // uno activo con la misma taxonomía. Esto cubre el caso de que el
   // usuario tenga varios y uno solo encaje.
