@@ -51,15 +51,16 @@ export default async function AdminPage({
     convsRecientesRes,
   ] = await Promise.all([
     supabase.from("anuncios").select("id", { count: "exact", head: true }).eq("es_demo", false),
-    supabase.from("perfiles_usuario").select("id", { count: "exact", head: true }),
+    // Para el contador, perfiles_publicos (vista) sirve perfecto: no
+    // tiene RLS bloqueante. Para el LISTADO, necesitamos campos que
+    // la vista no expone (creado_el, es_admin), asi que llamamos a la
+    // RPC SECURITY DEFINER `listar_usuarios_recientes_admin` que
+    // valida admin internamente.
+    supabase.from("perfiles_publicos").select("id", { count: "exact", head: true }),
     supabase.from("conversaciones").select("id", { count: "exact", head: true }),
     supabase.from("mensajes").select("id", { count: "exact", head: true }),
     supabase.rpc("listar_reportes_pendientes"),
-    supabase
-      .from("perfiles_usuario")
-      .select("id, alias_publico, ano_nacimiento, creado_el, es_admin")
-      .order("creado_el", { ascending: false })
-      .limit(20),
+    supabase.rpc("listar_usuarios_recientes_admin"),
     supabase
       .from("conversaciones")
       .select("id, creado_el, ultimo_mensaje_el, usuario_a_id, usuario_b_id")
@@ -92,8 +93,11 @@ export default async function AdminPage({
   }
   const aliasMap = new Map<string, string>();
   if (idsParaAlias.size > 0) {
+    // perfiles_publicos no tiene RLS, asi que devuelve los aliases
+    // de todos los participantes de las conversaciones (no solo el
+    // propio del admin como ocurria con perfiles_usuario).
     const { data: aliasRows } = await supabase
-      .from("perfiles_usuario")
+      .from("perfiles_publicos")
       .select("id, alias_publico")
       .in("id", Array.from(idsParaAlias));
     for (const r of (aliasRows ?? []) as { id: string; alias_publico: string }[]) {
@@ -126,9 +130,10 @@ export default async function AdminPage({
   if (sector) q1 = q1.eq("sector_codigo", sector);
   if (qTrim.length >= 2) {
     // Búsqueda por alias del usuario u observaciones (ilike).
+    // Usamos perfiles_publicos (sin RLS bloqueante).
     const ilike = `%${qTrim}%`;
     const aliasRes = await supabase
-      .from("perfiles_usuario")
+      .from("perfiles_publicos")
       .select("id")
       .ilike("alias_publico", ilike);
     const aliasIds = (aliasRes.data ?? []).map((r) => r.id as string);
@@ -170,11 +175,13 @@ export default async function AdminPage({
   const filas = (anunciosData ?? []) as Row[];
 
   // Segunda query: aliases de los usuarios involucrados (en bloque).
+  // perfiles_publicos en lugar de perfiles_usuario por la misma razon
+  // que arriba — la tabla tiene RLS que filtra a auth.uid().
   const userIds = Array.from(new Set(filas.map((r) => r.usuario_id)));
   const aliasPorUsuario = new Map<string, string>();
   if (userIds.length > 0) {
     const { data: perfilesData } = await supabase
-      .from("perfiles_usuario")
+      .from("perfiles_publicos")
       .select("id, alias_publico")
       .in("id", userIds);
     for (const p of (perfilesData ?? []) as { id: string; alias_publico: string }[]) {
