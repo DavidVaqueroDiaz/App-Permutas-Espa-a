@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type SearchParams = Promise<{ q?: string; sector?: string }>;
+type SearchParams = Promise<{ q?: string; sector?: string; demos?: string }>;
 
 export default async function AdminPage({
   searchParams,
@@ -30,8 +30,12 @@ export default async function AdminPage({
     redirect("/");
   }
 
-  const { q = "", sector = "" } = await searchParams;
+  const { q = "", sector = "", demos = "" } = await searchParams;
   const qTrim = q.trim();
+  // Por defecto el panel oculta los anuncios demo (pueden ser cientos
+  // generados al vuelo cuando los visitantes usan el modo demo y dan
+  // ruido al admin). Para verlos, anadir ?demos=1 a la URL.
+  const incluirDemos = demos === "1";
 
   // Estadísticas globales + reportes pendientes (los reportes los traemos
   // por RPC porque la consulta hace varios JOINs y la RPC ya valida admin).
@@ -46,7 +50,7 @@ export default async function AdminPage({
     usuariosRecientesRes,
     convsRecientesRes,
   ] = await Promise.all([
-    supabase.from("anuncios").select("id", { count: "exact", head: true }),
+    supabase.from("anuncios").select("id", { count: "exact", head: true }).eq("es_demo", false),
     supabase.from("perfiles_usuario").select("id", { count: "exact", head: true }),
     supabase.from("conversaciones").select("id", { count: "exact", head: true }),
     supabase.from("mensajes").select("id", { count: "exact", head: true }),
@@ -111,13 +115,14 @@ export default async function AdminPage({
   let q1 = supabase
     .from("anuncios")
     .select(
-      `id, sector_codigo, ccaa_codigo, estado, creado_el, observaciones, usuario_id,
+      `id, sector_codigo, ccaa_codigo, estado, creado_el, observaciones, usuario_id, es_demo,
        cuerpo:cuerpos(codigo_oficial, denominacion),
        especialidad:especialidades(codigo_oficial, denominacion),
        municipio:municipios!municipio_actual_codigo(nombre, provincias!inner(nombre))`,
     )
     .order("creado_el", { ascending: false })
     .limit(50);
+  if (!incluirDemos) q1 = q1.eq("es_demo", false);
   if (sector) q1 = q1.eq("sector_codigo", sector);
   if (qTrim.length >= 2) {
     // Búsqueda por alias del usuario u observaciones (ilike).
@@ -240,9 +245,22 @@ export default async function AdminPage({
       )}
 
       <section>
-        <h2 className="mb-3 font-head text-lg font-semibold text-slate-900">
-          Anuncios ({anuncios.length} mostrados, máx. 50)
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-head text-lg font-semibold text-slate-900">
+            Anuncios ({anuncios.length} mostrados, máx. 50)
+            {!incluirDemos && (
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                — solo reales
+              </span>
+            )}
+          </h2>
+          <a
+            href={incluirDemos ? "/admin" : "/admin?demos=1"}
+            className="text-xs font-medium text-brand-text hover:text-brand"
+          >
+            {incluirDemos ? "Ocultar demos" : "Mostrar también demos"}
+          </a>
+        </div>
         <TablaAnuncios
           anuncios={anuncios}
           sectores={(sectoresData ?? []).map((s) => ({
