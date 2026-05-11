@@ -198,7 +198,9 @@ function FilaAnuncio({ anuncio }: { anuncio: AnuncioAdminRow }) {
         </span>
       </td>
       <td className="px-3 py-2 align-top text-slate-500">
-        {new Date(anuncio.creado_el).toLocaleDateString("es-ES")}
+        {new Date(anuncio.creado_el).toLocaleDateString("es-ES", {
+          timeZone: "Europe/Madrid",
+        })}
       </td>
       <td className="px-3 py-2 align-top text-right">
         <a

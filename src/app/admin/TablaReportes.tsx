@@ -93,7 +93,9 @@ function ReporteCard({ reporte }: { reporte: ReporteAdminRow }) {
         <p className="text-xs text-slate-500">
           Reportado por <strong>{reporte.reportador_alias}</strong>
           <br />
-          el {new Date(reporte.creado_el).toLocaleString("es-ES")}
+          el {new Date(reporte.creado_el).toLocaleString("es-ES", {
+            timeZone: "Europe/Madrid",
+          })}
         </p>
       </div>
 

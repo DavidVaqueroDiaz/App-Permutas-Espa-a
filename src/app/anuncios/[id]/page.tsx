@@ -254,11 +254,15 @@ export default async function AnuncioDetallePage({
               {a.estado === "permutado" ? "permuta cerrada" : a.estado}
             </span>
             <span className="text-slate-500">
-              Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES")}
+              Publicado el {new Date(a.creado_el).toLocaleDateString("es-ES", {
+                timeZone: "Europe/Madrid",
+              })}
             </span>
             {a.estado === "activo" && (
               <span className="text-slate-500">
-                · Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES")}
+                · Caduca el {new Date(a.caduca_el).toLocaleDateString("es-ES", {
+                  timeZone: "Europe/Madrid",
+                })}
               </span>
             )}
           </div>

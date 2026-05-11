@@ -183,9 +183,13 @@ export function MiAnuncioCard({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-500">
-          Publicado el {new Date(anuncio.creado_el).toLocaleDateString("es-ES")}
+          Publicado el {new Date(anuncio.creado_el).toLocaleDateString("es-ES", {
+            timeZone: "Europe/Madrid",
+          })}
           {!estaPermutado &&
-            ` · Caduca el ${new Date(anuncio.caduca_el).toLocaleDateString("es-ES")}`}
+            ` · Caduca el ${new Date(anuncio.caduca_el).toLocaleDateString("es-ES", {
+              timeZone: "Europe/Madrid",
+            })}`}
         </p>
         {!estaPermutado && (
           <div className="flex items-center gap-2">

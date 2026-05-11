@@ -312,7 +312,9 @@ export default async function AdminPage({
                       </td>
                       <td className="px-4 py-2 text-slate-600">{u.ano_nacimiento}</td>
                       <td className="px-4 py-2 text-xs text-slate-500">
-                        {new Date(u.creado_el).toLocaleDateString("es-ES")}
+                        {new Date(u.creado_el).toLocaleDateString("es-ES", {
+                          timeZone: "Europe/Madrid",
+                        })}
                       </td>
                       <td className="px-4 py-2 text-xs">
                         {u.es_admin ? (
@@ -362,11 +364,15 @@ export default async function AdminPage({
                       {aliasMap.get(c.usuario_b_id) ?? "—"}
                     </td>
                     <td className="px-4 py-2 text-xs text-slate-500">
-                      {new Date(c.creado_el).toLocaleDateString("es-ES")}
+                      {new Date(c.creado_el).toLocaleDateString("es-ES", {
+                        timeZone: "Europe/Madrid",
+                      })}
                     </td>
                     <td className="px-4 py-2 text-xs text-slate-500">
                       {c.ultimo_mensaje_el
-                        ? new Date(c.ultimo_mensaje_el).toLocaleString("es-ES")
+                        ? new Date(c.ultimo_mensaje_el).toLocaleString("es-ES", {
+                            timeZone: "Europe/Madrid",
+                          })
                         : "—"}
                     </td>
                   </tr>

@@ -330,7 +330,9 @@ export default async function MiCuentaPage({
             <div className="flex justify-between px-4 py-3">
               <dt className="font-medium text-slate-700">Cuenta creada</dt>
               <dd className="text-slate-900">
-                {new Date(perfil.creado_el).toLocaleDateString("es-ES")}
+                {new Date(perfil.creado_el).toLocaleDateString("es-ES", {
+                  timeZone: "Europe/Madrid",
+                })}
               </dd>
             </div>
           )}

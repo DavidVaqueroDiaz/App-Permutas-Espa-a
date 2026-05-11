@@ -235,7 +235,9 @@ export default async function StatusPage() {
           {titularGlobal}
         </h2>
         <p className="mt-1 text-xs text-slate-600">
-          Última comprobación: {new Date().toLocaleString("es-ES")}
+          Última comprobación: {new Date().toLocaleString("es-ES", {
+            timeZone: "Europe/Madrid",
+          })}
         </p>
       </div>
 
