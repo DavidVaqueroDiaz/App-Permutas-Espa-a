@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title:
-    "Permutas en la Guardia Civil — Coordina tu cambio de destino | PermutaES",
+    "Permutas en la Guardia Civil — Coordina tu cambio de destino",
   description:
     "Plataforma gratuita para que guardias civiles encuentren compañeros con destinos opuestos y coordinen el intercambio en sus concursos. Empleos y especialidades fundamentales incluidos. Marco legal: Ley 29/2014, RD 470/2019, Orden PCM/509/2020.",
   alternates: { canonical: "/permutas/guardia-civil" },

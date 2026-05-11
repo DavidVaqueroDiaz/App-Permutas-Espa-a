@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title:
-    "Permutas en la Policía Nacional — Coordina tu cambio de destino | PermutaES",
+    "Permutas en la Policía Nacional — Coordina tu cambio de destino",
   description:
     "Plataforma gratuita para que funcionarios del Cuerpo Nacional de Policía (CNP) encuentren compañeros con destinos opuestos y coordinen el intercambio en sus concursos respectivos. Categorías incluidas, marco legal de la LO 9/2015 y buscador de cadenas.",
   alternates: { canonical: "/permutas/policia-nacional" },
