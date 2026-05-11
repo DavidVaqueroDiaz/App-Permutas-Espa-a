@@ -27,6 +27,16 @@ export function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/permutas/policia-nacional" className="hover:text-brand">
+                  Permutas Policía Nacional
+                </a>
+              </li>
+              <li>
+                <a href="/permutas/guardia-civil" className="hover:text-brand">
+                  Permutas Guardia Civil
+                </a>
+              </li>
+              <li>
                 <a href="/preguntas-frecuentes" className="hover:text-brand">
                   Preguntas frecuentes
                 </a>
