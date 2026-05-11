@@ -118,7 +118,7 @@ export default async function Home() {
             alternativa de descubrimiento. */}
         <section className="rounded-xl2 border border-brand-mint/40 bg-brand-bg/50 p-6 shadow-card md:p-8">
           <div className="mb-3 inline-flex items-center rounded-full bg-brand-mint/30 px-3 py-1 text-[11px] font-medium text-brand-text">
-            Plataforma nacional · Para funcionarios públicos en toda España · 7 sectores activos
+            Plataforma nacional · Para funcionarios públicos en toda España · 9 sectores activos
           </div>
 
           <h1 className="text-balance font-head text-4xl font-semibold tracking-tight text-brand sm:text-5xl">
@@ -127,8 +127,9 @@ export default async function Home() {
 
           <p className="mt-4 text-pretty text-lg leading-8 text-slate-700">
             Plataforma nacional gratuita para funcionarios públicos: docencia,
-            sanidad SNS, AGE, autonómicos, locales, habilitados nacionales y
-            policía local. Cruzamos automáticamente los anuncios y detectamos{" "}
+            sanidad SNS, AGE, autonómicos, locales, habilitados nacionales,
+            policía local, Policía Nacional y Guardia Civil. Cruzamos
+            automáticamente los anuncios y detectamos{" "}
             <strong>cadenas de permuta directas, a 3 o a 4 personas</strong>{" "}
             que cumplen las reglas legales de tu sector.
           </p>

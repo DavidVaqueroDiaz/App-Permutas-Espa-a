@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     "cadena permuta",
     "permuta docente",
     "permuta sanitario",
+    "permuta policía nacional",
+    "permuta guardia civil",
   ],
   openGraph: {
     title: "¿Qué es una permuta entre funcionarios? — PermutaES",

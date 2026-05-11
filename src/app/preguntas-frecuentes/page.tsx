@@ -49,7 +49,7 @@ const SECCIONES: Seccion[] = [
       {
         idAncla: "quienes-pueden",
         q: "¿Quién puede permutar?",
-        a: "Los funcionarios de carrera con destino definitivo en cuerpos donde la normativa lo contempla expresamente: profesorado de enseñanza no universitaria (cuerpos LOE), personal estatutario de los Servicios de Salud, funcionarios de la Administración General del Estado, funcionarios autonómicos, funcionarios de Administración Local, habilitados nacionales y, en ciertas comunidades, Policía Local. Quedan fuera jueces, militares, Guardia Civil y Policía Nacional, entre otros.",
+        a: "Los funcionarios de carrera con destino definitivo en cuerpos donde la normativa lo contempla expresamente: profesorado de enseñanza no universitaria (cuerpos LOE), personal estatutario de los Servicios de Salud, funcionarios de la Administración General del Estado, funcionarios autonómicos, funcionarios de Administración Local, habilitados nacionales y, en ciertas comunidades, Policía Local. La plataforma también cubre Policía Nacional y Guardia Civil, donde la coordinación se canaliza por el concurso de destinos correspondiente. Quedan fuera jueces y otros cuerpos militares (Fuerzas Armadas), entre otros.",
       },
       {
         idAncla: "interinos",
