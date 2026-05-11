@@ -72,6 +72,10 @@ const REGLAS_GEO: Record<
   policia_local: (a, b) =>
     a.ccaa_codigo === b.ccaa_codigo &&
     new Set(["01", "02", "04", "10", "12"]).has(a.ccaa_codigo),
+  // Policía Nacional: cuerpo estatal, sin límite geográfico.
+  policia_nacional: () => true,
+  // Guardia Civil: cuerpo estatal, sin límite geográfico.
+  guardia_civil: () => true,
 };
 
 /**

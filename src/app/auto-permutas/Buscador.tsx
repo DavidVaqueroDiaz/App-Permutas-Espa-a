@@ -113,7 +113,9 @@ export function Buscador({
       s.codigo === "funcionario_ccaa" ||
       s.codigo === "funcionario_local" ||
       s.codigo === "habilitado_nacional" ||
-      s.codigo === "policia_local"
+      s.codigo === "policia_local" ||
+      s.codigo === "policia_nacional" ||
+      s.codigo === "guardia_civil"
     ),
     [sectores],
   );

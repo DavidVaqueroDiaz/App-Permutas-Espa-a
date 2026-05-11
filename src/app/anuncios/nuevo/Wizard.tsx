@@ -38,6 +38,8 @@ const SECTORES_ACTIVOS = new Set<string>([
   "funcionario_local",
   "habilitado_nacional",
   "policia_local",
+  "policia_nacional",
+  "guardia_civil",
 ]);
 const STORAGE_KEY = "permutaes:wizard:nuevo-anuncio";
 const ANO_ACTUAL = new Date().getFullYear();
