@@ -63,8 +63,11 @@ export async function obtenerSectoresConAnuncios(): Promise<SectorOpcion[]> {
   const totalesPorSector: Record<string, number> = {};
   for (const c of conteos) totalesPorSector[c.sector_codigo] = c.total;
 
+  // Mostramos TODOS los sectores aunque tengan 0 anuncios. Asi un visitante
+  // del sector recien abierto (p.ej. Policia Nacional o Guardia Civil) ve
+  // que su sector esta cubierto y puede ser el primero en publicar.
+  // Los sectores vacios quedan al final por el sort descendente.
   const opciones: SectorOpcion[] = sectores
-    .filter((s) => (totalesPorSector[s.codigo as string] ?? 0) > 0)
     .map((s) => ({
       codigo: s.codigo as string,
       nombre: s.nombre as string,
