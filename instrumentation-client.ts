@@ -21,6 +21,33 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     // Solo enviar a Sentry desde produccion.
     enabled: process.env.NODE_ENV === "production",
     environment: process.env.NODE_ENV,
+    // Filtramos ruido conocido que NO es bug nuestro:
+    //   - Errores de red en moviles inestables (4G que se cae, cambio
+    //     WiFi/datos, usuarios que cierran la pestania a media carga).
+    //   - Extensiones de Firefox (modo lector) y wallets crypto
+    //     (Talisman) que inyectan scripts en cualquier pagina.
+    //   - WebViews de iOS (Twitter/Instagram/WhatsApp) que inyectan
+    //     hooks de telemetria propios y fallan en webs externas.
+    // Detectado tras semanas en produccion. Sin esto, ~70% del volumen
+    // de Sentry es ruido y oculta las senales reales.
+    ignoreErrors: [
+      // Red caida / petición cancelada
+      "Failed to fetch",
+      "Load failed",
+      "NetworkError when attempting to fetch resource",
+      "AbortError",
+      "network error",
+      "The operation was aborted",
+      // Extensiones del navegador del visitante
+      "__firefox__",
+      "Talisman extension",
+      // WebViews iOS embebidos en apps de terceros
+      "window.webkit.messageHandlers",
+      // Extensiones que intentan postMessage cuando la pestania ya no existe
+      "Invalid call to runtime.sendMessage",
+      // Stream SSR cortado por el cliente
+      "Error in input stream",
+    ],
     integrations: [
       Sentry.replayIntegration({
         maskAllText: true,    // mensajes/datos sensibles no se ven en replays
