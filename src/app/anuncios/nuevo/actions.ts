@@ -34,6 +34,14 @@ export async function buscarMunicipios(
   const q = query.trim();
   if (q.length < 2) return [];
 
+  // Escape de wildcards de SQL LIKE: `%`, `_` y `\`. Sin esto, un usuario
+  // (o atacante) podria mandar "%%%%a" para forzar al planner a un full
+  // table scan extremadamente costoso (slow-query DoS). Supabase JS ya
+  // parametriza el query, asi que NO hay inyeccion SQL — solo abuso de
+  // patron LIKE. PostgreSQL acepta `\` como caracter de escape por
+  // defecto en ILIKE.
+  const qSafe = q.replace(/[%_\\]/g, "\\$&");
+
   const supabase = await createClient();
 
   // Pedimos hasta 80 candidatos por `ilike` y los reordenamos en
@@ -43,7 +51,7 @@ export async function buscarMunicipios(
   const { data, error } = await supabase
     .from("municipios")
     .select("codigo_ine, nombre, provincia_codigo, provincias!inner(nombre)")
-    .ilike("nombre", `%${q}%`)
+    .ilike("nombre", `%${qSafe}%`)
     .limit(80);
 
   if (error || !data) return [];
