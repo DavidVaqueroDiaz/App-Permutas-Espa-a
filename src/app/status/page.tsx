@@ -17,6 +17,17 @@ type EstadoCheck = {
   detalle: string;
 };
 
+/**
+ * En produccion no exponemos `error.message` ni stacks de excepciones
+ * en la pagina publica de estado: aunque tiene `robots: noindex`, la
+ * URL es publica y conocida (/status), y los mensajes pueden filtrar
+ * versiones, paths internos o pistas de infraestructura. En desarrollo
+ * si los vemos para diagnosticar rapido.
+ */
+function detalleSeguro(mensajeTecnico: string, mensajePublico: string): string {
+  return process.env.NODE_ENV === "production" ? mensajePublico : mensajeTecnico;
+}
+
 async function chequearSupabase(): Promise<EstadoCheck> {
   const t0 = Date.now();
   try {
@@ -31,7 +42,7 @@ async function chequearSupabase(): Promise<EstadoCheck> {
         nombre: "Base de datos (Supabase)",
         estado: "error",
         latencia_ms: latencia,
-        detalle: `Error: ${error.message}`,
+        detalle: detalleSeguro(`Error: ${error.message}`, "Error de conexion."),
       };
     }
     if (!data || data.length === 0) {
@@ -53,7 +64,10 @@ async function chequearSupabase(): Promise<EstadoCheck> {
       nombre: "Base de datos (Supabase)",
       estado: "error",
       latencia_ms: null,
-      detalle: `Excepción: ${e instanceof Error ? e.message : String(e)}`,
+      detalle: detalleSeguro(
+        `Excepción: ${e instanceof Error ? e.message : String(e)}`,
+        "Excepcion al conectar.",
+      ),
     };
   }
 }
@@ -128,7 +142,10 @@ async function chequearResend(): Promise<EstadoCheck> {
       nombre: "Email (Resend)",
       estado: "error",
       latencia_ms: null,
-      detalle: `Sin respuesta: ${e instanceof Error ? e.message : String(e)}`,
+      detalle: detalleSeguro(
+        `Sin respuesta: ${e instanceof Error ? e.message : String(e)}`,
+        "Sin respuesta del servicio de email.",
+      ),
     };
   }
 }
