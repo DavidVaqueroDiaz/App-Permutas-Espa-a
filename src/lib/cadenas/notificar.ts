@@ -22,6 +22,45 @@ import {
   plantillaCadenaCerradaPorOtro,
 } from "@/lib/email/plantillas";
 
+/**
+ * Carga TODAS las plazas deseadas de los anuncios dados, paginando.
+ *
+ * PostgREST corta a 1000 filas por defecto. Sin paginar, un combo con
+ * varios anuncios que eligieron "una CCAA entera" (miles de municipios
+ * cada uno) devolveria solo las primeras 1000 plazas, el matcher veria
+ * datos incompletos y dejaria de detectar cadenas reales SIN ningun
+ * error visible. El buscador interactivo ya pagina; estas funciones de
+ * notificacion por email se habian quedado sin el arreglo.
+ *
+ * Se ordena por la PK (anuncio_id, municipio_codigo) para que la
+ * paginacion sea estable y no se pierdan ni dupliquen filas entre lotes.
+ */
+type PlazaFila = { anuncio_id: string; municipio_codigo: string };
+
+async function cargarTodasLasPlazas(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+): Promise<PlazaFila[]> {
+  const PAGE = 1000;
+  let offset = 0;
+  const todas: PlazaFila[] = [];
+  while (true) {
+    const { data } = await supabase
+      .from("anuncio_plazas_deseadas")
+      .select("anuncio_id, municipio_codigo")
+      .in("anuncio_id", ids)
+      .order("anuncio_id")
+      .order("municipio_codigo")
+      .range(offset, offset + PAGE - 1);
+    if (!data || data.length === 0) break;
+    todas.push(...(data as PlazaFila[]));
+    if (data.length < PAGE) break;
+    offset += PAGE;
+    if (offset > 200_000) break; // guard de seguridad
+  }
+  return todas;
+}
+
 export async function notificarCadenasNuevas(anuncioId: string): Promise<void> {
   try {
     const supabase = await createClient();
@@ -74,11 +113,8 @@ export async function notificarCadenasNuevas(anuncioId: string): Promise<void> {
     const usuariosUnicos = Array.from(new Set(compatibles.map((x) => x.usuario_id)));
     const muniCodigos = Array.from(new Set(compatibles.map((x) => x.municipio_actual_codigo)));
 
-    const [plazasRes, perfilesRes, muniRes, cuerpoRes, espRes] = await Promise.all([
-      supabase
-        .from("anuncio_plazas_deseadas")
-        .select("anuncio_id, municipio_codigo")
-        .in("anuncio_id", ids),
+    const [plazasArr, perfilesRes, muniRes, cuerpoRes, espRes] = await Promise.all([
+      cargarTodasLasPlazas(supabase, ids),
       supabase
         .from("perfiles_publicos")
         .select("id, alias_publico, ano_nacimiento")
@@ -102,7 +138,7 @@ export async function notificarCadenasNuevas(anuncioId: string): Promise<void> {
     ]);
 
     const plazasPorAnuncio = new Map<string, Set<string>>();
-    for (const p of plazasRes.data ?? []) {
+    for (const p of plazasArr) {
       const k = (p as { anuncio_id: string }).anuncio_id;
       const c = (p as { municipio_codigo: string }).municipio_codigo;
       const s = plazasPorAnuncio.get(k) ?? new Set<string>();
@@ -303,12 +339,9 @@ export async function notificarCadenaCerradaPorPermuta(
       ]),
     );
 
-    const [plazasRes, perfilesRes, muniRes, cuerpoRes, espRes] =
+    const [plazasArr, perfilesRes, muniRes, cuerpoRes, espRes] =
       await Promise.all([
-        supabase
-          .from("anuncio_plazas_deseadas")
-          .select("anuncio_id, municipio_codigo")
-          .in("anuncio_id", idsConCerrado),
+        cargarTodasLasPlazas(supabase, idsConCerrado),
         supabase
           .from("perfiles_publicos")
           .select("id, alias_publico, ano_nacimiento")
@@ -332,7 +365,7 @@ export async function notificarCadenaCerradaPorPermuta(
       ]);
 
     const plazasPorAnuncio = new Map<string, Set<string>>();
-    for (const p of plazasRes.data ?? []) {
+    for (const p of plazasArr) {
       const k = (p as { anuncio_id: string }).anuncio_id;
       const c = (p as { municipio_codigo: string }).municipio_codigo;
       const s = plazasPorAnuncio.get(k) ?? new Set<string>();
