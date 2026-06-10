@@ -12,7 +12,7 @@
  * todo lo que llega (modo seguro por defecto).
  */
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
 import { plantillaRecordatorioCaducidad } from "@/lib/email/plantillas";
 
@@ -44,8 +44,10 @@ export async function GET(request: Request) {
     );
   }
 
-  // 2) Candidatos
-  const supabase = await createClient();
+  // 2) Candidatos. Usamos el cliente service_role (secret key): esta
+  //    funcion devuelve emails de usuarios y ya NO es accesible por
+  //    anon/authenticated (solo el cron, con esta key, puede leerla).
+  const supabase = createAdminClient();
   const { data, error } = await supabase.rpc(
     "candidatos_recordatorio_caducidad",
   );

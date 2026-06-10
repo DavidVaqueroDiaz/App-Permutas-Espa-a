@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { modoDemoActivo } from "@/lib/demo";
 import { sintetizarYpersistirDemos } from "@/lib/cadenas/sintetizar-demo";
 import {
@@ -549,7 +550,15 @@ export async function buscarCadenasDesdePerfil(
       cuatro: cuentaPorLongitud[4] === 0,
     };
     if (necesarias.directa || necesarias.tres || necesarias.cuatro) {
-      const sint = await sintetizarYpersistirDemos(supabase, virtual, necesarias);
+      // El generador de demos llama a crear_demo_sintetico, que ya NO es
+      // accesible por anon/authenticated (creaba usuarios+anuncios). Se
+      // invoca con el cliente service_role; el resto del flujo de demo
+      // sigue usando el cliente de sesion normal (`supabase`).
+      const sint = await sintetizarYpersistirDemos(
+        createAdminClient(),
+        virtual,
+        necesarias,
+      );
       if (sint.nuevos.length > 0) {
         // Cargar los nombres de municipios de los demos recien creados
         const codigosNuevos = Array.from(
