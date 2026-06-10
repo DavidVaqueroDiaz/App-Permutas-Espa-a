@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { aplicarRateLimit, ipDesdeHeaders } from "@/lib/rate-limit";
 import { SITE_URL } from "@/lib/site-url";
 
 export type RecuperarState = {
@@ -16,6 +18,21 @@ export async function solicitarRecuperacion(
 
   if (!email || !email.includes("@")) {
     return { ok: false, message: "Introduce un email válido." };
+  }
+
+  // Rate-limit por IP para evitar el bombardeo de emails de recuperacion
+  // a una victima conocida (email bombing) y el abuso de cuota. 5/hora
+  // basta para un usuario legitimo que se equivoca varias veces.
+  const ip = ipDesdeHeaders(await headers());
+  const rl = await aplicarRateLimit({
+    clave: `recuperar:${ip}`,
+    ventanaSegundos: 3600,
+    max: 5,
+    mensajeBloqueado:
+      "Has solicitado recuperar la contraseña demasiadas veces. Espera una hora antes de volver a intentarlo.",
+  });
+  if (!rl.permitido) {
+    return { ok: false, message: rl.mensaje };
   }
 
   const supabase = await createClient();
