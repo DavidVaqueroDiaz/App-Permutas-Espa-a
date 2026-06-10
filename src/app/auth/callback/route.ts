@@ -18,7 +18,14 @@ import { enviarEmailBienvenidaSiProcede } from "@/lib/email/bienvenida";
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/mi-cuenta";
+  // Solo permitimos rutas internas en `next` para evitar open redirect:
+  // un valor como "//evil.com" o "https://evil.com" generaria una URL
+  // absoluta a un dominio externo (phishing tras autenticar).
+  const nextRaw = url.searchParams.get("next") ?? "/mi-cuenta";
+  const next =
+    nextRaw.startsWith("/") && !nextRaw.startsWith("//")
+      ? nextRaw
+      : "/mi-cuenta";
   const errorDescription = url.searchParams.get("error_description");
 
   if (errorDescription) {
