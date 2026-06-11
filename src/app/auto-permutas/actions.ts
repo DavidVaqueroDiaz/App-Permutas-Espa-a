@@ -554,11 +554,21 @@ export async function buscarCadenasDesdePerfil(
       // accesible por anon/authenticated (creaba usuarios+anuncios). Se
       // invoca con el cliente service_role; el resto del flujo de demo
       // sigue usando el cliente de sesion normal (`supabase`).
-      const sint = await sintetizarYpersistirDemos(
-        createAdminClient(),
-        virtual,
-        necesarias,
-      );
+      //
+      // El modo demo es best-effort: si el generador falla (p.ej. falta
+      // SUPABASE_SECRET_KEY en el entorno), NO rompemos la busqueda. El
+      // usuario ve las cadenas reales que haya; simplemente no se generan
+      // demos sinteticos.
+      let sint: { nuevos: AnuncioMatching[] } = { nuevos: [] };
+      try {
+        sint = await sintetizarYpersistirDemos(
+          createAdminClient(),
+          virtual,
+          necesarias,
+        );
+      } catch (e) {
+        console.warn("[auto-permutas] sintesis de demos fallo (degradado):", e);
+      }
       if (sint.nuevos.length > 0) {
         // Cargar los nombres de municipios de los demos recien creados
         const codigosNuevos = Array.from(
