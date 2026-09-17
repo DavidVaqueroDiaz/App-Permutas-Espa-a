@@ -17,6 +17,12 @@ import { enviarEmail } from "@/lib/email/resend";
 import { plantillaRecordatorioCaducidad } from "@/lib/email/plantillas";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+/** Se deja de enviar a los 50 s para no cortar un envio a medias (enviado
+ *  pero sin marcar, que se repetiria al dia siguiente). Los que queden
+ *  salen en la siguiente ejecucion. */
+const LIMITE_MS = 50_000;
 
 type Candidato = {
   anuncio_id: string;
@@ -28,6 +34,7 @@ type Candidato = {
 };
 
 export async function GET(request: Request) {
+  const inicio = Date.now();
   // 1) Auth
   const expected = process.env.CRON_SECRET;
   if (!expected) {
@@ -62,8 +69,14 @@ export async function GET(request: Request) {
     procesados: 0,
     enviados: 0,
     fallos: 0,
+    pendientes: 0,
   };
   for (const c of candidatos) {
+    if (Date.now() - inicio > LIMITE_MS) {
+      resultados.pendientes = candidatos.length - resultados.procesados;
+      console.warn(`[cron-caducidad] sin tiempo: ${resultados.pendientes} para mañana`);
+      break;
+    }
     resultados.procesados++;
     const diasRestantes = Math.max(
       1,

@@ -1,14 +1,94 @@
+import type { ReactNode } from "react";
 import type {
   CadenaAdmin,
   CadenaHistorica,
   EstadoContacto,
   ParContacto,
+  ParticipanteAdmin,
   ResultadoHistorico,
 } from "@/lib/admin/panel";
 
 function fecha(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-ES", { timeZone: "Europe/Madrid" });
+}
+
+function Aviso({ p }: { p: ParticipanteAdmin }) {
+  switch (p.aviso) {
+    case "enviado":
+      return <span className="text-brand-text">Avisado el {fecha(p.avisadoEl)}</span>;
+    case "enviando":
+      return <span className="text-slate-600">Enviándose ahora mismo</span>;
+    case "sin_correo":
+      return (
+        <span className="text-slate-600">
+          Sin correo válido
+          <span className="block text-slate-500">No se le puede avisar</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="font-semibold text-red-700">
+          Sin aviso todavía
+          <span className="block font-normal text-slate-500">
+            La revisión diaria de la mañana se lo enviará
+          </span>
+        </span>
+      );
+  }
+}
+
+function Seguimiento({ p }: { p: ParticipanteAdmin }) {
+  const s = p.seguimiento;
+  if (!s.hablanDesde) {
+    return <span className="text-slate-500">Aún no ha hablado con nadie de la cadena</span>;
+  }
+  const prox = s.proximo;
+  const texto = prox?.numero === 2 ? "Recordatorio" : "Pregunta";
+  let siguiente: ReactNode = null;
+  if (s.enviando) {
+    siguiente = <span className="block text-slate-600">Enviándose ahora mismo</span>;
+  } else if (prox && s.atrasado) {
+    siguiente = (
+      <span className="block font-semibold text-red-700">
+        {texto} atrasada (tocaba el {fecha(prox.fecha)})
+      </span>
+    );
+  } else if (prox && s.toca) {
+    siguiente = (
+      <span className="block text-slate-700">{texto}: sale en la próxima revisión de la mañana</span>
+    );
+  } else if (prox) {
+    siguiente = (
+      <span className="block text-slate-700">
+        {texto} el {fecha(prox.fecha)}
+      </span>
+    );
+  }
+  return (
+    <span>
+      <span className="block text-slate-500">Hablan desde el {fecha(s.hablanDesde)}</span>
+      {s.primeroEl && (
+        <span className="block text-brand-text">
+          Preguntado el {fecha(s.primeroEl)}
+          {s.primeroDeOtra && " (por otra cadena con las mismas personas)"}
+        </span>
+      )}
+      {s.segundoEl && (
+        <span className="block text-brand-text">
+          Recordatorio el {fecha(s.segundoEl)}
+          {s.segundoDeOtra && " (por otra cadena)"}
+        </span>
+      )}
+      {siguiente}
+      {!prox && !s.primeroEl && (
+        <span className="block text-slate-500">Empieza a contar cuando tenga su aviso</span>
+      )}
+      {!prox && !s.segundoEl && s.primeroEl && (
+        <span className="block text-slate-500">No se le enviará nada más</span>
+      )}
+    </span>
+  );
 }
 
 const TIPO: Record<number, string> = { 2: "Directa", 3: "A 3", 4: "A 4" };
@@ -48,6 +128,7 @@ function Pares({ pares }: { pares: ParContacto[] }) {
           <span className="text-slate-500">
             {" "}
             (chat abierto el {fecha(p.creada)}
+            {p.hablanDesde ? `, se escriben desde el ${fecha(p.hablanDesde)}` : ""}
             {p.ultimoMensaje ? `, último mensaje el ${fecha(p.ultimoMensaje)}` : ""})
           </span>
         </li>
@@ -101,17 +182,52 @@ export function TablaCadenas({
                     </div>
                   </div>
 
-                  <div className="mt-3 overflow-x-auto">
+                  {/* Movil: una ficha por persona. */}
+                  <ul className="mt-3 space-y-2 md:hidden">
+                    {c.participantes.map((p) => (
+                      <li key={p.anuncioId} className="rounded-md border border-slate-100 p-2.5 text-xs">
+                        <p className="text-sm font-medium text-slate-900">
+                          {p.alias}
+                          {p.completo && (
+                            <span className="ml-1 text-[11px] font-normal text-slate-500">
+                              (completó la cadena)
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-slate-700">
+                          {p.municipio}
+                          {p.provincia ? <span className="text-slate-500"> ({p.provincia})</span> : null}
+                          {" → "}
+                          {p.destino}
+                        </p>
+                        <div className="mt-1.5">
+                          <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            Aviso por correo
+                          </span>
+                          <Aviso p={p} />
+                        </div>
+                        <div className="mt-1.5">
+                          <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            ¿Conseguisteis la permuta?
+                          </span>
+                          <Seguimiento p={p} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-3 hidden overflow-x-auto md:block">
                     <table className="w-full text-sm">
                       <thead className="text-left text-[11px] uppercase tracking-wide text-slate-500">
                         <tr>
                           <th className="py-1 pr-3">Persona</th>
                           <th className="py-1 pr-3">Está en</th>
                           <th className="py-1 pr-3">Iría a</th>
-                          <th className="py-1">Aviso por correo</th>
+                          <th className="py-1 pr-3">Aviso por correo</th>
+                          <th className="py-1">¿Conseguisteis la permuta?</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 align-top">
                         {c.participantes.map((p) => (
                           <tr key={p.anuncioId}>
                             <td className="py-1.5 pr-3 font-medium text-slate-900">{p.alias}</td>
@@ -120,22 +236,16 @@ export function TablaCadenas({
                               {p.provincia ? <span className="text-slate-500"> ({p.provincia})</span> : null}
                             </td>
                             <td className="py-1.5 pr-3 text-slate-700">{p.destino}</td>
-                            <td className="py-1.5 text-xs">
-                              {p.avisadoEl ? (
-                                <span className="text-brand-text">Avisado el {fecha(p.avisadoEl)}</span>
-                              ) : (
-                                <span className="font-semibold text-red-700">
-                                  Sin aviso todavía
-                                  <span className="block font-normal text-slate-500">
-                                    La revisión diaria de la mañana se lo enviará
-                                  </span>
-                                </span>
-                              )}
+                            <td className="py-1.5 pr-3 text-xs">
+                              <Aviso p={p} />
                               {p.completo && (
                                 <span className="block text-[11px] text-slate-500">
                                   Completó la cadena
                                 </span>
                               )}
+                            </td>
+                            <td className="py-1.5 text-xs">
+                              <Seguimiento p={p} />
                             </td>
                           </tr>
                         ))}

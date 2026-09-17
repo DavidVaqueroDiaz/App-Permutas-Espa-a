@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   expandirAtajos,
@@ -30,6 +31,7 @@ export async function actualizarAnuncio(
   id: string,
   input: ActualizarAnuncioInput,
 ): Promise<ActualizarAnuncioResultado> {
+  const inicio = Date.now();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -132,9 +134,9 @@ export async function actualizarAnuncio(
     };
   }
 
-  // 5) Notificación de cadenas nuevas (best-effort). Editar o reactivar
-  // puede descubrir cadenas nuevas; las ya avisadas no se repiten.
-  await notificarCadenasNuevas(id);
+  // 5) Aviso de cadenas nuevas (best-effort, tras responder). Editar o
+  // reactivar puede descubrir cadenas nuevas; las ya avisadas no se repiten.
+  after(() => notificarCadenasNuevas(id, { inicio }));
 
   revalidatePath("/mi-cuenta");
   revalidatePath("/mis-cadenas");
@@ -149,6 +151,7 @@ export async function actualizarAnuncio(
 export async function renovarAnuncio(
   id: string,
 ): Promise<{ ok: true; caduca_el: string } | { ok: false; mensaje: string }> {
+  const inicio = Date.now();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, mensaje: "No tienes sesión activa." };
@@ -158,7 +161,7 @@ export async function renovarAnuncio(
     return { ok: false, mensaje: "No se pudo renovar este anuncio." };
   }
 
-  await notificarCadenasNuevas(id);
+  after(() => notificarCadenasNuevas(id, { inicio }));
 
   revalidatePath("/mi-cuenta");
   revalidatePath("/mis-cadenas");
@@ -205,6 +208,7 @@ export async function eliminarAnuncio(id: string) {
  * la app no detecta cierres automaticamente.
  */
 export async function marcarPermutaConseguida(id: string) {
+  const inicio = Date.now();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, mensaje: "No autenticado." };
@@ -240,10 +244,10 @@ export async function marcarPermutaConseguida(id: string) {
 
   if (error) return { ok: false as const, mensaje: error.message };
 
-  // Best-effort: avisar a los otros participantes de cadenas que ya
-  // no son viables. Si falla, no rompe la accion (el cierre ya se
-  // ha aplicado en BD).
-  await notificarCadenaCerradaPorPermuta(id);
+  // Best-effort, tras responder: avisar a los otros participantes de
+  // cadenas que ya no son viables. Si falla, no rompe la accion (el
+  // cierre ya se ha aplicado en BD).
+  after(() => notificarCadenaCerradaPorPermuta(id, { inicio }));
 
   revalidatePath("/mi-cuenta");
   revalidatePath("/mis-cadenas");

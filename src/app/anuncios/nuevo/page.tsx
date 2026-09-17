@@ -17,13 +17,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Al publicar, los avisos de cadena se envian tras responder (after()):
+// necesitan unos segundos mas que la respuesta.
+export const maxDuration = 60;
+
 export default async function NuevoAnuncioPage() {
   const supabase = await createClient();
 
   // Solo usuarios autenticados con email confirmado pueden publicar.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/login");
+    redirect("/login?redirect=/anuncios/nuevo");
   }
   if (!user.email_confirmed_at) {
     redirect("/mi-cuenta");

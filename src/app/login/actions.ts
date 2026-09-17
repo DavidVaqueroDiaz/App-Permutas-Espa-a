@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { aplicarRateLimit, ipDesdeHeaders } from "@/lib/rate-limit";
+import { fragmentoSeguro, rutaInterna } from "@/lib/rutas";
 
 export type LoginState = {
   ok: boolean;
@@ -47,5 +48,7 @@ export async function iniciarSesion(
     return { ok: false, message: "Email o contraseña incorrectos." };
   }
 
-  redirect("/mi-cuenta");
+  // Vuelve a la pagina que pidio iniciar sesion (solo rutas de la web).
+  const destino = rutaInterna(formData.get("redirect")) ?? "/mi-cuenta";
+  redirect(destino.includes("#") ? destino : destino + fragmentoSeguro(formData.get("fragmento")));
 }

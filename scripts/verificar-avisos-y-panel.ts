@@ -8,6 +8,8 @@
  *  2. Datos del panel de admin: cifras, cadenas, contacto, historico.
  *  3. "Mis cadenas" de cada persona que esta en una cadena: que la ve,
  *     que aparece ella primero y que cuadra con el panel.
+ *  4. Correo de seguimiento en modo simulacion: a quien le tocaria hoy,
+ *     y que cuadra con el panel.
  * No imprime emails ni alias; los identificadores salen recortados.
  */
 import fs from "node:fs";
@@ -31,12 +33,19 @@ async function main() {
   const { cargarDatosPanel } = await import("../src/lib/admin/panel");
   const { detallarCadenasDeUsuario, cadenasDeUsuario } = await import("../src/lib/cadenas/mis-cadenas");
   const { idsDeHuella } = await import("../src/lib/matching");
+  const { enviarSeguimientos } = await import("../src/lib/cadenas/seguimiento");
   const sb = createAdminClient();
 
   console.log("1) Revision diaria de avisos (simulacion, no envia nada)");
-  const sim = await revisarAvisosPendientes({ simular: true, cliente: sb });
-  comprobar("la simulacion no envia ni falla", sim.enviados === 0 && sim.fallidos === 0);
-  console.log(`  cadenas revisadas: ${sim.cadenas} | avisos que faltan: ${sim.pendientes.length}`);
+  const sim = await revisarAvisosPendientes({ simular: true, cliente: sb, limiteMs: 120_000 });
+  comprobar(
+    "la simulacion no envia ni falla",
+    sim.enviados === 0 && sim.correos === 0 && sim.fallidos === 0 && sim.gruposConError === 0 && !sim.sinTerminar,
+  );
+  console.log(
+    `  cadenas revisadas: ${sim.cadenas} | avisos que faltan: ${sim.pendientes.length} | ` +
+      `enviandose: ${sim.enCurso} | sin correo: ${sim.sinCorreo}`,
+  );
 
   console.log("\n2) Datos del panel de admin");
   const panel = await cargarDatosPanel(sb);
@@ -44,7 +53,7 @@ async function main() {
   comprobar("hay cifras generales", !!panel.metricas);
   comprobar("mismas cadenas en panel y revision", panel.cadenas.length === sim.cadenas, `${panel.cadenas.length} vs ${sim.cadenas}`);
   const sinAvisoPanel = panel.cadenas.reduce(
-    (n, c) => n + new Set(c.participantes.filter((p) => !p.avisadoEl).map((p) => p.usuarioId)).size,
+    (n, c) => n + new Set(c.participantes.filter((p) => p.aviso === "falta").map((p) => p.usuarioId)).size,
     0,
   );
   comprobar("mismos avisos pendientes en panel y revision", sinAvisoPanel === sim.pendientes.length, `${sinAvisoPanel} vs ${sim.pendientes.length}`);
@@ -55,11 +64,19 @@ async function main() {
   }
   console.log(`  resumen: ${JSON.stringify(panel.resumen)}`);
   for (const c of panel.cadenas) {
-    const pend = c.participantes.filter((p) => !p.avisadoEl);
+    const pend = c.participantes.filter((p) => p.aviso !== "enviado");
     console.log(
       `  cadena ${c.longitud} · ${c.contacto} · pares con chat ${c.pares.length} · ` +
-        `sin aviso: ${pend.map((p) => `${corto(p.usuarioId)}${p.completo ? "(la completo)" : ""}`).join(", ") || "nadie"}`,
+        `sin aviso: ${pend.map((p) => `${corto(p.usuarioId)}=${p.aviso}${p.completo ? "(la completo)" : ""}`).join(", ") || "nadie"}`,
     );
+    for (const p of c.participantes) {
+      const s = p.seguimiento;
+      console.log(
+        `    ${corto(p.usuarioId)} hablan desde ${s.hablanDesde?.slice(0, 10) ?? "-"} · ` +
+          `seguimiento: ${s.proximo ? `n${s.proximo.numero} el ${s.proximo.fecha.slice(0, 10)}${s.atrasado ? " ATRASADO" : ""}` : "ninguno"}` +
+          `${s.primeroEl ? ` · 1º enviado ${s.primeroEl.slice(0, 10)}` : ""}${s.segundoEl ? ` · 2º enviado ${s.segundoEl.slice(0, 10)}` : ""}`,
+      );
+    }
   }
   const porResultado = new Map<string, number>();
   for (const h of panel.historicas) {
@@ -97,6 +114,33 @@ async function main() {
       ),
     );
   }
+
+  console.log("\n4) Correo de seguimiento (simulacion, no envia nada)");
+  const seg = await enviarSeguimientos({ simular: true, cliente: sb });
+  comprobar("la simulacion no envia ni falla", seg.correos === 0 && seg.fallidos === 0 && !seg.sinTerminar);
+  const personasSeg = new Set(seg.pendientes.map((p) => p.split("|")[1]));
+  console.log(
+    `  seguimientos que tocan: ${seg.pendientes.length} (${personasSeg.size} correos) -> ` +
+      (seg.pendientes.map((p) => {
+        const [huella, usuario, numero] = p.split("|");
+        return `${corto(usuario)} n${numero} (${corto(huella)})`;
+      }).join(", ") || "ninguno"),
+  );
+  comprobar(
+    "mismos seguimientos pendientes en panel y simulacion",
+    panel.resumen.seguimientosPendientes === seg.pendientes.length,
+    `${panel.resumen.seguimientosPendientes} vs ${seg.pendientes.length}`,
+  );
+  comprobar(
+    "mismas personas con seguimiento en panel y simulacion",
+    panel.resumen.personasSeguimiento === personasSeg.size,
+    `${panel.resumen.personasSeguimiento} vs ${personasSeg.size}`,
+  );
+  const personasCadenas = new Set(panel.cadenas.flatMap((c) => c.participantes.map((p) => p.usuarioId)));
+  comprobar(
+    "solo se pregunta a personas de cadenas actuales",
+    [...personasSeg].every((u) => personasCadenas.has(u)),
+  );
 
   console.log(`\n${fallos === 0 ? "TODO CORRECTO" : fallos + " COMPROBACIONES FALLIDAS"}`);
   process.exit(fallos === 0 ? 0 : 1);

@@ -61,6 +61,8 @@ export type ConteoCadenas = {
   total: number;
   porAnuncio: Record<string, number>;
   porLongitud: { directas: number; tres: number; cuatro: number };
+  /** No se pudo calcular: no hay que mostrar "0 cadenas". */
+  error: boolean;
 };
 
 /**
@@ -73,6 +75,7 @@ export async function contarCadenasParaMisAnuncios(): Promise<ConteoCadenas> {
     total: 0,
     porAnuncio: {},
     porLongitud: { directas: 0, tres: 0, cuatro: 0 },
+    error: false,
   };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -95,6 +98,7 @@ export async function contarCadenasParaMisAnuncios(): Promise<ConteoCadenas> {
     }
   } catch (e) {
     console.warn("[mi-cuenta] no se pudieron contar las cadenas:", e);
+    return { total: 0, porAnuncio: {}, porLongitud: { directas: 0, tres: 0, cuatro: 0 }, error: true };
   }
   return conteo;
 }

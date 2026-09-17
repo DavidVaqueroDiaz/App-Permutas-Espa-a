@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { enviarEmailBienvenidaSiProcede } from "@/lib/email/bienvenida";
+import { rutaInterna } from "@/lib/rutas";
 
 /**
  * Callback de Supabase Auth.
@@ -19,13 +20,9 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   // Solo permitimos rutas internas en `next` para evitar open redirect:
-  // un valor como "//evil.com" o "https://evil.com" generaria una URL
-  // absoluta a un dominio externo (phishing tras autenticar).
-  const nextRaw = url.searchParams.get("next") ?? "/mi-cuenta";
-  const next =
-    nextRaw.startsWith("/") && !nextRaw.startsWith("//")
-      ? nextRaw
-      : "/mi-cuenta";
+  // "//evil.com", "https://evil.com" o "/\evil.com" (que el navegador
+  // entiende como //evil.com) llevarian a otra web tras autenticar.
+  const next = rutaInterna(url.searchParams.get("next")) ?? "/mi-cuenta";
   const errorDescription = url.searchParams.get("error_description");
 
   if (errorDescription) {

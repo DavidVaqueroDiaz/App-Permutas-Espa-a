@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
 import { atajosValidos, unirPlazas } from "@/lib/cadenas/plazas";
@@ -186,6 +187,7 @@ export type CrearAnuncioResultado =
 export async function crearAnuncio(
   input: CrearAnuncioInput,
 ): Promise<CrearAnuncioResultado> {
+  const inicio = Date.now();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -386,11 +388,10 @@ export async function crearAnuncio(
     );
   }
 
-  // 4) Notificación de cadenas nuevas: lanzamos el matcher con este
-  // anuncio como origen y emitimos email a los otros participantes
-  // de las cadenas detectadas (deduplicado contra cadenas_notificadas).
-  // Best-effort: si falla no rompe la creación.
-  await notificarCadenasNuevas(anuncio_id);
+  // 4) Aviso de cadenas nuevas a todas sus personas, cuando la respuesta
+  // ya ha salido (publicar no espera a los correos). Best-effort: si
+  // falla, la revision diaria lo reintenta.
+  after(() => notificarCadenasNuevas(anuncio_id, { inicio }));
 
   return { ok: true, anuncio_id };
 }

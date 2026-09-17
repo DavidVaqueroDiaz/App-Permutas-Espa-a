@@ -28,6 +28,7 @@ y la LOPDGDD (LO 3/2018).
   - `mensajes` enviados y recibidos
   - `reportes_anuncios` que ha hecho
   - `cadenas_notificadas` recibidas
+  - `seguimientos_permuta` (correos «¿Conseguisteis la permuta?» recibidos)
 - Devuelve un JSON estructurado que el cliente descarga como archivo.
 - Filename: `permutaes-mis-datos-YYYY-MM-DD.json`.
 
@@ -35,6 +36,9 @@ y la LOPDGDD (LO 3/2018).
 - Datos de otros usuarios.
 - Cadenas detectadas (es metadata derivada, no aporta info personal).
 - Tabla `rate_limit` (no contiene PII identificable).
+- Tabla `envios_email`: registro de correos enviados o fallidos, sin
+  direcciones (tipo, resultado e identificador de cadena o anuncio). Se
+  borra solo a los 180 días.
 
 ---
 
@@ -62,6 +66,7 @@ y la LOPDGDD (LO 3/2018).
     quedan con `resuelto_por = NULL` (intencional, mantiene historial
     de moderación sin identificar al admin).
   - `cadenas_notificadas` (usuario_id → auth.users).
+  - `seguimientos_permuta` (usuario_id → auth.users, migración 0043).
 
 **Por qué via RPC y no via Admin API:**
 La alternativa sería usar `supabase.auth.admin.deleteUser` que

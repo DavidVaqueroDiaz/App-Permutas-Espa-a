@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  avisoAdmin,
   estadoContacto,
   paresDeUsuarios,
   resultadoHistorico,
@@ -14,12 +15,15 @@ import {
 import { construirChequeos } from "../../app/admin/PanelSalud";
 
 const par = (a: number, b: number): ParContacto => ({
+  usuarioA: "ua",
+  usuarioB: "ub",
   aliasA: "a",
   aliasB: "b",
   mensajesA: a,
   mensajesB: b,
   ultimoMensaje: a + b > 0 ? "2026-09-10T10:00:00Z" : null,
   creada: "2026-09-01T10:00:00Z",
+  hablanDesde: a > 0 && b > 0 ? "2026-09-02T10:00:00Z" : null,
 });
 
 describe("paresDeUsuarios", () => {
@@ -37,6 +41,18 @@ describe("estadoContacto", () => {
     expect(estadoContacto([par(0, 0)])).toBe("conversacion_vacia");
     expect(estadoContacto([par(2, 0)])).toBe("solo_uno");
     expect(estadoContacto([par(0, 0), par(1, 3)])).toBe("hablan");
+  });
+});
+
+describe("avisoAdmin", () => {
+  const ahora = Date.parse("2026-09-17T12:00:00Z");
+  it("traduce lo apuntado a lo que ve el panel", () => {
+    const el1 = "2026-09-01T00:00:00Z";
+    expect(avisoAdmin(undefined, ahora)).toBe("falta");
+    expect(avisoAdmin({ enviadoEl: el1, sinCorreo: false, reservadoEl: el1 }, ahora)).toBe("enviado");
+    expect(avisoAdmin({ enviadoEl: el1, sinCorreo: true, reservadoEl: el1 }, ahora)).toBe("sin_correo");
+    expect(avisoAdmin({ enviadoEl: null, sinCorreo: false, reservadoEl: "2026-09-17T11:50:00Z" }, ahora)).toBe("enviando");
+    expect(avisoAdmin({ enviadoEl: null, sinCorreo: false, reservadoEl: "2026-09-17T11:00:00Z" }, ahora)).toBe("falta");
   });
 });
 
@@ -81,6 +97,7 @@ function metricas(parche: Partial<Metricas> = {}): Metricas {
 
 const resumen: ResumenCadenas = {
   total: 1, directas: 1, aTres: 0, aCuatro: 0, personas: 2, anuncios: 2, conContacto: 1, hablan: 1, sinAviso: 0,
+  sinCorreo: 0, seguimientosPendientes: 0, personasSeguimiento: 0, seguimientosAtrasados: 0,
 };
 
 describe("construirChequeos", () => {
@@ -120,6 +137,30 @@ describe("construirChequeos", () => {
     expect(c.find((x) => x.titulo === "Correos")?.detalle).toContain("dominio no verificado");
     expect(c.find((x) => x.titulo === "Municipios deseados")?.nivel).toBe("aviso");
     expect(c.find((x) => x.titulo === "Avisos de cadena")?.nivel).toBe("aviso");
+  });
+
+  it("marca error si un seguimiento debia haber salido y no salio", () => {
+    const c = construirChequeos(
+      metricas({ seguimientos: { primeros: 2, recordatorios: 0, ultimo: horasAtras(30), sin_confirmar: 0 } }),
+      { ...resumen, seguimientosAtrasados: 1 },
+    );
+    expect(c.find((x) => x.titulo === "Seguimiento de permutas")?.nivel).toBe("error");
+    const bien = construirChequeos(
+      metricas({ seguimientos: { primeros: 2, recordatorios: 1, ultimo: horasAtras(30), sin_confirmar: 0 } }),
+      { ...resumen, seguimientosPendientes: 3, personasSeguimiento: 2 },
+    );
+    const s = bien.find((x) => x.titulo === "Seguimiento de permutas");
+    expect(s?.nivel).toBe("ok");
+    expect(s?.detalle).toContain("lo recibirán 2 personas");
+  });
+
+  it("avisa de envios cortados a medias y de personas sin correo", () => {
+    const c = construirChequeos(
+      metricas({ avisos_cadena: { ...metricas().avisos_cadena, sin_confirmar: 1, sin_correo: 1 } }),
+      { ...resumen, sinCorreo: 1 },
+    );
+    expect(c.find((x) => x.titulo === "Envíos cortados a medias")?.nivel).toBe("aviso");
+    expect(c.find((x) => x.titulo === "Avisos de cadena")?.detalle).toContain("no tiene un correo válido");
   });
 
   it("marca error si hay anuncios vencidos sin cerrar o no hay cifras", () => {

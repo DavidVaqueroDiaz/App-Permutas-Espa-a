@@ -32,6 +32,22 @@ Migraciones aplicadas en producción: 0039, 0040, 0041 y 0042 (esta última el 1
 
 Publicado con el OK de Vaquero (17/09/2026). Pendiente: una cuenta tiene dos anuncios iguales (la misma permuta sale dos veces en el panel); decidir con esa persona cuál quitar. Comprobar en Resend que los correos llegan.
 
+### Segunda entrega (2026-09-17, noche): avisos confirmados y seguimiento de permutas
+
+Aprobado por Vaquero: correo «¿Conseguisteis la permuta?» a los 30 días y un único recordatorio a los 90.
+
+- **Avisos confirmados** (migración 0043): cada aviso se reserva, se envía y solo entonces se confirma (`cadenas_notificadas.enviado_el`). Si el correo falla se suelta; si el envío se corta a medias, la reserva se reintenta pasados 30 minutos. `sin_correo` marca cuentas sin correo utilizable (si luego lo confirman, se les avisa). La revisión diaria borra las reservas cortadas de cadenas que ya no existen.
+- **Un correo por persona**: si alguien tiene varias cadenas nuevas a la vez recibe un solo correo con todas (`plantillaCadenasNuevas`), sin repetir las que se verían iguales (anuncio duplicado de la otra persona).
+- **Seguimiento de permutas** (`src/lib/cadenas/seguimiento.ts`, tabla `seguimientos_permuta`, cron `/api/cron/seguimiento-permutas` a las 08:00 UTC): a cada persona de una cadena actual que se ha escrito en las dos direcciones con otra persona de la cadena (sin contar administradores), a los 30 días de la primera respuesta le llega el correo con un botón a su anuncio en Mi cuenta (no se marca nada desde el correo, porque los filtros de correo abren los enlaces solos). Recordatorio a los 90 días y al menos 30 después del primero. Nunca más de dos.
+- **Correos**: se espacian 600 ms (límite de Resend), se reintenta una vez si Resend pide calma y llevan clave anti-duplicado (`claveIdempotencia`). El aviso de cadena cerrada pide marcar también la permuta propia si fue con esa persona.
+- **Publicar, editar, renovar y marcar permuta** ya no esperan a los correos: se envían justo después de responder (`after()` de Next).
+- **Iniciar sesión** vuelve a la página pedida (Mis cadenas, la conversación del aviso de mensaje, el anuncio del seguimiento), solo rutas internas (`src/lib/rutas.ts`).
+- **Mi cuenta** muestra un aviso si no puede calcular las cadenas (antes decía 0). El botón discreto también se llama «He conseguido la permuta».
+- **Panel**: estado de cada aviso (enviado, enviándose, sin correo, pendiente), cuándo empezaron a hablar y cuándo toca el seguimiento, semáforo de seguimientos atrasados y envíos cortados, permutas marcadas tras el seguimiento. En móvil, una ficha por persona.
+- **Privacidad**: la exportación de datos incluye los seguimientos; la política menciona el correo de seguimiento (`docs/rgpd.md` actualizado).
+
+Migración 0043 aplicada el 17/09/2026 a las 19:02 (aditiva; script `aplicar-migracion-0043.ts`, ensayo con 40 comprobaciones). Simulación con datos reales: 3 cadenas, ningún aviso pendiente; el 18/09 por la mañana saldrán 4 correos de seguimiento (las dos parejas que hablan).
+
 ---
 
 ## Fase actual

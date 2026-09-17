@@ -94,17 +94,51 @@ export function construirChequeos(m: Metricas | null, r: ResumenCadenas): Cheque
       : { nivel: "ok", titulo: "Municipios deseados", detalle: "Todos los anuncios tienen su lista completa." },
   );
 
+  const sinCorreo =
+    r.sinCorreo > 0
+      ? ` ${r.sinCorreo} ${r.sinCorreo === 1 ? "persona no tiene" : "personas no tienen"} un correo válido y no se les puede avisar.`
+      : "";
   lista.push(
     r.sinAviso > 0
       ? {
           nivel: "aviso",
           titulo: "Avisos de cadena",
-          detalle: `${r.sinAviso} cadenas tienen a alguien sin aviso todavía. La revisión diaria de la mañana se lo envía; si sigue igual al día siguiente, algo falla (mira «Correos»).`,
+          detalle: `${r.sinAviso} cadenas tienen a alguien sin aviso todavía. La revisión diaria de la mañana se lo envía; si sigue igual al día siguiente, algo falla (mira «Correos»).${sinCorreo}`,
         }
       : {
           nivel: "ok",
           titulo: "Avisos de cadena",
-          detalle: `Todas las personas de las cadenas actuales tienen su aviso (${m.avisos_cadena.total} enviados en total).`,
+          detalle: `Todas las personas de las cadenas actuales tienen su aviso (${m.avisos_cadena.total} enviados en total).${sinCorreo}`,
+        },
+  );
+
+  const cortados = (m.avisos_cadena.sin_confirmar ?? 0) + (m.seguimientos?.sin_confirmar ?? 0);
+  if (cortados > 0) {
+    lista.push({
+      nivel: "aviso",
+      titulo: "Envíos cortados a medias",
+      detalle: `${cortados} correos se quedaron a medias hace más de una hora. La revisión diaria los reintenta, o los descarta si la cadena ya no existe.`,
+    });
+  }
+
+  const s = m.seguimientos;
+  lista.push(
+    r.seguimientosAtrasados > 0
+      ? {
+          nivel: "error",
+          titulo: "Seguimiento de permutas",
+          detalle: `${r.seguimientosAtrasados} correos «¿Conseguisteis la permuta?» tenían que haber salido y no han salido: la tarea diaria de Vercel no funciona o los correos fallan.`,
+        }
+      : {
+          nivel: s && s.primeros > 0 ? "ok" : "info",
+          titulo: "Seguimiento de permutas",
+          detalle:
+            (s && s.primeros > 0
+              ? `${s.primeros} enviados y ${s.recordatorios} recordatorios. `
+              : "Aún no ha salido ninguno: se envían a los 30 días de que dos personas de una cadena se escriban. ") +
+            (r.personasSeguimiento > 0
+              ? `En la próxima revisión de la mañana lo recibirán ${r.personasSeguimiento} ${r.personasSeguimiento === 1 ? "persona" : "personas"}.`
+              : "Ninguno pendiente ahora."),
         },
   );
 
@@ -213,7 +247,22 @@ export function PanelSalud({
               m.anuncios.ultima_permuta
                 ? `Última: ${fecha(m.anuncios.ultima_permuta)}`
                 : "Ninguna marcada todavía",
+              ...(m.permutas
+                ? [
+                    `${m.permutas.ultimos_30d} en los últimos 30 días`,
+                    `${m.permutas.tras_seguimiento} marcadas tras el correo de seguimiento`,
+                  ]
+                : []),
               `${m.anuncios.eliminados} anuncios eliminados`,
+            ]}
+          />
+          <Cifra
+            titulo="Correos de seguimiento"
+            valor={(m.seguimientos?.primeros ?? 0) + (m.seguimientos?.recordatorios ?? 0)}
+            lineas={[
+              `${m.seguimientos?.primeros ?? 0} «¿Conseguisteis la permuta?»`,
+              `${m.seguimientos?.recordatorios ?? 0} recordatorios a los 90 días`,
+              `Último: ${fecha(m.seguimientos?.ultimo)}`,
             ]}
           />
           <Cifra

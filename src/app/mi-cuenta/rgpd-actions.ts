@@ -43,6 +43,7 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
     mensajesRes,
     reportesRes,
     cadenasNotifRes,
+    seguimientosRes,
   ] = await Promise.all([
     supabase
       .from("perfiles_usuario")
@@ -82,6 +83,10 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
       .eq("reportado_por", user.id),
     supabase
       .from("cadenas_notificadas")
+      .select("*")
+      .eq("usuario_id", user.id),
+    supabase
+      .from("seguimientos_permuta")
       .select("*")
       .eq("usuario_id", user.id),
   ]);
@@ -173,6 +178,7 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
     mensajes_recibidos: mensajesRecibidos,
     reportes_que_he_hecho: reportesRes.data ?? [],
     cadenas_notificadas: cadenasNotifRes.data ?? [],
+    correos_de_seguimiento: seguimientosRes.data ?? [],
   };
 
   const fechaCorta = new Date().toISOString().slice(0, 10);

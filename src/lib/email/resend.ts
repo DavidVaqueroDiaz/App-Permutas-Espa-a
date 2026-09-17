@@ -9,7 +9,14 @@
  * Con `registro`, cada envío (bueno o fallido) queda anotado en la tabla
  * `envios_email` (sin la dirección) para verlo en el panel de admin: la
  * clave de Resend solo permite enviar, no consultar lo enviado.
+ *
+ * Resend admite unas 2 peticiones por segundo: los envíos de una misma
+ * ejecución se espacian y, si aun así responde "demasiadas peticiones",
+ * se reintenta una vez. Con `idempotencyKey`, Resend descarta durante
+ * 24 horas un segundo envío idéntico (por ejemplo, si una revisión se
+ * cortó justo después de enviar).
  */
+import { createHash } from "node:crypto";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -33,13 +40,15 @@ function getRemitente(): string {
 export type TipoEmail =
   | "cadena_nueva"
   | "cadena_cerrada"
+  | "seguimiento_permuta"
   | "mensaje_nuevo"
   | "mensaje_demo"
   | "recordatorio_caducidad"
   | "bienvenida"
   | "contacto";
 
-async function anotarEnvio(
+/** Anota un envio en `envios_email` (sin la direccion). Nunca falla. */
+export async function anotarEnvio(
   registro: { tipo: TipoEmail; referencia?: string },
   ok: boolean,
   error: string | null,
@@ -59,6 +68,46 @@ async function anotarEnvio(
   }
 }
 
+/**
+ * Clave para que Resend no repita un correo identico. Incluye el
+ * contenido: si el texto cambia (otro alias, otra cadena) es otro correo.
+ */
+export function claveIdempotencia(
+  tipo: string,
+  usuarioId: string,
+  partes: string[],
+  contenido: { subject: string; text: string },
+): string {
+  const resumen = createHash("sha256")
+    .update([...partes].sort().join("|"))
+    .update("\n")
+    .update(contenido.subject)
+    .update("\n")
+    .update(contenido.text)
+    .digest("hex")
+    .slice(0, 40);
+  return `${tipo}/${usuarioId}/${resumen}`;
+}
+
+const PAUSA_ENTRE_ENVIOS_MS = 600;
+let ultimoEnvio = 0;
+let cola: Promise<void> = Promise.resolve();
+
+function dormir(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Espera su turno para no pasar del limite de Resend. */
+function esperarTurno(): Promise<void> {
+  const turno = cola.then(async () => {
+    const espera = ultimoEnvio + PAUSA_ENTRE_ENVIOS_MS - Date.now();
+    if (espera > 0) await dormir(espera);
+    ultimoEnvio = Date.now();
+  });
+  cola = turno.catch(() => {});
+  return turno;
+}
+
 export async function enviarEmail(opts: {
   to: string;
   subject: string;
@@ -70,6 +119,8 @@ export async function enviarEmail(opts: {
   replyTo?: string;
   /** Anota el resultado en `envios_email` (sin la direccion). */
   registro?: { tipo: TipoEmail; referencia?: string };
+  /** Ver `claveIdempotencia`. */
+  idempotencyKey?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const resultado = await enviar(opts);
   if (opts.registro) {
@@ -88,19 +139,31 @@ async function enviar(opts: {
   html: string;
   text?: string;
   replyTo?: string;
+  idempotencyKey?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const c = getCliente();
   if (!c) return { ok: false, error: "Resend no configurado" };
 
   try {
-    const r = await c.emails.send({
-      from: `PermutaES <${getRemitente()}>`,
-      to: [opts.to],
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text,
-      replyTo: opts.replyTo,
-    });
+    const pedir = async () => {
+      await esperarTurno();
+      return c.emails.send(
+        {
+          from: `PermutaES <${getRemitente()}>`,
+          to: [opts.to],
+          subject: opts.subject,
+          html: opts.html,
+          text: opts.text,
+          replyTo: opts.replyTo,
+        },
+        opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined,
+      );
+    };
+    let r = await pedir();
+    if (r.error && (r.error.statusCode === 429 || String(r.error.name).includes("rate_limit"))) {
+      await dormir(1500);
+      r = await pedir();
+    }
     if (r.error) {
       // Errores típicos: el dominio remitente no está verificado, el
       // destinatario no es válido, etc. Los registramos pero no

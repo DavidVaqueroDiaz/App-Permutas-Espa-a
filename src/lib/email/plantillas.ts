@@ -9,6 +9,37 @@ import { SITE_URL } from "@/lib/site-url";
 
 const BASE_URL = SITE_URL;
 
+/** Texto seguro para meter dentro del HTML. */
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function tipoPermuta(longitud: number): string {
+  return longitud === 2 ? "Permuta directa" : longitud === 3 ? "Permuta a 3" : "Permuta a 4";
+}
+
+/** "Ana", "Ana y Luis", "Ana, Luis y Marta". */
+export function listaNombres(nombres: string[]): string {
+  if (nombres.length <= 1) return nombres[0] ?? "";
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+/** Quita los elementos que se verian igual en el correo (por ejemplo, dos
+ *  cadenas con un anuncio duplicado de la otra persona). */
+export function sinRepetir<T>(items: T[], clave: (x: T) => string): T[] {
+  const vistas = new Set<string>();
+  return items.filter((x) => {
+    const k = clave(x);
+    if (vistas.has(k)) return false;
+    vistas.add(k);
+    return true;
+  });
+}
+
+function boton(enlace: string, texto: string): string {
+  return `<a href="${esc(enlace)}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">${esc(texto)}</a>`;
+}
+
 function envoltura({
   titulo,
   contenido,
@@ -131,6 +162,209 @@ export function plantillaCadenaNueva(opts: {
 
   return {
     subject: `🎉 ${tipoLabel} posible para ti en PermutaES`,
+    html,
+    text,
+  };
+}
+
+export type CadenaParaCorreo = {
+  longitud: 2 | 3 | 4;
+  /** Municipios desde el de quien recibe el correo, cerrando el ciclo. */
+  recorrido: string[];
+  aliasOtros: string[];
+  cuerpoTexto: string;
+};
+
+/**
+ * Aviso de cadenas nuevas: un solo correo por persona aunque aparezcan
+ * varias cadenas a la vez (por ejemplo, en la revision diaria).
+ */
+export function plantillaCadenasNuevas(opts: {
+  cadenas: CadenaParaCorreo[];
+}): { subject: string; html: string; text: string } {
+  const cadenas = sinRepetir(opts.cadenas, (c) =>
+    [c.longitud, c.recorrido.join(">"), c.aliasOtros.join(","), c.cuerpoTexto].join("|"),
+  );
+  if (cadenas.length === 1) return plantillaCadenaNueva(cadenas[0]);
+
+  const enlace = `${BASE_URL}/mis-cadenas`;
+  const n = cadenas.length;
+  const bloques = cadenas
+    .map(
+      (c) => `
+      <div style="margin:0 0 12px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+        <p style="margin:0;font-size:11px;font-weight:600;color:#0f6e56;text-transform:uppercase;letter-spacing:0.5px;">
+          ${esc(tipoPermuta(c.longitud))} · ${esc(c.cuerpoTexto)}
+        </p>
+        <p style="margin:6px 0 0 0;font-size:15px;color:#0d4a3a;font-weight:600;">
+          ${c.recorrido.map(esc).join(" → ")}
+        </p>
+        <p style="margin:4px 0 0 0;font-size:13px;color:#374151;">
+          Con ${esc(listaNombres(c.aliasOtros))}
+        </p>
+      </div>`,
+    )
+    .join("");
+
+  const html = envoltura({
+    titulo: "Permutas posibles",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        🎉 <strong style="color:#0d4a3a;">¡Hay ${n} cadenas posibles que te incluyen!</strong>
+      </p>
+      <p style="margin:0 0 16px 0;">
+        Hemos encontrado estas permutas entre tus anuncios y los de otras personas:
+      </p>
+      ${bloques}
+      <p style="margin:10px 0 22px 0;">
+        ${boton(enlace, "Ver mis cadenas y contactar →")}
+      </p>
+      <p style="margin:0;color:#64748b;font-size:12.5px;">
+        Recuerda que las reglas legales personales (jubilación,
+        antigüedad, carencia entre permutas, ≥2 años en destino) las
+        debes verificar tú con tus datos antes de tramitar. PermutaES
+        cruza únicamente los criterios profesionales y geográficos.
+      </p>
+      <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
+        Si el botón no funciona: <span style="color:#0f6e56;">${enlace}</span>
+      </p>
+    `,
+  });
+
+  const text =
+    `🎉 ¡Hay ${n} cadenas posibles que te incluyen!\n\n` +
+    cadenas
+      .map(
+        (c) =>
+          `${tipoPermuta(c.longitud)} (${c.cuerpoTexto})\n` +
+          `  Recorrido: ${c.recorrido.join(" → ")}\n` +
+          `  Con: ${listaNombres(c.aliasOtros)}\n`,
+      )
+      .join("\n") +
+    `\nVer y contactar: ${enlace}\n\n` +
+    `Recuerda verificar las reglas legales personales antes de tramitar.\n`;
+
+  return {
+    subject: `🎉 ${n} permutas posibles para ti en PermutaES`,
+    html,
+    text,
+  };
+}
+
+export type SeguimientoParaCorreo = {
+  anuncioId: string;
+  longitud: 2 | 3 | 4;
+  recorrido: string[];
+  /** Personas de la cadena con las que se ha escrito. */
+  aliasHablados: string[];
+  cuerpoTexto: string;
+  /** 1: a los 30 dias; 2: recordatorio a los 90. */
+  numero: 1 | 2;
+};
+
+/**
+ * «¿Conseguisteis la permuta?»: se envia cuando dos personas de una
+ * cadena llevan un mes escribiendose, y una sola vez mas a los 90 dias
+ * si no han marcado nada. El boton lleva al anuncio en Mi cuenta, donde
+ * esta «He conseguido la permuta» (no se marca nada desde el correo: los
+ * filtros de correo abren los enlaces solos).
+ */
+export function plantillaSeguimientoPermuta(opts: {
+  alias: string;
+  items: SeguimientoParaCorreo[];
+}): { subject: string; html: string; text: string } {
+  const items = sinRepetir(opts.items, (i) =>
+    [i.longitud, i.recorrido.join(">"), i.aliasHablados.join(","), i.cuerpoTexto].join("|"),
+  );
+  const primero = items[0];
+  const enlace = `${BASE_URL}/mi-cuenta#anuncio-${primero.anuncioId}`;
+  const soloRecordatorio = opts.items.every((i) => i.numero === 2);
+  const hace = soloRecordatorio ? "Hace ya unos meses" : "Hace más de un mes";
+  const varios = items.length > 1;
+
+  const intro = varios
+    ? `${hace} que encontramos estas permutas y has hablado por PermutaES con otras personas de tus cadenas:`
+    : `${hace} que encontramos esta permuta y ${listaNombres(primero.aliasHablados)} y tú habéis hablado por PermutaES:`;
+
+  // Si en el mismo correo van una pregunta y un recordatorio, se marca
+  // cuál es el último aviso sobre esa permuta.
+  const ultimoAviso = (i: SeguimientoParaCorreo) => varios && !soloRecordatorio && i.numero === 2;
+
+  const bloques = items
+    .map(
+      (i) => `
+      <div style="margin:0 0 12px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
+        <p style="margin:0;font-size:11px;font-weight:600;color:#0f6e56;text-transform:uppercase;letter-spacing:0.5px;">
+          ${esc(tipoPermuta(i.longitud))} · ${esc(i.cuerpoTexto)}
+        </p>
+        <p style="margin:6px 0 0 0;font-size:15px;color:#0d4a3a;font-weight:600;">
+          ${i.recorrido.map(esc).join(" → ")}
+        </p>
+        ${varios ? `<p style="margin:4px 0 0 0;font-size:13px;color:#374151;">Hablando con ${esc(listaNombres(i.aliasHablados))}</p>` : ""}
+        ${ultimoAviso(i) ? `<p style="margin:4px 0 0 0;font-size:12px;color:#64748b;">Es el último correo que te enviamos sobre esta permuta.</p>` : ""}
+      </div>`,
+    )
+    .join("");
+
+  const html = envoltura({
+    titulo: "Seguimiento de tu permuta",
+    contenido: `
+      <p style="margin:0 0 12px 0;font-size:16px;">
+        Hola <strong style="color:#0d4a3a;">${esc(opts.alias)}</strong>,
+      </p>
+      <p style="margin:0 0 16px 0;">${esc(intro)}</p>
+      ${bloques}
+      <p style="margin:18px 0 8px 0;font-size:16px;">
+        <strong style="color:#0d4a3a;">¿Conseguisteis la permuta?</strong>
+      </p>
+      <p style="margin:0 0 18px 0;">
+        Si ya está hecha, entra en tu cuenta y pulsa
+        <strong>«He conseguido la permuta»</strong> junto a tu anuncio.
+        Así deja de salir en las búsquedas, avisamos a las demás personas
+        con las que tenías cadenas y sabemos cuántas permutas salen
+        gracias a PermutaES.
+      </p>
+      <p style="margin:0 0 22px 0;">
+        ${boton(enlace, "Marcar mi permuta →")}
+      </p>
+      <p style="margin:0 0 8px 0;color:#374151;font-size:13.5px;">
+        Si seguís con los trámites, no tienes que hacer nada. Si ya no te
+        interesa permutar, puedes eliminar el anuncio desde tu cuenta.
+      </p>
+      ${
+        soloRecordatorio
+          ? `<p style="margin:0 0 8px 0;color:#64748b;font-size:13px;">Es el último correo que te enviamos sobre ${varios ? "estas permutas" : "esta permuta"}.</p>`
+          : ""
+      }
+      <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
+        Si el botón no funciona: <span style="color:#0f6e56;">${esc(enlace)}</span>
+      </p>
+    `,
+  });
+
+  const text =
+    `Hola ${opts.alias},\n\n` +
+    `${intro}\n\n` +
+    items
+      .map(
+        (i) =>
+          `${tipoPermuta(i.longitud)} (${i.cuerpoTexto})\n` +
+          `  Recorrido: ${i.recorrido.join(" → ")}\n` +
+          (varios ? `  Hablando con: ${listaNombres(i.aliasHablados)}\n` : "") +
+          (ultimoAviso(i) ? `  Es el último correo que te enviamos sobre esta permuta.\n` : ""),
+      )
+      .join("\n") +
+    `\n¿Conseguisteis la permuta?\n\n` +
+    `Si ya está hecha, entra en tu cuenta y pulsa «He conseguido la permuta» junto a tu anuncio:\n${enlace}\n\n` +
+    `Si seguís con los trámites, no tienes que hacer nada. Si ya no te interesa permutar, puedes eliminar el anuncio desde tu cuenta.\n` +
+    (soloRecordatorio
+      ? `\nEs el último correo que te enviamos sobre ${varios ? "estas permutas" : "esta permuta"}.\n`
+      : "");
+
+  return {
+    subject: soloRecordatorio
+      ? "Recordatorio: ¿conseguisteis la permuta?"
+      : "¿Conseguisteis la permuta?",
     html,
     text,
   };
@@ -367,6 +601,12 @@ export function plantillaCadenaCerradaPorOtro(opts: {
       <ul style="margin:0 0 18px 18px;padding:0;color:#374151;font-size:13.5px;">
         ${recorridosLista}
       </ul>
+      <p style="margin:0 0 18px 0;color:#374151;font-size:13.5px;">
+        Si la permuta ha sido contigo, marca también tu anuncio con
+        <strong>«He conseguido la permuta»</strong> desde
+        <a href="${BASE_URL}/mi-cuenta" style="color:#0f6e56;">tu cuenta</a>
+        para que deje de salir en las búsquedas.
+      </p>
       ${
         opts.cadenasRestantes > 0
           ? `<div style="margin:0 0 22px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
@@ -399,6 +639,7 @@ export function plantillaCadenaCerradaPorOtro(opts: {
     `${numeroAfectadas === 1 ? "ya no es viable" : "ya no son viables"}:\n\n` +
     opts.recorridosAfectados.map((r) => `  - ${r}`).join("\n") +
     `\n\n` +
+    `Si la permuta ha sido contigo, marca también tu anuncio con "He conseguido la permuta" desde tu cuenta (${BASE_URL}/mi-cuenta) para que deje de salir en las búsquedas.\n\n` +
     (opts.cadenasRestantes > 0
       ? `Sigues teniendo ${opts.cadenasRestantes} cadena${opts.cadenasRestantes === 1 ? "" : "s"} posible${opts.cadenasRestantes === 1 ? "" : "s"} con tu anuncio.\n\n`
       : `Por ahora no tienes otras cadenas posibles abiertas.\n\n`) +

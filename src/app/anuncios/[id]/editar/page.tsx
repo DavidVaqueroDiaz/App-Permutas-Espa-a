@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Al guardar, los avisos de cadena se envian tras responder (after()).
+export const maxDuration = 60;
+
 type Params = Promise<{ id: string }>;
 
 type AnuncioRowEdit = {
@@ -42,7 +45,7 @@ export default async function EditarAnuncioPage({
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(`/login?redirect=/anuncios/${encodeURIComponent(id)}/editar`);
 
   const { data: anuncio } = await supabase
     .from("anuncios")

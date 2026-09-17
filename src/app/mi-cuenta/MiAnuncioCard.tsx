@@ -242,9 +242,9 @@ export function MiAnuncioCard({
                 onClick={pedirMarcarPermutado}
                 disabled={permutando}
                 className="text-xs font-medium text-brand-text hover:text-brand disabled:opacity-50"
-                title="Solo si conseguiste la permuta por tu cuenta fuera de PermutaES"
+                title="Márcalo cuando tengas la permuta, aunque la consiguieras fuera de PermutaES"
               >
-                {permutando ? "Cerrando…" : "Marcar permuta cerrada"}
+                {permutando ? "Cerrando…" : "He conseguido la permuta"}
               </button>
             )}
             <a

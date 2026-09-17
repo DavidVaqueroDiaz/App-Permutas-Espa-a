@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/avisos-cadenas",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/seguimiento-permutas",
+      "schedule": "0 8 * * *"
     }
   ]
 }

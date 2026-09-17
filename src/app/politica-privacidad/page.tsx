@@ -13,7 +13,7 @@ export default function PoliticaPrivacidadPage() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12 prose prose-slate">
       <h1>Política de privacidad</h1>
       <p className="text-sm text-slate-500">
-        Versión v2 · Última actualización: mayo de 2026.
+        Versión v2 · Última actualización: septiembre de 2026.
       </p>
 
       <h2>1. Responsable del tratamiento</h2>
@@ -77,6 +77,12 @@ export default function PoliticaPrivacidadPage() {
           Notificar por email al usuario cuando aparece una cadena que le
           incluye, cuando alguien le envía un mensaje, o cuando su anuncio
           va a caducar.
+        </li>
+        <li>
+          Si has hablado con otra persona de una de tus cadenas, preguntarte
+          por email al cabo de un mes si conseguisteis la permuta (como
+          mucho dos veces por cadena), para que puedas marcarla y retirar
+          tu anuncio.
         </li>
         <li>
           Aplicar medidas de seguridad (rate limiting, detección de spam).

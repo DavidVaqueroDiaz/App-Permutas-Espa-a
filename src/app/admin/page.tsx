@@ -48,6 +48,7 @@ export default async function AdminPage({
       resumen: {
         total: 0, directas: 0, aTres: 0, aCuatro: 0, personas: 0,
         anuncios: 0, conContacto: 0, hablan: 0, sinAviso: 0,
+        sinCorreo: 0, seguimientosPendientes: 0, personasSeguimiento: 0, seguimientosAtrasados: 0,
       },
       cadenas: [],
       historicas: [],

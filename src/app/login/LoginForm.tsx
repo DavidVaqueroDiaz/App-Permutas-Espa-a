@@ -1,16 +1,33 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import { iniciarSesion, type LoginState } from "./actions";
 
-export function LoginForm() {
+function suscribirFragmento(avisar: () => void) {
+  window.addEventListener("hashchange", avisar);
+  return () => window.removeEventListener("hashchange", avisar);
+}
+
+/**
+ * `destino`: pagina a la que volver tras entrar (ya validada en el
+ * servidor). El fragmento (#anuncio-...) solo lo conoce el navegador, asi
+ * que se envia aparte.
+ */
+export function LoginForm({ destino }: { destino?: string | null }) {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     iniciarSesion,
     null,
   );
+  const fragmento = useSyncExternalStore(
+    suscribirFragmento,
+    () => window.location.hash,
+    () => "",
+  );
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
+      {destino && <input type="hidden" name="redirect" value={destino} />}
+      <input type="hidden" name="fragmento" value={fragmento} />
       {state && !state.ok && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {state.message}

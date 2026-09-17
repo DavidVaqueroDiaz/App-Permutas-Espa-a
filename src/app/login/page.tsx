@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { rutaInterna } from "@/lib/rutas";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -8,11 +9,22 @@ export const metadata: Metadata = {
   description: "Inicia sesión en PermutaES para gestionar tus anuncios y mensajes.",
 };
 
-export default async function LoginPage() {
+type SearchParams = Promise<{
+  redirect?: string | string[];
+  error?: string | string[];
+}>;
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const destino = rutaInterna(Array.isArray(params.redirect) ? params.redirect[0] : params.redirect);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    redirect("/mi-cuenta");
+    redirect(destino ?? "/mi-cuenta");
   }
 
   return (
@@ -24,8 +36,15 @@ export default async function LoginPage() {
         Bienvenido de vuelta.
       </p>
 
+      {params.error && (
+        <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          No se ha podido completar el acceso con ese enlace; puede que haya
+          caducado. Inicia sesión o pide un enlace nuevo.
+        </div>
+      )}
+
       <div className="mt-8">
-        <LoginForm />
+        <LoginForm destino={destino} />
       </div>
     </main>
   );

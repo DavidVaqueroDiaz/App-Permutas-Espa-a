@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Renovar y marcar la permuta envian avisos tras responder (after()).
+export const maxDuration = 60;
+
 type Perfil = {
   alias_publico: string;
   ano_nacimiento: number;
@@ -35,7 +38,8 @@ export default async function MiCuentaPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/login");
+    // El navegador conserva el #anuncio-... del enlace al redirigir.
+    redirect("/login?redirect=/mi-cuenta");
   }
 
   const { creado, actualizado, eliminado, bienvenido, permutado } =
@@ -202,7 +206,9 @@ export default async function MiCuentaPage({
           {/* Stats personales: lo primero que ve el usuario al entrar */}
           <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
             <a
-              href={conteoCadenas.total > 0 ? "/mis-cadenas" : "/auto-permutas"}
+              href={
+                conteoCadenas.total > 0 || conteoCadenas.error ? "/mis-cadenas" : "/auto-permutas"
+              }
               className={
                 "rounded-xl2 border p-4 shadow-card transition " +
                 (conteoCadenas.total > 0
@@ -214,9 +220,14 @@ export default async function MiCuentaPage({
                 Cadenas detectadas
               </p>
               <p className="mt-1 font-head text-2xl font-semibold text-brand">
-                {conteoCadenas.total}
+                {conteoCadenas.error ? "?" : conteoCadenas.total}
               </p>
-              {conteoCadenas.total > 0 ? (
+              {conteoCadenas.error ? (
+                <p className="mt-1 text-[11px] text-warn-text">
+                  No hemos podido calcularlas ahora mismo. Recarga la página en
+                  unos segundos o pulsa para verlas →
+                </p>
+              ) : conteoCadenas.total > 0 ? (
                 <p className="mt-1 text-[11px] text-brand-text">
                   {conteoCadenas.porLongitud.directas} directas
                   {conteoCadenas.porLongitud.tres > 0 &&
