@@ -202,7 +202,7 @@ export default async function MiCuentaPage({
           {/* Stats personales: lo primero que ve el usuario al entrar */}
           <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
             <a
-              href="/auto-permutas"
+              href={conteoCadenas.total > 0 ? "/mis-cadenas" : "/auto-permutas"}
               className={
                 "rounded-xl2 border p-4 shadow-card transition " +
                 (conteoCadenas.total > 0
@@ -224,7 +224,7 @@ export default async function MiCuentaPage({
                   {conteoCadenas.porLongitud.cuatro > 0 &&
                     ` · ${conteoCadenas.porLongitud.cuatro} a 4`}
                   <br />
-                  Pulsa para verlas →
+                  Pulsa para verlas y contactar →
                 </p>
               ) : (
                 <p className="mt-1 text-[11px] text-slate-600">

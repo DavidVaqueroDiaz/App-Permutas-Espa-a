@@ -129,6 +129,7 @@ export async function enviarContacto(
     html,
     text,
     replyTo: email,
+    registro: { tipo: "contacto" },
   });
 
   if (!r.ok) {

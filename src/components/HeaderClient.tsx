@@ -189,6 +189,9 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
                 >
                   Mensajes
                 </ItemMovil>
+                <ItemMovil href="/mis-cadenas" pathname={pathname}>
+                  Mis cadenas
+                </ItemMovil>
                 <ItemMovil href="/mi-cuenta" pathname={pathname}>
                   Mi cuenta
                 </ItemMovil>
@@ -248,6 +251,9 @@ export function HeaderClient({ user }: { user: HeaderUser }) {
                   badge={user.noLeidos}
                 >
                   Mensajes
+                </ItemEscritorio>
+                <ItemEscritorio href="/mis-cadenas" pathname={pathname}>
+                  Mis cadenas
                 </ItemEscritorio>
                 <ItemEscritorio href="/mi-cuenta" pathname={pathname}>
                   Mi cuenta

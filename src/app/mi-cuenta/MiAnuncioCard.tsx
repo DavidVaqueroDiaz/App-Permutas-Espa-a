@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   eliminarAnuncio,
   marcarPermutaConseguida,
+  renovarAnuncio,
 } from "@/app/anuncios/[id]/editar/actions";
 
 export type AnuncioCardData = {
@@ -34,13 +35,29 @@ export function MiAnuncioCard({
   const router = useRouter();
   const [borrando, startBorrar] = useTransition();
   const [permutando, startPermutar] = useTransition();
+  const [renovando, startRenovar] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [renovado, setRenovado] = useState(false);
 
   const ahora = Date.now();
   const caduca = new Date(anuncio.caduca_el).getTime();
   const diasACaducar = Math.floor((caduca - ahora) / 86_400_000);
   const caducaPronto = diasACaducar >= 0 && diasACaducar <= 30;
-  const yaCaducado = diasACaducar < 0;
+  const yaCaducado = anuncio.estado === "caducado" || diasACaducar < 0;
+  const renovable = anuncio.estado === "activo" || anuncio.estado === "caducado";
+
+  function pedirRenovar() {
+    setError(null);
+    startRenovar(async () => {
+      const r = await renovarAnuncio(anuncio.id);
+      if (!r.ok) {
+        setError(r.mensaje);
+        return;
+      }
+      setRenovado(true);
+      router.refresh();
+    });
+  }
 
   function pedirBorrar() {
     if (
@@ -90,8 +107,9 @@ export function MiAnuncioCard({
 
   return (
     <li
+      id={`anuncio-${anuncio.id}`}
       className={
-        "rounded-xl2 border p-4 shadow-card " +
+        "scroll-mt-24 rounded-xl2 border p-4 shadow-card " +
         (estaPermutado
           ? "border-brand-mint/60 bg-brand-bg/40"
           : "border-slate-200 bg-white")
@@ -136,29 +154,51 @@ export function MiAnuncioCard({
       {/* Aviso destacado: hay cadenas para este anuncio */}
       {anuncio.estado === "activo" && cadenasCount > 0 && (
         <a
-          href="/auto-permutas"
+          href="/mis-cadenas"
           className="mt-3 block rounded-md border border-brand bg-brand-bg p-2 text-xs text-brand-text hover:bg-brand-bg/70"
         >
           <strong>{cadenasCount}</strong>{" "}
           {cadenasCount === 1 ? "cadena posible incluye" : "cadenas posibles incluyen"}{" "}
-          este anuncio. Pulsa para verlas →
+          este anuncio. Pulsa para verlas y contactar →
         </a>
       )}
 
-      {/* Aviso de caducidad */}
-      {anuncio.estado === "activo" && (caducaPronto || yaCaducado) && (
-        <div className="mt-3 rounded-md border border-warn-text/30 bg-warn-bg p-2 text-xs text-warn-text">
-          {yaCaducado ? (
-            <>
-              Tu anuncio <strong>caducó hace {Math.abs(diasACaducar)} días</strong>.
-              Edítalo para renovarlo.
-            </>
-          ) : (
-            <>
-              Tu anuncio caduca en <strong>{diasACaducar} días</strong>.
-              Edítalo y guarda para renovarlo otros 6 meses.
-            </>
-          )}
+      {/* Aviso de caducidad con renovación de un clic */}
+      {renovable && !renovado && (caducaPronto || yaCaducado) && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warn-text/30 bg-warn-bg p-2 text-xs text-warn-text">
+          <span>
+            {yaCaducado ? (
+              <>
+                Tu anuncio <strong>ha caducado</strong> y ya no aparece en las
+                búsquedas ni en las cadenas.
+              </>
+            ) : (
+              <>
+                Tu anuncio caduca en{" "}
+                <strong>
+                  {diasACaducar} {diasACaducar === 1 ? "día" : "días"}
+                </strong>
+                .
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={pedirRenovar}
+            disabled={renovando}
+            className="rounded-md bg-brand px-3 py-1 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          >
+            {renovando
+              ? "Renovando…"
+              : yaCaducado
+                ? "Volver a publicar 6 meses"
+                : "Renovar 6 meses"}
+          </button>
+        </div>
+      )}
+      {renovado && (
+        <div className="mt-3 rounded-md border border-brand-mint/40 bg-brand-bg p-2 text-xs text-brand-text">
+          Anuncio renovado: sigue publicado 6 meses más.
         </div>
       )}
 

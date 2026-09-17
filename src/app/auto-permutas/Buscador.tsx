@@ -788,7 +788,7 @@ function diasDesde(fechaIso: string | null): number {
  * diagrama de cadena cerrada, lista descriptiva de movimientos y
  * detalle de cada participante (excluyéndote).
  */
-function CadenaCard({ cadena, mejor }: { cadena: DetalleCadena; mejor: boolean }) {
+export function CadenaCard({ cadena, mejor }: { cadena: DetalleCadena; mejor: boolean }) {
   const score = cadena.compatibilidad;
   const longitudLabel =
     cadena.longitud === 2

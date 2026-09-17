@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { cargarDatosPanel, type DatosPanel } from "@/lib/admin/panel";
 import { TablaAnuncios, type AnuncioAdminRow } from "./TablaAnuncios";
 import { TablaReportes, type ReporteAdminRow } from "./TablaReportes";
+import { PanelSalud } from "./PanelSalud";
+import { TablaCadenas } from "./TablaCadenas";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Panel de administración",
@@ -30,6 +36,25 @@ export default async function AdminPage({
     redirect("/");
   }
 
+  // Salud de la plataforma y cadenas. Solo llega aqui un administrador
+  // (comprobado arriba); el cliente de servidor lee lo que la sesion no
+  // puede (emails nunca: solo recuentos, fechas y alias).
+  let panel: DatosPanel;
+  try {
+    panel = await cargarDatosPanel(createAdminClient());
+  } catch (e) {
+    panel = {
+      metricas: null,
+      resumen: {
+        total: 0, directas: 0, aTres: 0, aCuatro: 0, personas: 0,
+        anuncios: 0, conContacto: 0, hablan: 0, sinAviso: 0,
+      },
+      cadenas: [],
+      historicas: [],
+      errores: [`Panel: ${e instanceof Error ? e.message : String(e)}`],
+    };
+  }
+
   const { q = "", sector = "", demos = "" } = await searchParams;
   const qTrim = q.trim();
   // Por defecto el panel oculta los anuncios demo (pueden ser cientos
@@ -42,15 +67,12 @@ export default async function AdminPage({
   // Tambien cargamos las 20 ultimas conversaciones y los 20 ultimos
   // usuarios para tener visibilidad operacional sin ir a Supabase.
   const [
-    totalAnunciosRes,
     totalUsersRes,
     totalConvsRes,
-    totalMensajesRes,
     reportesRes,
     usuariosRecientesRes,
     convsRecientesRes,
   ] = await Promise.all([
-    supabase.from("anuncios").select("id", { count: "exact", head: true }).eq("es_demo", false),
     // Para el contador, perfiles_publicos (vista) sirve perfecto: no
     // tiene RLS bloqueante. Para el LISTADO, necesitamos campos que
     // la vista no expone (creado_el, es_admin), asi que llamamos a la
@@ -58,7 +80,6 @@ export default async function AdminPage({
     // valida admin internamente.
     supabase.from("perfiles_publicos").select("id", { count: "exact", head: true }),
     supabase.from("conversaciones").select("id", { count: "exact", head: true }),
-    supabase.from("mensajes").select("id", { count: "exact", head: true }),
     supabase.rpc("listar_reportes_pendientes"),
     supabase.rpc("listar_usuarios_recientes_admin"),
     supabase
@@ -102,6 +123,21 @@ export default async function AdminPage({
       .in("id", Array.from(idsParaAlias));
     for (const r of (aliasRows ?? []) as { id: string; alias_publico: string }[]) {
       aliasMap.set(r.id, r.alias_publico);
+    }
+  }
+  // Conversaciones abiertas por un administrador = pruebas o soporte.
+  // Se marcan en la lista y no cuentan en las cifras de salud.
+  const idsAdmin = new Set<string>();
+  if (idsParaAlias.size > 0) {
+    try {
+      const { data: filasAdmin } = await createAdminClient()
+        .from("perfiles_usuario")
+        .select("id")
+        .eq("es_admin", true)
+        .in("id", Array.from(idsParaAlias));
+      for (const r of (filasAdmin ?? []) as { id: string }[]) idsAdmin.add(r.id);
+    } catch {
+      // Sin la marca, la lista se muestra igual.
     }
   }
 
@@ -230,17 +266,20 @@ export default async function AdminPage({
         </p>
       </header>
 
-      <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Stat label="Anuncios" valor={totalAnunciosRes.count ?? 0} />
-        <Stat label="Usuarios" valor={totalUsersRes.count ?? 0} />
-        <Stat label="Conversaciones" valor={totalConvsRes.count ?? 0} />
-        <Stat label="Mensajes" valor={totalMensajesRes.count ?? 0} />
-        <Stat
-          label="Reportes pendientes"
-          valor={reportes.length}
-          destacado={reportes.length > 0}
-        />
-      </section>
+      {panel.errores.length > 0 && (
+        <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <p className="font-semibold">Parte del panel no se ha podido cargar:</p>
+          <ul className="mt-1 list-disc pl-5 text-xs">
+            {panel.errores.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <PanelSalud metricas={panel.metricas} resumen={panel.resumen} />
+
+      <TablaCadenas cadenas={panel.cadenas} historicas={panel.historicas} />
 
       {reportes.length > 0 && (
         <section className="mb-8">
@@ -362,6 +401,11 @@ export default async function AdminPage({
                     <td className="px-4 py-2 text-slate-700">
                       {aliasMap.get(c.usuario_a_id) ?? "—"} ↔{" "}
                       {aliasMap.get(c.usuario_b_id) ?? "—"}
+                      {(idsAdmin.has(c.usuario_a_id) || idsAdmin.has(c.usuario_b_id)) && (
+                        <span className="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600">
+                          prueba del admin
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-xs text-slate-500">
                       {new Date(c.creado_el).toLocaleDateString("es-ES", {
@@ -391,40 +435,3 @@ export default async function AdminPage({
   );
 }
 
-function Stat({
-  label,
-  valor,
-  destacado,
-}: {
-  label: string;
-  valor: number;
-  destacado?: boolean;
-}) {
-  return (
-    <div
-      className={
-        "rounded-xl2 border p-4 shadow-card " +
-        (destacado
-          ? "border-red-300 bg-red-50"
-          : "border-slate-200 bg-white")
-      }
-    >
-      <p
-        className={
-          "text-[11px] uppercase tracking-wide " +
-          (destacado ? "text-red-700" : "text-slate-500")
-        }
-      >
-        {label}
-      </p>
-      <p
-        className={
-          "mt-1 font-head text-2xl font-semibold " +
-          (destacado ? "text-red-700" : "text-brand")
-        }
-      >
-        {valor.toLocaleString("es-ES")}
-      </p>
-    </div>
-  );
-}

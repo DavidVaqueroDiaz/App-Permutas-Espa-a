@@ -19,6 +19,8 @@ import type {
 
 type Props = {
   anuncioId: string;
+  /** El anuncio habia caducado: guardar lo vuelve a publicar. */
+  caducado: boolean;
   resumen: {
     sectorNombre: string;
     cuerpoTexto: string;
@@ -41,6 +43,7 @@ type Props = {
 
 export function EditarForm({
   anuncioId,
+  caducado,
   resumen,
   ccaa,
   provincias,
@@ -75,9 +78,13 @@ export function EditarForm({
   const ccaaUsadas = new Set(atajos.filter((a) => a.tipo === "ccaa").map((a) => a.valor));
   const provUsadas = new Set(atajos.filter((a) => a.tipo === "provincia").map((a) => a.valor));
 
+  const ERROR_MUNICIPIOS =
+    "No se pudo cargar la lista de municipios. Comprueba tu conexión e inténtalo de nuevo.";
+
   async function añadirCcaa() {
     if (!ccaaSel || ccaaUsadas.has(ccaaSel)) return;
     setAplicando(true);
+    setErrorGeneral(null);
     try {
       const nuevoAtajos: AtajoState[] = [...atajos, { tipo: "ccaa", valor: ccaaSel }];
       const expandidos = await expandirAtajos(nuevoAtajos);
@@ -89,6 +96,8 @@ export function EditarForm({
       setAtajos(nuevoAtajos);
       setPlazas(Array.from(setUnion));
       setCcaaSel("");
+    } catch {
+      setErrorGeneral(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
@@ -96,6 +105,7 @@ export function EditarForm({
   async function añadirProv() {
     if (!provSel || provUsadas.has(provSel)) return;
     setAplicando(true);
+    setErrorGeneral(null);
     try {
       const nuevoAtajos: AtajoState[] = [...atajos, { tipo: "provincia", valor: provSel }];
       const expandidos = await expandirAtajos(nuevoAtajos);
@@ -107,12 +117,15 @@ export function EditarForm({
       setAtajos(nuevoAtajos);
       setPlazas(Array.from(setUnion));
       setProvSel("");
+    } catch {
+      setErrorGeneral(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
   }
   async function quitarAtajo(a: AtajoState) {
     setAplicando(true);
+    setErrorGeneral(null);
     try {
       const nuevoAtajos = atajos.filter(
         (x) => !(x.tipo === a.tipo && x.valor === a.valor),
@@ -130,6 +143,8 @@ export function EditarForm({
         delete nn[a.valor];
         setPlazasNombres(nn);
       }
+    } catch {
+      setErrorGeneral(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
@@ -416,10 +431,14 @@ export function EditarForm({
           <button
             type="button"
             onClick={guardar}
-            disabled={guardando || eliminando}
+            disabled={guardando || eliminando || aplicando}
             className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
           >
-            {guardando ? "Guardando…" : "Guardar cambios"}
+            {guardando
+              ? "Guardando…"
+              : caducado
+                ? "Guardar y volver a publicar"
+                : "Guardar y renovar 6 meses"}
           </button>
         </div>
       </div>

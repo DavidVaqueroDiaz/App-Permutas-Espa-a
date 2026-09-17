@@ -16,8 +16,12 @@
  * true` para no romper la accion principal por un fallo del rate limit.
  * Es una decision deliberada: preferimos un falso negativo de
  * rate-limit a un falso positivo.
+ *
+ * La RPC se llama con el cliente de servidor: si cualquiera pudiera
+ * llamarla, podria gastar el cupo de otra persona (la clave lleva su id,
+ * que es publico) y dejarla sin publicar anuncios durante un dia.
  */
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ResultadoRateLimit = {
   permitido: boolean;
@@ -33,14 +37,21 @@ export async function aplicarRateLimit(opts: {
   /** Mensaje que se devuelve cuando esta bloqueado. Custom por caller. */
   mensajeBloqueado?: string;
 }): Promise<ResultadoRateLimit> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .rpc("chequear_rate_limit", {
-      clave: opts.clave,
-      ventana_segundos: opts.ventanaSegundos,
-      max_eventos: opts.max,
-    })
-    .single();
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const r = await createAdminClient()
+      .rpc("chequear_rate_limit", {
+        clave: opts.clave,
+        ventana_segundos: opts.ventanaSegundos,
+        max_eventos: opts.max,
+      })
+      .single();
+    data = r.data;
+    error = r.error;
+  } catch (e) {
+    error = { message: e instanceof Error ? e.message : String(e) };
+  }
 
   if (error || !data) {
     console.warn("[rate-limit] RPC fallo, permitiendo accion:", error?.message);

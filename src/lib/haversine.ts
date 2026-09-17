@@ -19,6 +19,26 @@ export function haversine(
   return R * c;
 }
 
+/**
+ * Margenes en grados de un recuadro que contenga TODOS los puntos a
+ * `radioKm` (mas 5 km de holgura) de cualquiera de las latitudes dadas.
+ * La longitud se calcula con la latitud mas alejada del ecuador, donde
+ * un grado de longitud es mas corto.
+ */
+export function margenesRecuadro(
+  latitudes: number[],
+  radioKm: number,
+): { margenLat: number; margenLon: number } {
+  const km = radioKm + 5;
+  const margenLat = km / 111;
+  const latMax = Math.min(
+    89,
+    Math.max(0, ...latitudes.map((l) => Math.abs(l))) + margenLat,
+  );
+  const kmPorGradoLon = 111.32 * Math.cos((latMax * Math.PI) / 180);
+  return { margenLat, margenLon: km / kmPorGradoLon };
+}
+
 /** Score 0-100 según km / radio. Cuanto más cerca, más alto. */
 export function scoreKm(km: number, radio: number): number {
   if (km > radio) return 0;

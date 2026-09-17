@@ -36,8 +36,8 @@ function envoltura({
             </tr>
             <tr>
               <td style="padding:18px 28px;font-size:11.5px;color:#64748b;background:#f8fafb;border-top:1px solid #e2e8f0;">
-                Recibes este email porque alguien te ha contactado dentro de PermutaES.
-                Puedes desactivar las notificaciones desde
+                Recibes este email porque tienes una cuenta en PermutaES.
+                Si ya no quieres avisos de un anuncio, ciérralo o elimínalo desde
                 <a href="${BASE_URL}/mi-cuenta" style="color:#0f6e56;">tu cuenta</a>.
               </td>
             </tr>
@@ -55,7 +55,7 @@ export function plantillaCadenaNueva(opts: {
   aliasOtros: string[]; // alias de los otros participantes
   cuerpoTexto: string; // "597 — Maestros"
 }): { subject: string; html: string; text: string } {
-  const enlace = `${BASE_URL}/auto-permutas`;
+  const enlace = `${BASE_URL}/mis-cadenas`;
   const tipoLabel =
     opts.longitud === 2
       ? "Permuta directa"
@@ -91,7 +91,7 @@ export function plantillaCadenaNueva(opts: {
         🎉 <strong style="color:#0d4a3a;">¡Hay una cadena posible que te incluye!</strong>
       </p>
       <p style="margin:0 0 16px 0;">
-        Acabamos de detectar una <strong>${tipoLabel.toLowerCase()}</strong>
+        Hemos encontrado una <strong>${tipoLabel.toLowerCase()}</strong>
         entre tu anuncio y ${opts.aliasOtros.length === 1 ? "el de" : "los de"}
         <strong>${aliasSeguro}</strong>, en
         <strong>${cuerpoSeguro}</strong>.
@@ -106,7 +106,7 @@ export function plantillaCadenaNueva(opts: {
       </div>
       <p style="margin:0 0 22px 0;">
         <a href="${enlace}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
-          Ver detalle de la cadena →
+          Ver la cadena y contactar →
         </a>
       </p>
       <p style="margin:0;color:#64748b;font-size:12.5px;">
@@ -253,8 +253,7 @@ export function plantillaRecordatorioCaducidad(opts: {
   diasRestantes: number;
   anuncioId: string;
 }): { subject: string; html: string; text: string } {
-  const enlaceEditar = `${BASE_URL}/anuncios/${opts.anuncioId}/editar`;
-  const enlaceMiCuenta = `${BASE_URL}/mi-cuenta`;
+  const enlaceMiCuenta = `${BASE_URL}/mi-cuenta#anuncio-${opts.anuncioId}`;
 
   const cuerpoSeguro = opts.cuerpoTexto
     .replace(/&/g, "&amp;")
@@ -279,12 +278,13 @@ export function plantillaRecordatorioCaducidad(opts: {
       </p>
       <div style="margin:0 0 22px 0;padding:12px 16px;background:#e1f5ee;border-left:3px solid #0d4a3a;border-radius:6px;">
         <p style="margin:0;color:#0d4a3a;">
-          <strong>¿Sigues queriendo permutar?</strong> Entra y guarda
-          (sin cambiar nada) para renovarlo otros 6 meses.
+          <strong>¿Sigues queriendo permutar?</strong> Entra en tu cuenta
+          y pulsa <strong>«Renovar 6 meses»</strong> junto al anuncio.
+          Guardar cambios en el anuncio también lo renueva.
         </p>
       </div>
       <p style="margin:0 0 22px 0;">
-        <a href="${enlaceEditar}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
+        <a href="${enlaceMiCuenta}" style="display:inline-block;background:#0d4a3a;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:8px;font-size:14px;">
           Renovar mi anuncio →
         </a>
       </p>
@@ -295,7 +295,7 @@ export function plantillaRecordatorioCaducidad(opts: {
         para que las otras personas de la cadena no esperen tu respuesta.
       </p>
       <p style="margin:18px 0 0 0;color:#94a3b8;font-size:12px;">
-        Si el botón no funciona: <span style="color:#0f6e56;">${enlaceEditar}</span>
+        Si el botón no funciona: <span style="color:#0f6e56;">${enlaceMiCuenta}</span>
       </p>
     `,
   });
@@ -303,7 +303,7 @@ export function plantillaRecordatorioCaducidad(opts: {
   const text =
     `Hola ${opts.alias},\n\n` +
     `Tu anuncio de ${opts.cuerpoTexto} en ${opts.municipio} caduca en ${opts.diasRestantes} ${opts.diasRestantes === 1 ? "día" : "días"}.\n\n` +
-    `Si sigues queriendo permutar, renuevalo aqui:\n${enlaceEditar}\n\n` +
+    `Si sigues queriendo permutar, entra en tu cuenta y pulsa "Renovar 6 meses":\n${enlaceMiCuenta}\n\n` +
     `Si ya conseguiste tu permuta y se te olvido marcarlo, hazlo desde:\n${enlaceMiCuenta}\n`;
 
   return {
@@ -332,7 +332,7 @@ export function plantillaCadenaCerradaPorOtro(opts: {
   /** Cadenas que el destinatario sigue teniendo abiertas, post cierre. */
   cadenasRestantes: number;
 }): { subject: string; html: string; text: string } {
-  const enlace = `${BASE_URL}/auto-permutas`;
+  const enlace = `${BASE_URL}/mis-cadenas`;
   const aliasSeguro = opts.aliasQueCerro
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

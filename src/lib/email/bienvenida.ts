@@ -56,6 +56,7 @@ export async function enviarEmailBienvenidaSiProcede(
       subject: plantilla.subject,
       html: plantilla.html,
       text: plantilla.text,
+      registro: { tipo: "bienvenida" },
     });
     if (!r.ok) return;
 

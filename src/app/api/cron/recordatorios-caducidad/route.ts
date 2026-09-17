@@ -83,6 +83,7 @@ export async function GET(request: Request) {
       subject: plantilla.subject,
       html: plantilla.html,
       text: plantilla.text,
+      registro: { tipo: "recordatorio_caducidad", referencia: c.anuncio_id },
     });
     if (r.ok) {
       resultados.enviados++;

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { enviarEmail } from "@/lib/email/resend";
 import { plantillaMensajeNuevo } from "@/lib/email/plantillas";
 import { aplicarRateLimit } from "@/lib/rate-limit";
@@ -246,7 +247,7 @@ export async function enviarMensaje(
     // bloqueamos el envío del mensaje, solo lo registramos. Cuando
     // tengamos cron de reintento, recogerá las notificaciones que
     // se quedaron sin `enviada_email_el`.
-    await dispararEmailDestinatario(supabase, conversacionId, texto);
+    await dispararEmailDestinatario(conversacionId, user.id, texto);
   }
 
   revalidatePath(`/mensajes/${conversacionId}`);
@@ -298,6 +299,7 @@ async function dispararEmailRespuestaSistemaAlHumano(
       subject: plantilla.subject,
       html: plantilla.html,
       text: plantilla.text,
+      registro: { tipo: "mensaje_demo", referencia: conversacionId },
     });
   } catch (e) {
     console.warn("[mensajeria-demo] error enviando email al humano:", e);
@@ -309,27 +311,36 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 /**
  * Resuelve email + alias del destinatario y dispara la plantilla
  * "mensaje nuevo". No interrumpe el flujo si el email falla.
+ *
+ * El email se lee con el cliente de servidor: la funcion que lo devuelve
+ * no es accesible con la sesion de un usuario.
  */
 async function dispararEmailDestinatario(
-  supabase: SupabaseServerClient,
   conversacionId: string,
+  remitenteId: string,
   contenidoMensaje: string,
 ): Promise<void> {
   try {
-    const { data: filas } = await supabase.rpc(
-      "datos_email_destinatario_mensaje",
-      { conv_id: conversacionId },
-    );
+    const admin = createAdminClient();
+    const { data: filas, error } = await admin.rpc("datos_aviso_mensaje", {
+      p_conv_id: conversacionId,
+      p_remitente: remitenteId,
+    });
+    if (error) {
+      console.warn("[mensajeria] no se pudo leer el destinatario:", error.message);
+      return;
+    }
     if (!filas || (Array.isArray(filas) && filas.length === 0)) return;
     type Fila = {
       email: string | null;
       alias_destinatario: string | null;
       alias_remitente: string | null;
       notificacion_id: string | null;
+      es_demo: boolean;
     };
     const f = (Array.isArray(filas) ? filas[0] : filas) as Fila;
 
-    if (!f.email) return;
+    if (!f.email || f.es_demo) return;
     // Evitar enviar emails a las cuentas sinteticas:
     //   *.test    -> import legacy de PermutaDoc
     //   *.invalid -> usuarios demo creados por scripts/import-demos.ts
@@ -352,10 +363,11 @@ async function dispararEmailDestinatario(
       subject: plantilla.subject,
       html: plantilla.html,
       text: plantilla.text,
+      registro: { tipo: "mensaje_nuevo", referencia: conversacionId },
     });
 
     if (r.ok && f.notificacion_id) {
-      await supabase.rpc("marcar_notificacion_email_enviada", {
+      await admin.rpc("marcar_notificacion_email_enviada", {
         notif_id: f.notificacion_id,
       });
     }

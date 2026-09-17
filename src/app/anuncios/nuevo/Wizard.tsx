@@ -620,6 +620,9 @@ function Paso4PlazaActual({
 // ----------------------------------------------------------------------
 // Paso 5 — Plazas deseadas
 // ----------------------------------------------------------------------
+const ERROR_MUNICIPIOS =
+  "No se pudo cargar la lista de municipios. Comprueba tu conexión e inténtalo de nuevo.";
+
 function Paso5PlazasDeseadas({
   ccaa, provincias, municipioActual, plazas, atajos, plazasNombres,
   onChange, onAtras, onSiguiente,
@@ -715,6 +718,8 @@ function Paso5PlazasDeseadas({
       if (municipioActual) setUnion.delete(municipioActual);
       onChange(Array.from(setUnion), nuevoAtajos, plazasNombres);
       setCcaaSeleccionada("");
+    } catch {
+      setError(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
@@ -731,6 +736,8 @@ function Paso5PlazasDeseadas({
       if (municipioActual) setUnion.delete(municipioActual);
       onChange(Array.from(setUnion), nuevoAtajos, plazasNombres);
       setProvinciaSeleccionada("");
+    } catch {
+      setError(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
@@ -752,6 +759,7 @@ function Paso5PlazasDeseadas({
 
   async function quitarAtajoCcaa(codigoCcaa: string) {
     setAplicando(true);
+    setError(null);
     try {
       const nuevoAtajos = atajos.filter((a) => !(a.tipo === "ccaa" && a.valor === codigoCcaa));
       const expandidos = await expandirAtajos(nuevoAtajos);
@@ -762,6 +770,8 @@ function Paso5PlazasDeseadas({
       const setUnion = new Set([...expandidos, ...indivCodes]);
       if (municipioActual) setUnion.delete(municipioActual);
       onChange(Array.from(setUnion), nuevoAtajos, plazasNombres);
+    } catch {
+      setError(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }
@@ -769,6 +779,7 @@ function Paso5PlazasDeseadas({
 
   async function quitarAtajoProvincia(codigoProv: string) {
     setAplicando(true);
+    setError(null);
     try {
       const nuevoAtajos = atajos.filter((a) => !(a.tipo === "provincia" && a.valor === codigoProv));
       const expandidos = await expandirAtajos(nuevoAtajos);
@@ -778,6 +789,8 @@ function Paso5PlazasDeseadas({
       const setUnion = new Set([...expandidos, ...indivCodes]);
       if (municipioActual) setUnion.delete(municipioActual);
       onChange(Array.from(setUnion), nuevoAtajos, plazasNombres);
+    } catch {
+      setError(ERROR_MUNICIPIOS);
     } finally {
       setAplicando(false);
     }

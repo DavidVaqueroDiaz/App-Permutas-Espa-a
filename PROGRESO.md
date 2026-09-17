@@ -6,6 +6,34 @@ Este archivo es la memoria viva del proyecto. Cada vez que retomemos sesión, lo
 
 ---
 
+## Estado real (2026-09-17)
+
+Web publicada en https://permutaes.es con usuarios reales (156 cuentas, 114 anuncios activos). La carpeta del proyecto está ahora en `D:\PROYECTOS\APP permutas` (en el Escritorio queda un acceso que apunta aquí).
+
+### Sesión 2026-09-17: revisión de cadenas y avisos, arreglos y panel
+
+Objetivo de Vaquero: que **ninguna cadena posible (2, 3 o 4) se quede sin avisar a todas sus personas**.
+
+- **Avisos de cadena**: ahora se avisa por correo a TODAS las personas de cada cadena (antes no a quien la completaba). Nueva red de seguridad: cron diario `/api/cron/avisos-cadenas` (07:00 UTC) que recalcula todas las cadenas y avisa a quien falte (`revisarAvisosPendientes`). Si un correo falla, el aviso se libera y se reintenta al día siguiente. El correo nombra a los demás participantes y lleva a `/mis-cadenas`.
+- **Mis cadenas** (`/mis-cadenas`, nuevo): cada persona ve sus cadenas con botón de contactar, sin rellenar el buscador. Enlazada desde el correo, Mi cuenta y el menú.
+- **Renovar**: botón «Renovar 6 meses» en Mi cuenta; guardar el anuncio también renueva; los caducados se pueden volver a publicar (SQL `renovar_anuncio`). Antes guardar NO cambiaba la fecha aunque el correo lo decía. El trigger del recordatorio ahora sí se reinicia al renovar.
+- **Municipios deseados**: editar ya no recorta las listas a 1000; el servidor une la lista con los atajos (`unirPlazas` + `expandirAtajos` paginado y ordenado) y la guarda en una transacción (SQL `reemplazar_plazas_deseadas`). Reparados 4 anuncios a los que les faltaban 269 municipios.
+- **Lecturas seguras** (`src/lib/cadenas/universo.ts`): paginación con orden, lotes de 100 IDs y error en vez de datos a medias. Usadas por avisos, Mi cuenta, Mis cadenas, buscador y panel. Los anuncios de demostración ya no cuentan en avisos ni en Mi cuenta.
+- **Buscador**: el recuadro del radio ya no se deja municipios del borde en el norte, y la lista de municipios del radio se pagina.
+- **Limitador de intentos** (`chequear_rate_limit`): nunca había funcionado (error SQL de nombre ambiguo); arreglado (0041) y ahora solo lo usa el servidor.
+- **Funciones internas**: las que devuelven correos o hacen mantenimiento solo las puede llamar el servidor (0039, 0042).
+- **Un anuncio por plaza y especialidad**: publicar otro igual se rechaza (antes una misma permuta salía repetida).
+- **Panel de admin** (`/admin`): semáforo «¿Está funcionando?» (tareas diarias, correos, recordatorios atrasados, anuncios vencidos, municipios incompletos, avisos pendientes), cifras, cadenas actuales con aviso por persona y si han hablado (solo recuentos y fechas) e histórico de cadenas avisadas. Datos en `src/lib/admin/panel.ts` + SQL `admin_metricas`.
+- **Registro de correos** (`envios_email`, sin direcciones): la clave de Resend solo permite enviar, así que el panel usa este registro para ver fallos.
+
+Migraciones aplicadas en producción: 0039, 0040 y 0041 (script `aplicar-migracion-0039.ts`). La 0042 se aplica justo después de que Vercel publique este código, porque la versión anterior aún usa las funciones que retira. Comprobación repetible (solo lectura): `npx tsx scripts/verificar-avisos-y-panel.ts`.
+
+**Ojo al volver atrás en Vercel:** una vez aplicada la 0042, publicar una versión anterior al 17/09/2026 deja de enviar los avisos de cadena y de mensajes (ese código llama a funciones que ya no existen). Volver atrás solo a versiones de esta fecha en adelante.
+
+Publicado con el OK de Vaquero (17/09/2026). Pendiente: una cuenta tiene dos anuncios iguales (la misma permuta sale dos veces en el panel); decidir con esa persona cuál quitar. Comprobar en Resend que los correos llegan.
+
+---
+
 ## Fase actual
 
 **Fase 1 — Alfa interna, recta final.**
@@ -37,7 +65,7 @@ Pendiente para cerrar Fase 1:
 - **Verificación de usuarios**: no hay en MVP. Cualquiera puede registrarse y publicar.
 - **Algoritmo**: enforza las reglas legales. Si dos anuncios no pueden permutar legalmente (sector incompatible, especialidad distinta, ámbito geográfico no permitido, edad, antigüedad, carencia entre permutas, etc.), la app NO los empareja. No se limita a avisar.
 - **Monetización**: ninguna. App gratuita. Monetización se evaluará en fase posterior.
-- **Carpeta local**: `C:\Users\Usuario\Desktop\APP permutas`.
+- **Carpeta local**: `D:\PROYECTOS\APP permutas`.
 - **Repo**: https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a (público).
 - **Push a GitHub**: lo hace Vaquero. Claude solo hace commits locales.
 
@@ -336,7 +364,7 @@ Sesión densa con cinco bloques cerrados de un tirón.
 - Se redacta un prompt extenso (Bloques A–F) para una segunda ronda de investigación en Perplexity, orientada a obtener catálogos exhaustivos y reglas operativas concretas. Vaquero ejecuta la investigación y aporta los 6 PDFs (`investigacion A.pdf` a `investigacion F.pdf`) más documentos oficiales adjuntos.
 - Vaquero usa NotebookLM para resolver dudas adicionales (`dudas.txt`) y Cowork para descargar fuentes oficiales (`descargas de cowork/`: diccionario de municipios INE 2026, RD 184/2015 consolidado, Ordenación sanitaria 2021 del Ministerio, BEPSAP julio 2025).
 - Se redacta un segundo prompt para Perplexity con las dudas que NotebookLM no pudo resolver y Vaquero entrega el resultado en `dudas perplexity.pdf`. Cubre cuerpos autonómicos (5 CCAA con regulación localizada), Policía Local (5 CCAA con regulación, todas intra-CCAA), Servicios de Salud (Aragón añade un trámite específico), catálogos descargables (solo Murcia).
-- Se inicializa el repo Git en `C:\Users\Usuario\Desktop\APP permutas`, se conecta al remoto `https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a`, se crean `PROGRESO.md` y `.gitignore`, y se hace el commit inicial.
+- Se inicializa el repo Git en `D:\PROYECTOS\APP permutas`, se conecta al remoto `https://github.com/DavidVaqueroDiaz/App-Permutas-Espa-a`, se crean `PROGRESO.md` y `.gitignore`, y se hace el commit inicial.
 - El PDF de Perplexity, el `prompt inicial.txt`, los 6 PDFs de investigación, las dudas y las descargas de Cowork quedan en `.gitignore` (material de referencia personal — no se suben al repo público).
 - Se entrega la Tarea 2 (`TAREA_2_RESUMEN_EJECUTIVO.md`): definición del producto, 7 sectores cubiertos desde el día 1, 12 sectores excluidos con justificación, matriz de reglas de matching por sector y 4 decisiones críticas (modelo de contacto, motivos de permuta, visibilidad pública, forma jurídica). Vaquero aprueba las 4 recomendaciones.
 - Se entrega la Tarea 3 (`TAREA_3_ESQUEMA_DATOS.md`): modelo conceptual de 15 tablas agrupadas en 4 bloques (identidad, geografía, taxonomía profesional, operación), reglas de matching como pseudocódigo legible por sector, estrategia de ingesta de datos (inicial vs progresiva) y 4 decisiones técnicas (fecha nacimiento, caducidad anuncios, multilingüismo, retención mensajes). Vaquero aprueba las 4 recomendaciones.

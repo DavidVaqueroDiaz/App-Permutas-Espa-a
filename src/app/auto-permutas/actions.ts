@@ -9,7 +9,13 @@ import {
   type AnuncioMatching,
   type Cadena,
 } from "@/lib/matching";
-import { haversine } from "@/lib/haversine";
+import { haversine, margenesRecuadro } from "@/lib/haversine";
+import {
+  cargarMunicipios,
+  cargarPerfilesPublicos,
+  cargarPlazasPorAnuncio,
+  leerTodo,
+} from "@/lib/cadenas/universo";
 import {
   verificarReglasParticipante,
   verificarReglasPareja,
@@ -244,12 +250,14 @@ export async function buscarCadenasDesdePerfil(
   // radio elegido y solo cargamos los munis dentro del box. Asi
   // pasamos de 200KB / 8132 filas a ~5KB / ~100 filas por busqueda.
   //
-  // Conversion: 1 grado de latitud ≈ 111 km. 1 grado de longitud
-  // varia con la latitud (≈ 111 * cos(lat)), pero como margen
-  // seguro usamos el peor caso (cos(36°) ≈ 0.81, 1° lon ≈ 90 km).
-  // Anadimos un buffer de 5km al radio para tener margen.
-  const margenLat = (input.radio_km + 5) / 111;
-  const margenLon = (input.radio_km + 5) / 90;
+  // Conversion: 1 grado de latitud ≈ 111 km. Un grado de longitud mide
+  // 111 * cos(lat) km, y es MAS CORTO cuanto mas al norte: el margen se
+  // calcula con la latitud mas septentrional del recuadro (antes se usaba
+  // 90 km fijos y en el norte se quedaban fuera municipios del borde).
+  const { margenLat, margenLon } = margenesRecuadro(
+    objetivos.map((o) => o.latitud!),
+    input.radio_km,
+  );
   let minLat = 999, maxLat = -999, minLon = 999, maxLon = -999;
   for (const obj of objetivos) {
     if (obj.latitud === null || obj.longitud === null) continue;
@@ -259,37 +267,48 @@ export async function buscarCadenasDesdePerfil(
     maxLon = Math.max(maxLon, obj.longitud + margenLon);
   }
 
-  let muniQ = supabase
-    .from("municipios")
-    .select("codigo_ine, latitud, longitud, provincia_codigo")
-    .not("latitud", "is", null)
-    .gte("latitud", minLat)
-    .lte("latitud", maxLat)
-    .gte("longitud", minLon)
-    .lte("longitud", maxLon);
+  let provinciasCcaa: string[] = [];
   if (intraCcaa.has(sector)) {
     // Las provincias de esa CCAA.
     const { data: provs } = await supabase
       .from("provincias")
       .select("codigo_ine")
       .eq("ccaa_codigo", ccaaInput);
-    const codigos = (provs ?? []).map((p) => p.codigo_ine as string);
-    if (codigos.length > 0) muniQ = muniQ.in("provincia_codigo", codigos);
+    provinciasCcaa = (provs ?? []).map((p) => p.codigo_ine as string);
   }
-  const { data: muniRows } = await muniQ;
+  // Con radio grande o varias localidades, el recuadro puede pasar de
+  // las 1000 filas que da la API: se pagina.
+  let muniRows: { codigo_ine: string; latitud: number | null; longitud: number | null }[];
+  try {
+    muniRows = await leerTodo((desde, hasta) => {
+      let q = supabase
+        .from("municipios")
+        .select("codigo_ine, latitud, longitud")
+        .not("latitud", "is", null)
+        .gte("latitud", minLat)
+        .lte("latitud", maxLat)
+        .gte("longitud", minLon)
+        .lte("longitud", maxLon);
+      if (provinciasCcaa.length > 0) q = q.in("provincia_codigo", provinciasCcaa);
+      return q.order("codigo_ine").range(desde, hasta);
+    });
+  } catch (e) {
+    console.warn("[auto-permutas] error cargando municipios del radio:", e);
+    return { ok: false, mensaje: "No se pudo completar la búsqueda. Inténtalo de nuevo." };
+  }
 
   // Un municipio entra si está dentro del radio de CUALQUIERA de los
   // objetivos. Calculamos la distancia al objetivo más cercano para
   // poder mostrar luego la mejor opción.
   const codigosEnRadio = new Set<string>();
-  for (const r of muniRows ?? []) {
-    const lat = (r as { latitud: number | null }).latitud;
-    const lon = (r as { longitud: number | null }).longitud;
+  for (const r of muniRows) {
+    const lat = r.latitud;
+    const lon = r.longitud;
     if (lat === null || lon === null) continue;
     for (const obj of objetivos) {
       const km = haversine(obj.latitud!, obj.longitud!, lat, lon);
       if (km <= input.radio_km) {
-        codigosEnRadio.add((r as { codigo_ine: string }).codigo_ine);
+        codigosEnRadio.add(r.codigo_ine);
         break;
       }
     }
@@ -326,25 +345,32 @@ export async function buscarCadenasDesdePerfil(
   //    y, si SNS, mismo servicio de salud). Si el visitante NO esta en
   //    modo demo, excluimos los anuncios sinteticos.
   const incluirDemos = await modoDemoActivo();
-  let q = supabase
-    .from("anuncios")
-    .select(
-      "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el, es_demo",
-    )
-    .eq("estado", "activo")
-    .gt("caduca_el", new Date().toISOString())  // defensivo por si el cron de caducidad va con retraso
-    .eq("sector_codigo", sector)
-    .eq("cuerpo_id", input.cuerpo_id);
-  if (!incluirDemos) q = q.eq("es_demo", false);
-  if (input.especialidad_id) q = q.eq("especialidad_id", input.especialidad_id);
-  else q = q.is("especialidad_id", null);
-  if (intraCcaa.has(sector)) q = q.eq("ccaa_codigo", ccaaInput);
-  if (sector === "sanitario_sns" && input.servicio_salud_codigo) {
-    q = q.eq("servicio_salud_codigo", input.servicio_salud_codigo);
+  const ahoraIso = new Date().toISOString();
+  let anuncios: AnuncioRaw[];
+  try {
+    anuncios = await leerTodo<AnuncioRaw>((desde, hasta) => {
+      let q = supabase
+        .from("anuncios")
+        .select(
+          "id, usuario_id, sector_codigo, cuerpo_id, especialidad_id, municipio_actual_codigo, ccaa_codigo, servicio_salud_codigo, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, creado_el, es_demo",
+        )
+        .eq("estado", "activo")
+        .gt("caduca_el", ahoraIso) // defensivo por si el cron de caducidad va con retraso
+        .eq("sector_codigo", sector)
+        .eq("cuerpo_id", input.cuerpo_id);
+      if (!incluirDemos) q = q.eq("es_demo", false);
+      if (input.especialidad_id) q = q.eq("especialidad_id", input.especialidad_id);
+      else q = q.is("especialidad_id", null);
+      if (intraCcaa.has(sector)) q = q.eq("ccaa_codigo", ccaaInput);
+      if (sector === "sanitario_sns" && input.servicio_salud_codigo) {
+        q = q.eq("servicio_salud_codigo", input.servicio_salud_codigo);
+      }
+      return q.order("id").range(desde, hasta);
+    });
+  } catch (e) {
+    console.warn("[auto-permutas] error cargando anuncios:", e);
+    return { ok: false, mensaje: "No se pudo completar la búsqueda. Inténtalo de nuevo." };
   }
-
-  const { data: anunciosCompat } = await q;
-  const anuncios = (anunciosCompat ?? []) as AnuncioRaw[];
 
   // Si no hay anuncios reales compatibles Y no estamos en modo demo,
   // salimos directamente. En modo demo NO retornamos: el sintetizador
@@ -372,56 +398,22 @@ export async function buscarCadenasDesdePerfil(
     ]),
   );
 
-  // CRITICO: anuncio_plazas_deseadas tiene MUCHAS filas (cada anuncio
-  // puede tener cientos de plazas si el usuario eligio "toda una CCAA").
-  // Ej: 50 anuncios x 700 plazas (CCAA) = 35.000 filas. PostgREST corta
-  // a 1000 por defecto -> el matcher veria SOLO una fraccion de las
-  // plazas y se perderia cadenas validas. Paginamos en lotes.
-  async function cargarTodasLasPlazas(
-    anuncioIds: string[],
-  ): Promise<{ anuncio_id: string; municipio_codigo: string }[]> {
-    const PAGE = 1000;
-    const todas: { anuncio_id: string; municipio_codigo: string }[] = [];
-    let offset = 0;
-    while (true) {
-      const { data } = await supabase
-        .from("anuncio_plazas_deseadas")
-        .select("anuncio_id, municipio_codigo")
-        .in("anuncio_id", anuncioIds)
-        .range(offset, offset + PAGE - 1);
-      if (!data || data.length === 0) break;
-      todas.push(
-        ...(data as { anuncio_id: string; municipio_codigo: string }[]),
-      );
-      if (data.length < PAGE) break;
-      offset += PAGE;
-      // Guard: nunca mas de 100k plazas (1000 anuncios x 100 plazas
-      // promedio). Si llegamos aqui con un dataset real, hay que
-      // refactorizar a una RPC con agregacion en SQL.
-      if (offset > 100_000) break;
-    }
-    return todas;
-  }
-
-  const [plazasRes, perfilesRes, muniInfoRes, cuerpoInfoRes, espInfoRes] =
-    await Promise.all([
-      ids.length > 0
-        ? cargarTodasLasPlazas(ids).then((data) => ({ data }))
-        : Promise.resolve({
-            data: [] as { anuncio_id: string; municipio_codigo: string }[],
-          }),
-      usuariosUnicos.length > 0
-        ? supabase
-            .from("perfiles_publicos")
-            .select("id, alias_publico, ano_nacimiento")
-            .in("id", usuariosUnicos)
-        : Promise.resolve({
-            data: [] as { id: string; alias_publico: string; ano_nacimiento: number }[],
-          }),
-      supabase
-        .from("municipios")
-        .select("codigo_ine, nombre, latitud, longitud, provincias!inner(nombre)")
-        .in("codigo_ine", codigosMunicipiosNecesarios),
+  // Plazas, perfiles y municipios con la lectura segura (paginada, en
+  // lotes y con error si falla): antes, una lectura cortada hacia que el
+  // motor no viera cadenas reales sin avisar.
+  let plazasPorAnuncio: Map<string, Set<string>>;
+  let perfilesPorId: Map<string, { alias_publico: string; ano_nacimiento: number }>;
+  let muniInfo: Map<
+    string,
+    { nombre: string; provincia_nombre: string; lat: number | null; lon: number | null }
+  >;
+  let cuerpoInfoRes: { data: { id: string; codigo_oficial: string | null; denominacion: string }[] | null };
+  let espInfoRes: { data: { id: string; codigo_oficial: string | null; denominacion: string }[] | null };
+  try {
+    [plazasPorAnuncio, perfilesPorId, muniInfo, cuerpoInfoRes, espInfoRes] = await Promise.all([
+      cargarPlazasPorAnuncio(supabase, ids),
+      cargarPerfilesPublicos(supabase, usuariosUnicos),
+      cargarMunicipios(supabase, codigosMunicipiosNecesarios),
       supabase
         .from("cuerpos")
         .select("id, codigo_oficial, denominacion")
@@ -435,46 +427,9 @@ export async function buscarCadenasDesdePerfil(
             data: [] as { id: string; codigo_oficial: string | null; denominacion: string }[],
           }),
     ]);
-
-  const plazasPorAnuncio = new Map<string, Set<string>>();
-  for (const p of plazasRes.data ?? []) {
-    const k = (p as { anuncio_id: string }).anuncio_id;
-    const c = (p as { municipio_codigo: string }).municipio_codigo;
-    let s = plazasPorAnuncio.get(k);
-    if (!s) {
-      s = new Set();
-      plazasPorAnuncio.set(k, s);
-    }
-    s.add(c);
-  }
-
-  const perfilesPorId = new Map<string, { alias_publico: string; ano_nacimiento: number }>();
-  for (const p of perfilesRes.data ?? []) {
-    perfilesPorId.set((p as { id: string }).id, {
-      alias_publico: (p as { alias_publico: string }).alias_publico,
-      ano_nacimiento: (p as { ano_nacimiento: number }).ano_nacimiento,
-    });
-  }
-
-  type MuniRow = {
-    codigo_ine: string;
-    nombre: string;
-    latitud: number | null;
-    longitud: number | null;
-    provincias: { nombre: string } | { nombre: string }[] | null;
-  };
-  const muniInfo = new Map<
-    string,
-    { nombre: string; provincia_nombre: string; lat: number | null; lon: number | null }
-  >();
-  for (const m of (muniInfoRes.data ?? []) as MuniRow[]) {
-    const ps = Array.isArray(m.provincias) ? m.provincias[0]?.nombre ?? "" : m.provincias?.nombre ?? "";
-    muniInfo.set(m.codigo_ine, {
-      nombre: m.nombre,
-      provincia_nombre: ps,
-      lat: m.latitud,
-      lon: m.longitud,
-    });
+  } catch (e) {
+    console.warn("[auto-permutas] error cargando datos de anuncios:", e);
+    return { ok: false, mensaje: "No se pudo completar la búsqueda. Inténtalo de nuevo." };
   }
 
   const cuerpo = (cuerpoInfoRes.data ?? [])[0];
@@ -575,20 +530,12 @@ export async function buscarCadenasDesdePerfil(
           new Set(sint.nuevos.map((a) => a.municipio_actual_codigo)),
         ).filter((c) => !muniInfo.has(c));
         if (codigosNuevos.length > 0) {
-          const { data: extraMuniRows } = await supabase
-            .from("municipios")
-            .select("codigo_ine, nombre, latitud, longitud, provincias!inner(nombre)")
-            .in("codigo_ine", codigosNuevos);
-          for (const m of (extraMuniRows ?? []) as MuniRow[]) {
-            const ps = Array.isArray(m.provincias)
-              ? m.provincias[0]?.nombre ?? ""
-              : m.provincias?.nombre ?? "";
-            muniInfo.set(m.codigo_ine, {
-              nombre: m.nombre,
-              provincia_nombre: ps,
-              lat: m.latitud,
-              lon: m.longitud,
-            });
+          try {
+            for (const [codigo, info] of await cargarMunicipios(supabase, codigosNuevos)) {
+              muniInfo.set(codigo, info);
+            }
+          } catch (e) {
+            console.warn("[auto-permutas] sin nombres para los demos:", e);
           }
         }
         // Anadimos los sinteticos al pool y volvemos a detectar

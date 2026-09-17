@@ -151,6 +151,19 @@ function huellaCanonica(ciclo: string[]): string {
 }
 
 /**
+ * Inversa de `huellaCanonica`: saca los IDs de anuncio de una huella.
+ * Los IDs son UUID (que llevan guiones), asi que no basta con partir
+ * por "-". Devuelve [] si la huella no contiene UUID.
+ */
+export function idsDeHuella(huella: string): string[] {
+  return (
+    huella.match(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    ) ?? []
+  );
+}
+
+/**
  * Detecta todas las cadenas (longitud 2, 3 y 4) que pasan por al menos uno
  * de los `anunciosOrigen` (típicamente, los anuncios del usuario actual).
  *

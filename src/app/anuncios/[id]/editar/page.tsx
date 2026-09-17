@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { cargarMunicipios, cargarPlazasPorAnuncio } from "@/lib/cadenas/universo";
 import { EditarForm } from "./EditarForm";
 import type {
   AtajoState,
@@ -24,6 +25,7 @@ type AnuncioRowEdit = {
   observaciones: string | null;
   municipio_actual_codigo: string;
   sector_codigo: string;
+  estado: string;
 };
 
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
@@ -45,20 +47,24 @@ export default async function EditarAnuncioPage({
   const { data: anuncio } = await supabase
     .from("anuncios")
     .select(
-      "id, usuario_id, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, municipio_actual_codigo, sector_codigo",
+      "id, usuario_id, fecha_toma_posesion_definitiva, anyos_servicio_totales, permuta_anterior_fecha, observaciones, municipio_actual_codigo, sector_codigo, estado",
     )
     .eq("id", id)
     .maybeSingle<AnuncioRowEdit>();
 
   if (!anuncio) notFound();
   if (anuncio.usuario_id !== user.id) notFound();
+  // Los anuncios cerrados (permutados o eliminados) no se editan.
+  if (anuncio.estado !== "activo" && anuncio.estado !== "caducado") {
+    redirect("/mi-cuenta");
+  }
 
   const [
     cuerposRes,
     especialidadesRes,
     municipioRes,
     sectorRes,
-    plazasRes,
+    plazasCodigos,
     atajosRes,
     ccaaRes,
     provinciasRes,
@@ -83,10 +89,9 @@ export default async function EditarAnuncioPage({
       .select("nombre")
       .eq("codigo", anuncio.sector_codigo)
       .maybeSingle(),
-    supabase
-      .from("anuncio_plazas_deseadas")
-      .select("municipio_codigo, municipios!inner(nombre)")
-      .eq("anuncio_id", id),
+    // TODAS las plazas (la API corta a 1000 filas: sin paginar, guardar
+    // recortaba las listas grandes).
+    cargarPlazasPorAnuncio(supabase, [id]).then((m) => Array.from(m.get(id) ?? [])),
     supabase
       .from("anuncio_atajos")
       .select("tipo, valor")
@@ -123,30 +128,24 @@ export default async function EditarAnuncioPage({
     ? `${especialidadRow.codigo_oficial ? especialidadRow.codigo_oficial + " · " : ""}${especialidadRow.denominacion}`
     : null;
 
-  // Reconstrucción de los nombres de los municipios individuales (solo para
-  // los que vinieron de atajo "municipio_individual"; el resto no se muestra
-  // como chip suelto).
-  type PlazaRow = {
-    municipio_codigo: string;
-    municipios: { nombre: string } | { nombre: string }[] | null;
-  };
-  const nombresMunicipios: Record<string, string> = {};
-  for (const p of (plazasRes.data ?? []) as PlazaRow[]) {
-    const m = unwrap(p.municipios);
-    if (m) nombresMunicipios[p.municipio_codigo] = m.nombre;
-  }
-
   const atajos: AtajoState[] = ((atajosRes.data ?? []) as { tipo: string; valor: string }[]).map((a) => ({
     tipo: a.tipo as AtajoState["tipo"],
     valor: a.valor,
   }));
 
+  // Nombres solo de los municipios sueltos (los que salen como chip).
+  const codigosSueltos = atajos
+    .filter((a) => a.tipo === "municipio_individual")
+    .map((a) => a.valor);
+  const infoSueltos = await cargarMunicipios(supabase, codigosSueltos);
   const plazasIndividualesNombres: Record<string, string> = {};
-  for (const a of atajos) {
-    if (a.tipo === "municipio_individual") {
-      plazasIndividualesNombres[a.valor] = nombresMunicipios[a.valor] ?? a.valor;
-    }
+  for (const c of codigosSueltos) {
+    const m = infoSueltos.get(c);
+    plazasIndividualesNombres[c] = m
+      ? `${m.nombre}${m.provincia_nombre ? ` (${m.provincia_nombre})` : ""}`
+      : c;
   }
+  const caducado = anuncio.estado === "caducado";
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-12">
@@ -155,10 +154,19 @@ export default async function EditarAnuncioPage({
       </h1>
       <p className="mt-2 text-sm text-slate-600">
         Cambia las plazas deseadas, los datos legales o las observaciones.
+        Al guardar, el anuncio se renueva 6 meses más.
       </p>
+
+      {caducado && (
+        <div className="mt-6 rounded-md border border-warn-text/30 bg-warn-bg p-4 text-sm text-warn-text">
+          <strong>Este anuncio caducó</strong> y ya no aparece en las búsquedas
+          ni en las cadenas. Al guardar vuelve a publicarse durante 6 meses.
+        </div>
+      )}
 
       <div className="mt-8">
         <EditarForm
+          caducado={caducado}
           anuncioId={id}
           resumen={{
             sectorNombre: (sectorRes.data as { nombre: string } | null)?.nombre ?? "—",
@@ -175,7 +183,7 @@ export default async function EditarAnuncioPage({
             anyos_servicio_totales: anuncio.anyos_servicio_totales,
             permuta_anterior_fecha: anuncio.permuta_anterior_fecha,
             observaciones: anuncio.observaciones ?? "",
-            plazas_deseadas: ((plazasRes.data ?? []) as PlazaRow[]).map((p) => p.municipio_codigo),
+            plazas_deseadas: plazasCodigos,
             atajos,
             plazas_individuales_nombres: plazasIndividualesNombres,
           }}

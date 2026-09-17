@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notificarCadenasNuevas } from "@/lib/cadenas/notificar";
+import { atajosValidos, unirPlazas } from "@/lib/cadenas/plazas";
+import { leerTodo } from "@/lib/cadenas/universo";
 import { aplicarRateLimit } from "@/lib/rate-limit";
 
 // ----------------------------------------------------------------------
@@ -109,8 +111,9 @@ export type AtajoEntrada =
  * Vigo individualmente...) y la app calcula los municipios resultantes.
  */
 export async function expandirAtajos(
-  atajos: AtajoEntrada[],
+  atajosEntrada: AtajoEntrada[],
 ): Promise<string[]> {
+  const atajos = atajosValidos(atajosEntrada);
   if (atajos.length === 0) return [];
 
   const supabase = await createClient();
@@ -127,35 +130,30 @@ export async function expandirAtajos(
     .map((a) => a.valor);
 
   if (ccaaCodes.length > 0) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("provincias")
       .select("codigo_ine")
       .in("ccaa_codigo", ccaaCodes);
+    if (error) throw new Error(`No se pudieron cargar las provincias: ${error.message}`);
     for (const row of data ?? []) {
       provinciaCodes.push(row.codigo_ine as string);
     }
   }
 
   if (provinciaCodes.length > 0) {
-    // CRITICO: una CCAA grande (Castilla y Leon: 2247 munis, Cataluna:
-    // 947, Andalucia: 770) supera el limite de 1000 filas de PostgREST.
-    // Sin paginar, el wizard guardaba SOLO ~1000 munis aunque el usuario
-    // hubiese elegido "toda la CCAA" -> matching no encuentra cadenas en
-    // los munis no guardados. Paginamos por lotes de 1000 hasta agotar.
-    const PAGE = 1000;
-    let offset = 0;
-    while (true) {
-      const { data } = await supabase
+    // Una CCAA grande (Castilla y Leon: 2248 municipios) supera las 1000
+    // filas que devuelve la API por consulta: se pagina, con orden fijo
+    // para no saltarse filas, y un fallo lanza error en vez de quedarse
+    // con la lista a medias.
+    const filas = await leerTodo<{ codigo_ine: string }>((desde, hasta) =>
+      supabase
         .from("municipios")
         .select("codigo_ine")
-        .in("provincia_codigo", provinciaCodes)
-        .range(offset, offset + PAGE - 1);
-      if (!data || data.length === 0) break;
-      for (const row of data) conjunto.add(row.codigo_ine as string);
-      if (data.length < PAGE) break;
-      offset += PAGE;
-      if (offset > 10_000) break; // safety cap (Espana entera = 8132 munis)
-    }
+        .in("provincia_codigo", Array.from(new Set(provinciaCodes)))
+        .order("codigo_ine")
+        .range(desde, hasta),
+    );
+    for (const row of filas) conjunto.add(row.codigo_ine);
   }
 
   for (const m of municipioCodes) conjunto.add(m);
@@ -195,18 +193,6 @@ export async function crearAnuncio(
   if (!user.email_confirmed_at) {
     return { ok: false, mensaje: "Tienes que confirmar tu email antes de publicar." };
   }
-
-  // Rate limit: 5 anuncios por usuario por dia. Una persona normal
-  // publica 1-2 (uno por cuerpo si es el caso). Mas de 5 al dia sugiere
-  // bot o abuso.
-  const rl = await aplicarRateLimit({
-    clave: `anuncio_nuevo:${user.id}`,
-    ventanaSegundos: 86400,
-    max: 5,
-    mensajeBloqueado:
-      "Has publicado demasiados anuncios hoy. Espera 24 horas antes de seguir.",
-  });
-  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
 
   // Validaciones básicas (la lógica fina ya la aplica el cliente; esto es
   // la red de seguridad por si alguien manipula el envío).
@@ -274,6 +260,81 @@ export async function crearAnuncio(
     };
   }
 
+  // Especialidad: obligatoria si el cuerpo tiene especialidades, y debe
+  // ser de ese cuerpo. Sin esto, un anuncio "sin especialidad" en un
+  // cuerpo que las tiene nunca coincidiria con nadie.
+  const { data: espsCuerpo, error: errEsps } = await supabase
+    .from("especialidades")
+    .select("id")
+    .eq("cuerpo_id", input.cuerpo_id);
+  if (errEsps) return { ok: false, mensaje: "No se pudo comprobar la especialidad. Inténtalo de nuevo." };
+  const idsEsp = new Set((espsCuerpo ?? []).map((e) => e.id as string));
+  if (idsEsp.size > 0 && (!input.especialidad_id || !idsEsp.has(input.especialidad_id))) {
+    return { ok: false, mensaje: "Elige la especialidad de tu cuerpo." };
+  }
+  if (idsEsp.size === 0 && input.especialidad_id) {
+    return { ok: false, mensaje: "Ese cuerpo no tiene especialidades." };
+  }
+
+  // Un solo anuncio por persona, plaza y especialidad: dos iguales hacen
+  // que la misma permuta salga repetida (y se avise dos veces).
+  let qRepetido = supabase
+    .from("anuncios")
+    .select("id")
+    .eq("usuario_id", user.id)
+    .in("estado", ["activo", "caducado"])
+    .eq("cuerpo_id", input.cuerpo_id)
+    .eq("municipio_actual_codigo", input.municipio_actual_codigo);
+  qRepetido = input.especialidad_id
+    ? qRepetido.eq("especialidad_id", input.especialidad_id)
+    : qRepetido.is("especialidad_id", null);
+  const { data: repetido, error: errRepetido } = await qRepetido.limit(1);
+  if (errRepetido) {
+    return { ok: false, mensaje: "No se pudo comprobar tus anuncios. Inténtalo de nuevo." };
+  }
+  if (repetido && repetido.length > 0) {
+    return {
+      ok: false,
+      mensaje:
+        "Ya tienes un anuncio para esta plaza y especialidad. Edítalo o renuévalo desde «Mi cuenta» en lugar de publicar otro.",
+    };
+  }
+
+  // Lista definitiva de municipios: lo elegido mas lo que sale de los
+  // atajos (toda una CCAA o provincia), por si la del navegador llega
+  // incompleta.
+  const atajos = atajosValidos(input.atajos);
+  let plazasFinal: string[];
+  try {
+    plazasFinal = unirPlazas(
+      input.plazas_deseadas,
+      await expandirAtajos(atajos),
+      input.municipio_actual_codigo,
+    );
+  } catch (e) {
+    console.warn("[crearAnuncio] no se pudieron expandir los atajos:", e);
+    return {
+      ok: false,
+      mensaje: "No se pudo preparar la lista de municipios. Inténtalo de nuevo en unos segundos.",
+    };
+  }
+  if (plazasFinal.length === 0) {
+    return { ok: false, mensaje: "Tienes que indicar al menos un municipio deseado." };
+  }
+
+  // Rate limit: 5 anuncios por usuario por dia. Una persona normal
+  // publica 1-2 (uno por cuerpo si es el caso). Mas de 5 al dia sugiere
+  // bot o abuso. Va despues de las validaciones para que un intento
+  // rechazado no gaste cupo.
+  const rl = await aplicarRateLimit({
+    clave: `anuncio_nuevo:${user.id}`,
+    ventanaSegundos: 86400,
+    max: 5,
+    mensajeBloqueado:
+      "Has publicado demasiados anuncios hoy. Espera 24 horas antes de seguir.",
+  });
+  if (!rl.permitido) return { ok: false, mensaje: rl.mensaje };
+
   // 1) INSERT anuncio
   const { data: anuncioInsert, error: errAnuncio } = await supabase
     .from("anuncios")
@@ -302,15 +363,11 @@ export async function crearAnuncio(
 
   const anuncio_id = anuncioInsert.id as string;
 
-  // 2) INSERT plazas deseadas
-  const { error: errPlazas } = await supabase
-    .from("anuncio_plazas_deseadas")
-    .insert(
-      input.plazas_deseadas.map((cod) => ({
-        anuncio_id,
-        municipio_codigo: cod,
-      })),
-    );
+  // 2) Plazas deseadas, en una sola transaccion (funcion SQL).
+  const { error: errPlazas } = await supabase.rpc("reemplazar_plazas_deseadas", {
+    p_anuncio_id: anuncio_id,
+    p_codigos: plazasFinal,
+  });
 
   if (errPlazas) {
     // Compensación: borramos el anuncio para no dejar basura.
@@ -319,9 +376,9 @@ export async function crearAnuncio(
   }
 
   // 3) INSERT atajos (no crítico — si falla, el anuncio sigue siendo válido).
-  if (input.atajos.length > 0) {
+  if (atajos.length > 0) {
     await supabase.from("anuncio_atajos").insert(
-      input.atajos.map((a) => ({
+      atajos.map((a) => ({
         anuncio_id,
         tipo: a.tipo,
         valor: a.valor,

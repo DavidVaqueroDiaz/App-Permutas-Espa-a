@@ -11,6 +11,7 @@ import {
   notificarCadenasNuevas,
   notificarCadenaCerradaPorPermuta,
 } from "@/lib/cadenas/notificar";
+import { atajosValidos, unirPlazas } from "@/lib/cadenas/plazas";
 
 export type ActualizarAnuncioInput = {
   fecha_toma_posesion_definitiva: string;
@@ -37,7 +38,7 @@ export async function actualizarAnuncio(
   // Verifica que el anuncio existe y pertenece al usuario.
   const { data: existing, error: errFetch } = await supabase
     .from("anuncios")
-    .select("id, usuario_id, municipio_actual_codigo")
+    .select("id, usuario_id, municipio_actual_codigo, estado")
     .eq("id", id)
     .maybeSingle();
 
@@ -47,6 +48,10 @@ export async function actualizarAnuncio(
   if (existing.usuario_id !== user.id) {
     return { ok: false, mensaje: "No puedes editar este anuncio." };
   }
+  if (existing.estado !== "activo" && existing.estado !== "caducado") {
+    return { ok: false, mensaje: "Este anuncio ya está cerrado y no se puede editar." };
+  }
+  const municipioActual = existing.municipio_actual_codigo as string;
 
   // Validaciones
   if (!input.fecha_toma_posesion_definitiva)
@@ -59,13 +64,28 @@ export async function actualizarAnuncio(
     return { ok: false, mensaje: "Los años de servicio deben estar entre 0 y 50." };
   if (input.observaciones && input.observaciones.length > 500)
     return { ok: false, mensaje: "Las observaciones superan los 500 caracteres." };
-  if (input.plazas_deseadas.length === 0)
-    return { ok: false, mensaje: "Tienes que indicar al menos un municipio deseado." };
-  if (input.plazas_deseadas.includes(existing.municipio_actual_codigo as string))
+  if (input.plazas_deseadas.includes(municipioActual))
     return {
       ok: false,
       mensaje: "El municipio actual no puede estar entre las plazas deseadas.",
     };
+
+  // Lista definitiva: lo que llega del navegador mas lo que sale de los
+  // atajos. Antes la pagina de edicion solo cargaba 1000 municipios y al
+  // guardar se perdian los demas.
+  const atajos = atajosValidos(input.atajos);
+  let plazasFinal: string[];
+  try {
+    plazasFinal = unirPlazas(input.plazas_deseadas, await expandirAtajos(atajos), municipioActual);
+  } catch (e) {
+    console.warn("[actualizarAnuncio] no se pudieron expandir los atajos:", e);
+    return {
+      ok: false,
+      mensaje: "No se pudo preparar la lista de municipios. Inténtalo de nuevo en unos segundos.",
+    };
+  }
+  if (plazasFinal.length === 0)
+    return { ok: false, mensaje: "Tienes que indicar al menos un municipio deseado." };
 
   // 1) UPDATE anuncio
   const { error: errUpd } = await supabase
@@ -80,23 +100,19 @@ export async function actualizarAnuncio(
 
   if (errUpd) return { ok: false, mensaje: errUpd.message };
 
-  // 2) Reemplazar plazas deseadas (DELETE + INSERT)
-  await supabase.from("anuncio_plazas_deseadas").delete().eq("anuncio_id", id);
-  const { error: errPlazas } = await supabase
-    .from("anuncio_plazas_deseadas")
-    .insert(
-      input.plazas_deseadas.map((cod) => ({
-        anuncio_id: id,
-        municipio_codigo: cod,
-      })),
-    );
+  // 2) Reemplazar plazas deseadas en una sola transaccion: si algo falla,
+  // la lista anterior queda intacta.
+  const { error: errPlazas } = await supabase.rpc("reemplazar_plazas_deseadas", {
+    p_anuncio_id: id,
+    p_codigos: plazasFinal,
+  });
   if (errPlazas) return { ok: false, mensaje: errPlazas.message };
 
   // 3) Reemplazar atajos
   await supabase.from("anuncio_atajos").delete().eq("anuncio_id", id);
-  if (input.atajos.length > 0) {
+  if (atajos.length > 0) {
     await supabase.from("anuncio_atajos").insert(
-      input.atajos.map((a) => ({
+      atajos.map((a) => ({
         anuncio_id: id,
         tipo: a.tipo,
         valor: a.valor,
@@ -104,15 +120,50 @@ export async function actualizarAnuncio(
     );
   }
 
-  // 4) Notificación de cadenas nuevas (best-effort). Como editar puede
-  // descubrir cadenas distintas a las que había con la versión anterior,
-  // disparamos también aquí. La RPC `tomar_email_para_notificar_cadena`
-  // deduplica por huella, así que cadenas ya notificadas no se reenvían.
+  // 4) Guardar tambien renueva 6 meses (y reactiva si habia caducado),
+  // como promete el correo de caducidad.
+  const { error: errRenovar } = await supabase.rpc("renovar_anuncio", { p_anuncio_id: id });
+  if (errRenovar) {
+    console.warn("[actualizarAnuncio] no se pudo renovar:", errRenovar.message);
+    return {
+      ok: false,
+      mensaje:
+        "Los cambios se han guardado, pero no se pudo renovar el anuncio. Pulsa «Renovar 6 meses» en tu cuenta o inténtalo de nuevo.",
+    };
+  }
+
+  // 5) Notificación de cadenas nuevas (best-effort). Editar o reactivar
+  // puede descubrir cadenas nuevas; las ya avisadas no se repiten.
   await notificarCadenasNuevas(id);
 
   revalidatePath("/mi-cuenta");
+  revalidatePath("/mis-cadenas");
   revalidatePath("/anuncios");
   return { ok: true };
+}
+
+/**
+ * Renueva el anuncio 6 meses desde hoy. Si habia caducado, vuelve a
+ * publicarse y se buscan cadenas nuevas con el.
+ */
+export async function renovarAnuncio(
+  id: string,
+): Promise<{ ok: true; caduca_el: string } | { ok: false; mensaje: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, mensaje: "No tienes sesión activa." };
+
+  const { data, error } = await supabase.rpc("renovar_anuncio", { p_anuncio_id: id });
+  if (error || !data) {
+    return { ok: false, mensaje: "No se pudo renovar este anuncio." };
+  }
+
+  await notificarCadenasNuevas(id);
+
+  revalidatePath("/mi-cuenta");
+  revalidatePath("/mis-cadenas");
+  revalidatePath("/anuncios");
+  return { ok: true, caduca_el: data as string };
 }
 
 export async function actualizarAnuncioYRedirigir(
@@ -195,6 +246,7 @@ export async function marcarPermutaConseguida(id: string) {
   await notificarCadenaCerradaPorPermuta(id);
 
   revalidatePath("/mi-cuenta");
+  revalidatePath("/mis-cadenas");
   revalidatePath("/anuncios");
   revalidatePath("/auto-permutas");
   return { ok: true as const };
