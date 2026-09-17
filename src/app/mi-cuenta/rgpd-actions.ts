@@ -2,6 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site-url";
+import { leerPorLotes, leerTodo } from "@/lib/cadenas/universo";
+import {
+  construirExportacion,
+  nombreArchivoExportacion,
+  type AtajoExportado,
+  type PlazaExportada,
+  type Registro,
+} from "@/lib/rgpd/exportacion";
 
 // ===========================================================================
 // Derecho de acceso (art. 15) + portabilidad (art. 20):
@@ -17,12 +25,19 @@ import { SITE_URL } from "@/lib/site-url";
 //   - Conversaciones donde participa.
 //   - Mensajes que ha enviado o recibido.
 //   - Reportes de anuncios que ha hecho.
-//   - Notificaciones de cadena recibidas.
+//   - Notificaciones de cadena recibidas y correos de seguimiento.
 //
 // Lo que NO incluimos:
 //   - Datos de OTROS usuarios (perfiles ajenos, anuncios ajenos).
 //   - Datos del sistema (rate_limit, cadenas_detectadas, etc.) que no
 //     son personales en el sentido del RGPD.
+//
+// TODAS las consultas pasan por `leerTodo` / `leerPorLotes`: la API
+// devuelve como mucho 1000 filas por peticion, paginar sin un orden
+// estable puede saltarse filas y un filtro `in (...)` con unos 400
+// identificadores revienta la peticion. Se leen con la sesion del usuario
+// (con RLS), nunca con el cliente de servidor. Si una lectura falla no se
+// entrega un archivo a medias: se devuelve error para que lo repita.
 // ===========================================================================
 
 export type ExportarDatosResultado =
@@ -34,159 +49,137 @@ export async function exportarMisDatos(): Promise<ExportarDatosResultado> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, mensaje: "No autenticado." };
 
-  const [
-    perfilRes,
-    anunciosRes,
-    plazasRes,
-    atajosRes,
-    convsRes,
-    mensajesRes,
-    reportesRes,
-    cadenasNotifRes,
-    seguimientosRes,
-  ] = await Promise.all([
-    supabase
+  try {
+    const { data: perfil, error: errPerfil } = await supabase
       .from("perfiles_usuario")
       .select("*")
       .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("anuncios")
-      .select("*")
-      .eq("usuario_id", user.id),
-    // Plazas deseadas: las traemos juntando por anuncio_id mas tarde.
-    supabase
-      .from("anuncio_plazas_deseadas")
-      .select("anuncio_id, municipio_codigo")
-      .in(
-        "anuncio_id",
-        // subselect inline no funciona desde supabase-js; las recogemos
-        // tras tener la lista de anuncios.
-        // Usamos un placeholder que filtramos luego.
-        ["00000000-0000-0000-0000-000000000000"],
-      ),
-    supabase
-      .from("anuncio_atajos")
-      .select("anuncio_id, tipo, valor, creado_el")
-      .in("anuncio_id", ["00000000-0000-0000-0000-000000000000"]),
-    supabase
-      .from("conversaciones")
-      .select("*")
-      .or(`usuario_a_id.eq.${user.id},usuario_b_id.eq.${user.id}`),
-    supabase
-      .from("mensajes")
-      .select("*")
-      .eq("remitente_id", user.id),
-    supabase
-      .from("reportes_anuncios")
-      .select("*")
-      .eq("reportado_por", user.id),
-    supabase
-      .from("cadenas_notificadas")
-      .select("*")
-      .eq("usuario_id", user.id),
-    supabase
-      .from("seguimientos_permuta")
-      .select("*")
-      .eq("usuario_id", user.id),
-  ]);
+      .maybeSingle();
+    if (errPerfil) throw new Error(errPerfil.message);
 
-  // Vuelta a por las plazas y atajos con los IDs reales.
-  // RGPD: tenemos OBLIGACION LEGAL de devolver todos los datos.
-  // PostgREST trunca a 1000 filas — paginamos para garantizarlo.
-  const anuncios = anunciosRes.data ?? [];
-  const ids = anuncios.map((a) => (a as { id: string }).id);
-  let plazas: unknown[] = [];
-  let atajos: unknown[] = [];
-  if (ids.length > 0) {
-    async function paginarPorAnuncioId<T>(tabla: string, columnas: string): Promise<T[]> {
-      const PAGE = 1000;
-      let offset = 0;
-      const todas: T[] = [];
-      while (true) {
-        const { data } = await supabase
-          .from(tabla)
-          .select(columnas)
-          .in("anuncio_id", ids)
-          .range(offset, offset + PAGE - 1);
-        if (!data || data.length === 0) break;
-        todas.push(...(data as T[]));
-        if (data.length < PAGE) break;
-        offset += PAGE;
-        if (offset > 100_000) break;
-      }
-      return todas;
-    }
-    const [plData, atData] = await Promise.all([
-      paginarPorAnuncioId<{ anuncio_id: string; municipio_codigo: string }>(
-        "anuncio_plazas_deseadas",
-        "anuncio_id, municipio_codigo",
+    const [anuncios, conversaciones, mensajesEnviados, reportes, cadenasNotificadas, seguimientos] =
+      await Promise.all([
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("anuncios")
+            .select("*")
+            .eq("usuario_id", user.id)
+            .order("id")
+            .range(desde, hasta),
+        ),
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("conversaciones")
+            .select("*")
+            .or(`usuario_a_id.eq.${user.id},usuario_b_id.eq.${user.id}`)
+            .order("id")
+            .range(desde, hasta),
+        ),
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("mensajes")
+            .select("*")
+            .eq("remitente_id", user.id)
+            .order("id")
+            .range(desde, hasta),
+        ),
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("reportes_anuncios")
+            .select("*")
+            .eq("reportado_por", user.id)
+            .order("id")
+            .range(desde, hasta),
+        ),
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("cadenas_notificadas")
+            .select("*")
+            .eq("usuario_id", user.id)
+            .order("id")
+            .range(desde, hasta),
+        ),
+        leerTodo<Registro>((desde, hasta) =>
+          supabase
+            .from("seguimientos_permuta")
+            .select("*")
+            .eq("usuario_id", user.id)
+            .order("id")
+            .range(desde, hasta),
+        ),
+      ]);
+
+    const idsAnuncios = anuncios.map((a) => String((a as { id?: unknown }).id ?? ""));
+    const idsConversaciones = conversaciones.map((c) => String((c as { id?: unknown }).id ?? ""));
+
+    // Mensajes recibidos: los de mis conversaciones que no he escrito yo.
+    const [plazas, atajos, mensajesRecibidos] = await Promise.all([
+      leerPorLotes<PlazaExportada>(idsAnuncios, (lote, desde, hasta) =>
+        supabase
+          .from("anuncio_plazas_deseadas")
+          .select("anuncio_id, municipio_codigo")
+          .in("anuncio_id", lote)
+          .order("anuncio_id")
+          .order("municipio_codigo")
+          .range(desde, hasta),
       ),
-      paginarPorAnuncioId<{ anuncio_id: string; tipo: string; valor: string; creado_el: string }>(
-        "anuncio_atajos",
-        "anuncio_id, tipo, valor, creado_el",
+      leerPorLotes<AtajoExportado>(idsAnuncios, (lote, desde, hasta) =>
+        supabase
+          .from("anuncio_atajos")
+          .select("anuncio_id, tipo, valor, creado_el")
+          .in("anuncio_id", lote)
+          .order("id")
+          .range(desde, hasta),
+      ),
+      leerPorLotes<Registro>(idsConversaciones, (lote, desde, hasta) =>
+        supabase
+          .from("mensajes")
+          .select("*")
+          .in("conversacion_id", lote)
+          .neq("remitente_id", user.id)
+          .order("id")
+          .range(desde, hasta),
       ),
     ]);
-    plazas = plData;
-    atajos = atData;
+
+    const ahora = new Date();
+    const exportado = construirExportacion({
+      cuenta: {
+        id: user.id,
+        email: user.email ?? null,
+        email_confirmed_at: user.email_confirmed_at ?? null,
+        created_at: user.created_at ?? null,
+        last_sign_in_at: user.last_sign_in_at ?? null,
+      },
+      perfil: (perfil as Registro | null) ?? null,
+      anuncios,
+      plazas,
+      atajos,
+      conversaciones,
+      mensajesEnviados,
+      mensajesRecibidos,
+      reportes,
+      cadenasNotificadas,
+      seguimientos,
+      sitioUrl: SITE_URL,
+      ahora,
+    });
+
+    return {
+      ok: true,
+      json: JSON.stringify(exportado, null, 2),
+      filename: nombreArchivoExportacion(ahora),
+    };
+  } catch (e) {
+    // Mejor no dar nada que dar un archivo incompleto: el usuario tiene
+    // derecho a TODOS sus datos.
+    console.warn("[rgpd] no se pudieron reunir todos los datos:", e);
+    return {
+      ok: false,
+      mensaje:
+        "No hemos podido reunir todos tus datos ahora mismo. Vuelve a intentarlo en unos minutos; si sigue fallando, escríbenos y te los enviamos a mano.",
+    };
   }
-
-  // Mensajes recibidos: aquellos en conversaciones donde participo y NO
-  // soy el remitente. Necesitamos la lista de conversaciones primero.
-  const convs = (convsRes.data ?? []) as { id: string }[];
-  const convIds = convs.map((c) => c.id);
-  let mensajesRecibidos: unknown[] = [];
-  if (convIds.length > 0) {
-    const r = await supabase
-      .from("mensajes")
-      .select("*")
-      .in("conversacion_id", convIds)
-      .neq("remitente_id", user.id);
-    mensajesRecibidos = r.data ?? [];
-  }
-
-  // Voids of the placeholders we used:
-  void plazasRes;
-  void atajosRes;
-
-  const exportado = {
-    metadata: {
-      exportado_el: new Date().toISOString(),
-      politica_privacidad_url: `${SITE_URL}/politica-privacidad`,
-      formato: "json",
-      version: 1,
-    },
-    cuenta: {
-      id: user.id,
-      email: user.email,
-      email_confirmed_at: user.email_confirmed_at,
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
-    },
-    perfil: perfilRes.data,
-    anuncios: anuncios.map((a) => ({
-      ...a,
-      plazas_deseadas: (plazas as { anuncio_id: string; municipio_codigo: string }[])
-        .filter((p) => p.anuncio_id === (a as { id: string }).id)
-        .map((p) => p.municipio_codigo),
-      atajos: (atajos as { anuncio_id: string; tipo: string; valor: string; creado_el: string }[])
-        .filter((at) => at.anuncio_id === (a as { id: string }).id)
-        .map(({ tipo, valor, creado_el }) => ({ tipo, valor, creado_el })),
-    })),
-    conversaciones: convs,
-    mensajes_enviados: mensajesRes.data ?? [],
-    mensajes_recibidos: mensajesRecibidos,
-    reportes_que_he_hecho: reportesRes.data ?? [],
-    cadenas_notificadas: cadenasNotifRes.data ?? [],
-    correos_de_seguimiento: seguimientosRes.data ?? [],
-  };
-
-  const fechaCorta = new Date().toISOString().slice(0, 10);
-  return {
-    ok: true,
-    json: JSON.stringify(exportado, null, 2),
-    filename: `permutaes-mis-datos-${fechaCorta}.json`,
-  };
 }
 
 // ===========================================================================

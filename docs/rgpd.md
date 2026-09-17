@@ -29,6 +29,16 @@ y la LOPDGDD (LO 3/2018).
   - `reportes_anuncios` que ha hecho
   - `cadenas_notificadas` recibidas
   - `seguimientos_permuta` (correos «¿Conseguisteis la permuta?» recibidos)
+- **Todas** las consultas paginan con orden estable y trocean los filtros
+  `in (...)` en lotes de 100 identificadores (`leerTodo` / `leerPorLotes`
+  de `src/lib/cadenas/universo.ts`): la API devuelve 1000 filas como
+  mucho, paginar sin orden puede saltarse filas y un `in (...)` con unos
+  400 identificadores revienta la petición. Antes, quien tuviera más de
+  1000 mensajes recibía un archivo incompleto sin saberlo.
+- Si una lectura falla, **no se entrega un archivo a medias**: la acción
+  devuelve error y el usuario vuelve a intentarlo (obligación de entregar
+  todos los datos).
+- El archivo se arma en `src/lib/rgpd/exportacion.ts` (con tests).
 - Devuelve un JSON estructurado que el cliente descarga como archivo.
 - Filename: `permutaes-mis-datos-YYYY-MM-DD.json`.
 
@@ -138,3 +148,6 @@ Aunque el usuario elimine su cuenta:
 
 - **v1** (migración 0020): RPC `eliminar_mi_cuenta` + server actions
   `exportarMisDatos` / `eliminarMiCuenta` + UI en `/mi-cuenta`.
+- **v2** (17/09/2026): la exportación incluye `seguimientos_permuta`,
+  pagina todas las consultas y prefiere fallar antes que entregar un
+  archivo incompleto. El JSON lleva `metadata.version = 2`.
