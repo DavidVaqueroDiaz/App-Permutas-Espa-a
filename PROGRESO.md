@@ -26,7 +26,7 @@ Objetivo de Vaquero: que **ninguna cadena posible (2, 3 o 4) se quede sin avisar
 - **Panel de admin** (`/admin`): semáforo «¿Está funcionando?» (tareas diarias, correos, recordatorios atrasados, anuncios vencidos, municipios incompletos, avisos pendientes), cifras, cadenas actuales con aviso por persona y si han hablado (solo recuentos y fechas) e histórico de cadenas avisadas. Datos en `src/lib/admin/panel.ts` + SQL `admin_metricas`.
 - **Registro de correos** (`envios_email`, sin direcciones): la clave de Resend solo permite enviar, así que el panel usa este registro para ver fallos.
 
-Migraciones aplicadas en producción: 0039, 0040 y 0041 (script `aplicar-migracion-0039.ts`). La 0042 se aplica justo después de que Vercel publique este código, porque la versión anterior aún usa las funciones que retira. Comprobación repetible (solo lectura): `npx tsx scripts/verificar-avisos-y-panel.ts`.
+Migraciones aplicadas en producción: 0039, 0040, 0041 y 0042 (esta última el 17/09/2026 a las 18:52, justo después de publicar el código; scripts `aplicar-migracion-0039.ts` y `aplicar-migraciones-0040-0041.ts`). Comprobado desde la API pública que las funciones antiguas ya no existen y que las internas rechazan la clave pública. Comprobaciones repetibles (solo lectura): `npx tsx scripts/auditoria-cadenas-avisos.ts` y `npx tsx scripts/verificar-avisos-y-panel.ts`.
 
 **Ojo al volver atrás en Vercel:** una vez aplicada la 0042, publicar una versión anterior al 17/09/2026 deja de enviar los avisos de cadena y de mensajes (ese código llama a funciones que ya no existen). Volver atrás solo a versiones de esta fecha en adelante.
 
