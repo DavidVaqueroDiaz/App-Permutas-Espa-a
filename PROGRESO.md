@@ -48,7 +48,11 @@ Aprobado por Vaquero: correo «¿Conseguisteis la permuta?» a los 30 días y un
 
 Migración 0043 aplicada el 17/09/2026 a las 19:02 (aditiva; script `aplicar-migracion-0043.ts`, ensayo con 40 comprobaciones). Código publicado a las 19:49. Simulación con datos reales: 3 cadenas, ningún aviso pendiente; el 18/09 por la mañana saldrán 4 correos de seguimiento (las dos parejas que hablan). Comprobado también que el registro `envios_email` escribe y borra bien, y que iniciar sesión solo vuelve a rutas de la web.
 
-Revisión independiente de esta entrega (informe en la sesión): sin fallos que dejen a nadie sin aviso. Se corrigieron antes de publicar el plazo del seguimiento, la repetición a las mismas personas, el orden de los nombres en el correo (para que la clave anti-duplicado no cambie), confirmar antes de anotar, una carrera al limpiar reservas, el tiempo de envío tras cada acción y un `open redirect` en el enlace de confirmación de cuenta.
+**Funcionó (18/09/2026):** a las 10:32 salieron los 4 primeros correos «¿Conseguisteis la permuta?» (uno por persona, 6 cadenas-persona), ninguno falló, y el panel ya muestra el recordatorio para el 18/10. La revisión diaria de avisos no tuvo nada pendiente.
+
+**Exportación RGPD (18/09/2026, commit 289a6e7):** «Descargar mis datos» paginaba a medias y entregaba archivos incompletos sin avisar (más de 1000 mensajes se perdían, los municipios se paginaban sin orden y con unas 400 conversaciones la consulta fallaba). Ahora todas las consultas pasan por `leerTodo` / `leerPorLotes`, el archivo se arma en `src/lib/rgpd/exportacion.ts` (con tests) y si una lectura falla no se entrega nada a medias. Comprobado con datos reales: la persona con más datos (2715 municipios) obtiene exactamente las filas que hay.
+
+Revisión independiente de la segunda entrega (informe en la sesión): sin fallos que dejen a nadie sin aviso. Se corrigieron antes de publicar el plazo del seguimiento, la repetición a las mismas personas, el orden de los nombres en el correo (para que la clave anti-duplicado no cambie), confirmar antes de anotar, una carrera al limpiar reservas, el tiempo de envío tras cada acción y un `open redirect` en el enlace de confirmación de cuenta.
 
 ---
 
